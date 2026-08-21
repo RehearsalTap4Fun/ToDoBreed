@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GSI 开发方案</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F2F4EE; --card:#E9EDE2; --card2:#E1E6D8;
+  --ink:#222E27; --muted:#5C6B60; --faint:#8C978B;
+  --line:#D4DACA; --line-strong:#B7C0AC;
+  --accent:#A2650F; --risk:#A5402A; --ok:#3F7247; --rare:#2A6B85;
+  --serif:'Noto Serif SC','Songti SC','SimSun',serif;
+  --sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'IBM Plex Mono','SF Mono','Menlo',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161B17; --card:#1E2620; --card2:#242D26;
+    --ink:#E2E8DD; --muted:#9BA89B; --faint:#6E7B6F;
+    --line:#2D382F; --line-strong:#41503F;
+    --accent:#DFA24B; --risk:#D97F63; --ok:#8CBB8E; --rare:#72ACC7;
+  }
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.9;margin:0;padding:0 1.25rem}
+main{max-width:46rem;margin:0 auto;padding:3.5rem 0 5rem}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+header.doc{border-bottom:2px solid var(--ink);padding-bottom:2rem;margin-bottom:2.5rem}
+.catline{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:1.6rem}
+h1{font-family:var(--serif);font-weight:900;font-size:clamp(2rem,6vw,2.7rem);line-height:1.25;margin:0 0 .6rem;letter-spacing:.02em;text-wrap:balance}
+.subtitle{font-size:1.02rem;color:var(--muted);margin:0 0 1.4rem;text-wrap:balance}
+.metarow{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.metarow b{color:var(--ink);font-weight:500}
+
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1.4rem 1.6rem;margin-bottom:3.5rem}
+nav.toc h2{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;color:var(--muted);margin:0 0 .9rem;font-weight:600;text-transform:uppercase;border:none;padding:0}
+nav.toc ol{columns:2;column-gap:2rem;margin:0;padding:0;list-style:none;font-size:.92rem}
+nav.toc li{margin-bottom:.35rem;break-inside:avoid}
+nav.toc .no{font-family:var(--mono);font-size:.75rem;color:var(--faint);margin-right:.5em}
+@media (max-width:560px){nav.toc ol{columns:1}}
+
+section{margin-bottom:4rem}
+.eyebrow{font-family:var(--mono);font-size:.75rem;font-weight:600;letter-spacing:.16em;color:var(--accent);margin-bottom:.3rem}
+h2{font-family:var(--serif);font-weight:700;font-size:1.5rem;line-height:1.4;margin:0 0 1.2rem;padding-bottom:.6rem;border-bottom:1px solid var(--line-strong);text-wrap:balance}
+h3{font-family:var(--sans);font-weight:700;font-size:1.03rem;margin:2.2rem 0 .8rem}
+h3 .h3no{font-family:var(--mono);font-size:.78rem;font-weight:600;color:var(--faint);margin-right:.6em}
+p{margin:0 0 1rem}
+ul,ol{margin:0 0 1rem;padding-left:1.4rem}
+li{margin-bottom:.35rem}
+strong{font-weight:700}
+em{font-style:normal;color:var(--accent);font-weight:500}
+.note{border-left:3px solid var(--accent);background:var(--card);padding:.8rem 1.1rem;border-radius:0 6px 6px 0;font-size:.92rem;color:var(--muted);margin:1.2rem 0}
+.note b{color:var(--ink)}
+.warn{border-left-color:var(--risk)}
+
+.tablewrap{overflow-x:auto;margin:1.2rem 0;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.88rem;line-height:1.7}
+th{font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:.1em;text-align:left;color:var(--muted);text-transform:uppercase;background:var(--card2);padding:.55rem .9rem;white-space:nowrap}
+td{padding:.55rem .9rem;border-top:1px solid var(--line);vertical-align:top}
+td.num,th.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.tname{font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--card) 45%,transparent)}
+code{font-family:var(--mono);font-size:.85em;background:var(--card2);padding:.08em .35em;border-radius:3px}
+pre.code{font-family:var(--mono);font-size:.8rem;line-height:1.75;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1rem 1.2rem;overflow-x:auto;margin:1.2rem 0}
+pre.code .c{color:var(--faint)}
+pre.code .k{color:var(--rare)}
+
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:.5rem;margin:1.4rem 0 .6rem}
+.fnode{flex:1 1 8rem;background:var(--card);border:1px solid var(--line-strong);border-radius:6px;padding:.7rem .8rem;min-width:7.5rem}
+.fnode .fno{font-family:var(--mono);font-size:.68rem;color:var(--accent);letter-spacing:.12em;font-weight:600}
+.fnode .ft{font-weight:700;font-size:.9rem;margin:.15rem 0 .2rem}
+.fnode .fd{font-size:.78rem;color:var(--muted);line-height:1.6}
+.farr{align-self:center;color:var(--faint);font-family:var(--mono);flex:0 0 auto}
+
+.chip{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:600;padding:.05rem .55rem;border-radius:999px;border:1px solid;white-space:nowrap}
+.chip.done{color:var(--ok);border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent)}
+.chip.next{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.chip.later{color:var(--muted);border-color:var(--line-strong)}
+
+footer.doc{margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:.08em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+</style>
+</head>
+<body>
+<main>
+<header class="doc">
+  <div class="catline"><span>GSI · Grotesque Specimen Incubator</span><span>工程文档</span></div>
+  <h1>GSI 开发方案</h1>
+  <p class="subtitle">怪奇生物孵化器的技术实现方案：架构、核心机制实现、渲染管线、测试与路线图。与《设计文档 v0.1》配套，以仓库现状为准。</p>
+  <div class="metarow">
+    <span>文档 <b>开发方案 v0.1</b></span>
+    <span>日期 <b>2026-08-21</b></span>
+    <span>仓库 <b>~/Demo/incubator</b></span>
+    <span>状态 <b>MVP 已落地 · 12 测试全绿</b></span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><span class="no">§01</span><a href="#s01">项目概况与当前状态</a></li>
+    <li><span class="no">§02</span><a href="#s02">技术选型</a></li>
+    <li><span class="no">§03</span><a href="#s03">系统架构与数据流</a></li>
+    <li><span class="no">§04</span><a href="#s04">目录结构</a></li>
+    <li><span class="no">§05</span><a href="#s05">核心机制实现要点</a></li>
+    <li><span class="no">§06</span><a href="#s06">渲染管线与画风</a></li>
+    <li><span class="no">§07</span><a href="#s07">数据结构</a></li>
+    <li><span class="no">§08</span><a href="#s08">测试</a></li>
+    <li><span class="no">§09</span><a href="#s09">开发工具与调试</a></li>
+    <li><span class="no">§10</span><a href="#s10">路线图</a></li>
+    <li><span class="no">§11</span><a href="#s11">已知问题与约定</a></li>
+  </ol>
+</nav>
+
+<!-- ═══════════════ §01 ═══════════════ -->
+<section id="s01">
+  <div class="eyebrow">§01</div>
+  <h2>项目概况与当前状态</h2>
+  <p>纯前端单页应用，无后端、无账号。把"完成真实待办"转化为"孵化随机特征生物"的自驱工具（详见设计文档 v0.1，仓库归档于 <code>docs/design-v0.1.html</code>）。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>维度</th><th>当前状态（2026-08-21）</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">功能</td><td>MVP 闭环全部可玩：待办 → 孵化点 → 揭露 → 判定 → 图鉴/标本室，含休眠棚、顺延队列、驻场生物</td></tr>
+      <tr><td class="tname">内容</td><td>3 主题（深海/菌沼/幽影）、8 槽位 59 条特征、6 条畸变</td></tr>
+      <tr><td class="tname">画风</td><td>造型已完成"可爱治愈"深化；5 种渲染风格可切（默认贴纸卡通），主风格待定稿</td></tr>
+      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 12/12 通过</td></tr>
+      <tr><td class="tname">启动</td><td><code>npm install && npm run dev</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════════ §02 ═══════════════ -->
+<section id="s02">
+  <div class="eyebrow">§02</div>
+  <h2>技术选型</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>选型</th><th>方案</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">框架</td><td>Vite + React 18 + TypeScript（strict）</td><td>轻、快、类型兜底；单人 side project 迭代效率优先</td></tr>
+      <tr><td class="tname">持久化</td><td>localStorage + JSON 导出/导入</td><td>MVP 不做账号与同步；导出档防丢、防换机</td></tr>
+      <tr><td class="tname">渲染</td><td>参数化 SVG 分层部件</td><td>生物 = 特征 ID 列表的纯函数渲染，完全可复现；画风做在滤镜层，特征零重画切换</td></tr>
+      <tr><td class="tname">随机</td><td>mulberry32 带种子 PRNG</td><td>蛋生成瞬间命运固定，刷新不可重掷（命运感 + 防刷）</td></tr>
+      <tr><td class="tname">测试</td><td>Vitest（纯逻辑层）</td><td>引擎全部纯函数，时间以参数注入，天然可测</td></tr>
+      <tr><td class="tname">依赖面</td><td>运行时仅 react/react-dom</td><td>零 UI 库、零状态库、零图表库，降低长期维护成本</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════════ §03 ═══════════════ -->
+<section id="s03">
+  <div class="eyebrow">§03</div>
+  <h2>系统架构与数据流</h2>
+  <p>核心原则：<strong>引擎层全部纯函数</strong>。UI 不直接改状态，所有变更走 <code>engine.ts</code> 的纯函数，返回新状态 + 事件列表；副作用（存档、弹窗、Toast）集中在 <code>App.tsx</code> 的 <code>absorb()</code> 一处。</p>
+  <div class="flow">
+    <div class="fnode"><div class="fno">INPUT</div><div class="ft">用户操作 / 时间流逝</div><div class="fd">完成待办、放弃、换蛋；跨日与周一由 processTime 补结算</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">ENGINE</div><div class="ft">纯函数引擎</div><div class="fd">completeTodo / processTime …→ 新 GameState + GameEvent[]</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">ABSORB</div><div class="ft">副作用汇聚点</div><div class="fd">saveState 持久化；事件分流：揭露/破壳进弹窗队列，其余进 Toast</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">RENDER</div><div class="ft">React 渲染</div><div class="fd">工作间 / 图鉴 / 弹窗；生物与蛋由纯函数 SVG 组件绘制</div></div>
+  </div>
+  <ul>
+    <li><strong>时间注入：</strong>引擎函数一律接收 <code>today: 'YYYY-MM-DD'</code> 参数，不内部取时钟——这是可测试性与 dev 时间偏移的基础。</li>
+    <li><strong>事件驱动演出：</strong><code>GameEvent</code>（reveal / hatch / eggArrived / autoFail / forcedHatch / noEgg）由 UI 排队消费，一次完成跨多个阈值时揭露卡按序弹出。</li>
+    <li><strong>离线补结算：</strong><code>processTime</code> 从 <code>lastDay</code> 逐日推进到今天，每日先处理周一事件再结算逾期，保证多日离线后的风险与周事件顺序正确。</li>
+  </ul>
+</section>
+
+<!-- ═══════════════ §04 ═══════════════ -->
+<section id="s04">
+  <div class="eyebrow">§04</div>
+  <h2>目录结构</h2>
+  <pre class="code">incubator/
+├─ docs/                    <span class="c">设计文档与本开发方案</span>
+├─ tests/engine.test.ts     <span class="c">逻辑层单测（12 条）</span>
+└─ src/
+   ├─ core/                 <span class="c">引擎层（纯函数，无 React 依赖）</span>
+   │  ├─ types.ts           <span class="c">全部领域类型 + 槽位/难度常量</span>
+   │  ├─ time.ts            <span class="c">日戳运算、周一锚定（UTC 解释防 DST）</span>
+   │  ├─ rng.ts             <span class="c">mulberry32、加权抽取、洗牌</span>
+   │  ├─ draw.ts            <span class="c">命运预掷：8 特征 + 判定骰 + 畸变预案</span>
+   │  ├─ naming.ts          <span class="c">主题词根 + 特征命名字</span>
+   │  ├─ engine.ts          <span class="c">数值常量 + 全部状态变更函数</span>
+   │  └─ storage.ts         <span class="c">localStorage、导出/导入、dev 时间偏移</span>
+   ├─ data/                 <span class="c">内容层（策划数据，纯声明）</span>
+   │  ├─ traits.ts          <span class="c">59 特征 + 6 畸变（含互斥/联动/命名字）</span>
+   │  └─ themes.ts          <span class="c">3 主题：色板、特征偏向池、词根</span>
+   ├─ render/               <span class="c">渲染层（纯函数 SVG）</span>
+   │  ├─ Creature.tsx       <span class="c">生物渲染器：几何 + 5 画风滤镜</span>
+   │  ├─ Egg.tsx            <span class="c">蛋渲染器：进度微光 + 风险裂纹</span>
+   │  └─ colors.ts          <span class="c">混色/明度工具</span>
+   └─ ui/                   <span class="c">界面层</span>
+      ├─ Workshop.tsx       <span class="c">工作间 + 驻场生物性格动画</span>
+      ├─ TodoBoard.tsx      <span class="c">待办板（含两步确认放弃）</span>
+      ├─ Shed.tsx           <span class="c">休眠棚</span>
+      ├─ Codex.tsx          <span class="c">图鉴 + 标本室 + 收集统计</span>
+      ├─ EventModals.tsx    <span class="c">揭露卡 / 破壳卡</span>
+      ├─ DevPanel.tsx       <span class="c">?dev=1 开发面板</span>
+      └─ StyleLab.tsx       <span class="c">?lab=1 画风实验室</span></pre>
+  <p>分层依赖单向：<code>ui → render/core/data</code>，<code>render → core/data</code>，<code>core → data</code>（仅 draw/engine 读内容表）。内容扩充（加特征、加主题）只动 <code>data/</code> 与渲染部件，不碰引擎。</p>
+</section>
+
+<!-- ═══════════════ §05 ═══════════════ -->
+<section id="s05">
+  <div class="eyebrow">§05</div>
+  <h2>核心机制实现要点</h2>
+
+  <h3><span class="h3no">5.1</span>命运预掷（draw.ts）</h3>
+  <p>蛋生成时用固定种子一次掷完全部命运：按槽位顺序抽 8 特征（互斥剔除 + 联动权重倍率沿途累积）、孵化判定骰（0–100，孵化时与最终风险比较）、畸变预案（1–2 条，仅判定失败时套用）、命名词根。同一 seed 结果完全可复现——测试与"防刷新重roll"都依赖这一点。</p>
+  <pre class="code"><span class="c">// 抽取顺序即揭露顺序（先形体后灵魂）</span>
+frame → limbs → head → mouth → surface → pattern → temperament → quirk
+<span class="c">// 每槽：70% 主题池 / 30% 全量池 → 稀有度权重 N70:R25 × 联动倍率 → 加权抽取</span></pre>
+
+  <h3><span class="h3no">5.2</span>时间结算（engine.processTime）</h3>
+  <ul>
+    <li>逐日循环 <code>lastDay+1 … today</code>；每日先判 <code>isMonday</code> 走周事件，再结算逾期。</li>
+    <li><strong>周一：</strong>休眠棚每蛋 <code>dormantWeeks++</code> 且 +8% 风险，&gt;3 周强制孵化；台上未满蛋入棚（入棚即 +8%）；台空则新蛋降临，台被占（棚满）则 <code>pendingEggs++</code> 顺延。</li>
+    <li><strong>逾期：</strong>首日 +4%、此后每日 +2%，单条待办累计上限 12%；逾期满 7 天自动判失败再 +12%。风险落在<em>结算当日孵化台上的蛋</em>。</li>
+    <li><strong>补位：</strong>孵化完成后依次取顺延队列 → 自动换上最早休眠的蛋，避免"空台浪费孵化点"。</li>
+  </ul>
+
+  <h3><span class="h3no">5.3</span>孵化判定</h3>
+  <pre class="code">aberrant = destiny.judgmentRoll &lt; egg.risk   <span class="c">// 判定骰在蛋生成时已注定</span>
+<span class="c">// 畸变 → 套用预案畸变（1–2 槽被覆盖），入标本室；正常 → 完整入册</span>
+<span class="c">// 档案快照 fedTodos（标题+难度），图鉴的"由 N 条待办喂大"由此而来</span></pre>
+
+  <h3><span class="h3no">5.4</span>周与日的边界处理</h3>
+  <p>日戳统一 <code>YYYY-MM-DD</code> 字符串（本地日期生成、UTC 解释运算，避开 DST）；周以"该周周一的日戳"为标识。App 每 60 秒调一次 <code>processTime</code>，跨零点与跨周一在应用常开时也能触发。</p>
+</section>
+
+<!-- ═══════════════ §06 ═══════════════ -->
+<section id="s06">
+  <div class="eyebrow">§06</div>
+  <h2>渲染管线与画风</h2>
+
+  <h3><span class="h3no">6.1</span>生物渲染器（Creature.tsx）</h3>
+  <p>生物 = <code>特征ID×8 + 主题色板 + seed</code> 的纯函数。图层顺序：</p>
+  <pre class="code">地影 → 异能微光 → 附肢 → <span class="k">蒙版躯体</span>(底色/渐变 + 纹样 + 表皮内效 + 体积光 + 肚皮布片)
+     → 表皮外饰 → 头部与眼 + 腮红 → 口器</pre>
+  <ul>
+    <li><strong>蒙版技巧：</strong>躯体剪影画进 <code>&lt;mask&gt;</code>，纹样/材质/光影以整幅矩形绘制后被剪影裁切——蛇形等描边型剪影也能统一处理。</li>
+    <li><strong>造型基准（可爱治愈）：</strong>大头身比、圆润无锐角、大眼双高光、全员腮红、粉彩化配色（底色向白偏移 16%、暗部收敛）。</li>
+    <li><strong>畸变渲染：</strong>错位=器官偏移、未成形=槽位半透明、色彩失谐=失谐色板、静默=无动画、外溢=模糊、逆生长=整体缩放。</li>
+  </ul>
+
+  <h3><span class="h3no">6.2</span>五种画风（滤镜层，特征零重画）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>画风</th><th>实现</th><th>定位</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">flat 扁平剪纸</td><td>纯色块面</td><td>基线对照</td></tr>
+      <tr><td class="tname">soft 软立体</td><td>径向渐变 + 高光/体积影 + feDropShadow</td><td>安全耐看</td></tr>
+      <tr><td class="tname">sticker 贴纸卡通</td><td>feMorphology 双层膨胀（深描边+白贴纸边）+ 提饱和</td><td><em>当前默认</em>，表情包/分享气质</td></tr>
+      <tr><td class="tname">ink 水彩图鉴</td><td>feTurbulence 位移抖动轮廓 + 墨线环 + 纸纹颗粒乘算</td><td>博物志氛围，宜纸面场景</td></tr>
+      <tr><td class="tname">plush 毛绒玩偶</td><td>噪声凹凸 + feDiffuseLighting 绒面 + 双重扰动毛边 + 缝线布片；脸部件独立于绒面（塑料眼+刺绣脸）</td><td>实体陪伴感，候选主风格</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>滤镜层经验：</b>光照/乘算类滤镜会洗淡颜色，尾部需补饱和（plush 补了 saturate 1.28）；发光大色块（异能微光）必须放在描边滤镜组之外，否则半透明 alpha 会被膨胀出脏环；「双目下垂」类表情用闭眼「˘˘」曲线才治愈，半睁眼读作不耐烦。</div>
+
+  <h3><span class="h3no">6.3</span>蛋渲染器（Egg.tsx）</h3>
+  <p>主题化外观（深海气泡/菌沼活蘑菇/幽影眨眼暗涡）+ 状态可视化：微光强度 ∝ 孵化点，裂纹分档出现于风险 &gt;15/30/50/70%，≥60 点透出内部剪影。<em>蛋的可爱化改造尚未做</em>（见路线图）。</p>
+</section>
+
+<!-- ═══════════════ §07 ═══════════════ -->
+<section id="s07">
+  <div class="eyebrow">§07</div>
+  <h2>数据结构</h2>
+  <p>单一存档对象存于 localStorage key <code>gsi-save-v1</code>，含 <code>version</code> 字段供后续迁移。要点：</p>
+  <pre class="code">GameState { version, gsiCounter, seedTick, <span class="k">saveSalt</span>,   <span class="c">// 存档级随机盐</span>
+            currentEgg, shed[≤3], pendingEggs,
+            todos[], codex[], lastDay, firstDay }
+
+Egg   { id, theme, <span class="k">seed</span>, points, risk, <span class="k">destiny</span>,        <span class="c">// 命运在生成时已注定</span>
+        dormantWeeks, fedBy[] }
+Todo  { id, title, difficulty, due?, state, riskFromOverdue }   <span class="c">// 单条逾期风险上限 12</span>
+CreatureRecord { id "GSI-001", name, nickname?, traits×8,
+        aberrations[], outcome, riskAtHatch, <span class="k">fedTodos快照</span>, forced }</pre>
+  <p>待办永不物理删除（状态机 open/done/abandoned/failed），图鉴档案另存 <code>fedTodos</code> 标题快照双保险。</p>
+</section>
+
+<!-- ═══════════════ §08 ═══════════════ -->
+<section id="s08">
+  <div class="eyebrow">§08</div>
+  <h2>测试</h2>
+  <p><code>tests/engine.test.ts</code>，12 条，全部针对纯逻辑层（渲染层靠画风实验室目检）：</p>
+  <ul>
+    <li><strong>时间：</strong>周一锚定、跨月日差。</li>
+    <li><strong>抽取：</strong>3 主题 × 300 seed 扫描——8 槽必满、互斥必守、同 seed 可复现；命名不撞字。</li>
+    <li><strong>数值：</strong>难度给点与阈值揭露；逾期 4+2+2… 封顶 12；满 7 天自动失败 +12；放弃 +6。</li>
+    <li><strong>判定：</strong>判定骰 ≥/＜ 风险的正常/畸变双路径，档案快照正确。</li>
+    <li><strong>周循环：</strong>入棚 +8 与新蛋降临、休眠满 3 周强制孵化、手动换蛋。</li>
+  </ul>
+  <div class="note"><b>约定：</b>改 <code>engine.ts</code> / <code>draw.ts</code> / <code>time.ts</code> 必须跑 <code>npm test</code>；新机制先补测试再实现（逾期、休眠这类时间逻辑最容易错在边界日）。</div>
+</section>
+
+<!-- ═══════════════ §09 ═══════════════ -->
+<section id="s09">
+  <div class="eyebrow">§09</div>
+  <h2>开发工具与调试</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>入口</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">?dev=1</td><td>开发面板（左下角）：+12/+50 孵化点直喂、时间偏移 ±1/±7 天、偏移清零、重置存档。偏移存 localStorage <code>gsi-dev-day-offset</code></td></tr>
+      <tr><td class="tname">?lab=1</td><td>画风实验室：4 只固定样本 × 5 风格并排，纸面/深色背景切换</td></tr>
+      <tr><td class="tname">导出/导入</td><td>顶栏按钮，JSON 明文存档，可手改后导回构造任意场景</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn"><b>时间偏移的坑：</b>快进测试后 <code>lastDay</code> 会停在未来，只清偏移不重置存档的话，真实世界追上之前每日结算不会跑。<b>「偏移清零」与「重置存档」成对使用。</b></div>
+</section>
+
+<!-- ═══════════════ §10 ═══════════════ -->
+<section id="s10">
+  <div class="eyebrow">§10</div>
+  <h2>路线图</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>阶段</th><th>内容</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">v0.1</td><td>MVP 闭环：3 主题 59 特征、完整数值、图鉴/标本室、驻场生物、存档</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">v0.1.x</td><td>造型可爱治愈化 + 5 画风实验室</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">v0.2</td><td>主画风定稿（sticker / plush / 场景组合待拍板）；蛋的可爱化改造；破壳演出完整版；传说级特征 + 变异表（变异率=5%+困难待办×1%，引擎已留 <code>mutationBonus</code> 概念位）；按时连击</td><td><span class="chip next">下一步</span></td></tr>
+      <tr><td class="tname">v0.2.x</td><td>剩余 7 主题逐批放出（每主题=色板+偏向池+词根+蛋装饰，纯内容扩充）；驻场生物动画补全 R 级性格</td><td><span class="chip later">规划中</span></td></tr>
+      <tr><td class="tname">v0.3+</td><td>分享卡导出、周挑战蛋、生态羁绊、双驻场、年度报告、音景；多端同步与外部待办源接入再评估</td><td><span class="chip later">远期</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════════ §11 ═══════════════ -->
+<section id="s11">
+  <div class="eyebrow">§11</div>
+  <h2>已知问题与约定</h2>
+  <ul>
+    <li><strong>无 git 仓库：</strong>项目尚未 <code>git init</code>。建议尽早初始化并做首次提交（参照斗蛐惯例可直接在 main 上开发，代价是提交前测试必须全绿）。</li>
+    <li><strong>版本升级迁移：</strong>存档带 <code>version</code>，加字段时在 <code>storage.loadState</code> 做向后兼容填默认值，不清档。</li>
+    <li><strong>风险归属：</strong>逾期风险落在结算当日台上的蛋；台空则该日风险落空（对用户有利，接受）。</li>
+    <li><strong>驻场时段动画：</strong>夜行性格按本地时钟 20:00–6:00 切换行为，纯展示层，不进存档。</li>
+    <li><strong>性能：</strong>图鉴卡片多时 SVG 滤镜（尤其 plush 的光照）有开销，图鉴内已关 idle 动画；若入册量大再考虑虚拟滚动或缩略图缓存。</li>
+    <li><strong>设计文档同步：</strong>数值改动需回写设计文档（Artifact 同链接重发 + <code>docs/design-v0.1.html</code> 同步），避免两份文档漂移。</li>
+  </ul>
+</section>
+
+<footer class="doc">
+  <span>GSI · 开发方案 v0.1 · 配套《设计文档 v0.1》</span>
+  <span>2026-08-21</span>
+</footer>
+</main>
+</body>
+</html>

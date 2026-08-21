@@ -1,0 +1,823 @@
+<title>怪奇生物孵化器</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F2F4EE;
+  --card:#E9EDE2;
+  --card2:#E1E6D8;
+  --ink:#222E27;
+  --muted:#5C6B60;
+  --faint:#8C978B;
+  --line:#D4DACA;
+  --line-strong:#B7C0AC;
+  --accent:#A2650F;        /* 孵化灯的琥珀光 */
+  --risk:#A5402A;          /* 畸变风险 · 锈红 */
+  --mutation:#6B4FA0;      /* 变异 · 幽紫 */
+  --success:#3F7247;       /* 正常孵化 · 苔绿 */
+  --rare:#2A6B85;          /* 稀有 · 汽油蓝 */
+  --serif:'Noto Serif SC','Songti SC','SimSun',serif;
+  --sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'IBM Plex Mono','SF Mono','Menlo',monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161B17;
+    --card:#1E2620;
+    --card2:#242D26;
+    --ink:#E2E8DD;
+    --muted:#9BA89B;
+    --faint:#6E7B6F;
+    --line:#2D382F;
+    --line-strong:#41503F;
+    --accent:#DFA24B;
+    --risk:#D97F63;
+    --mutation:#AC92DB;
+    --success:#8CBB8E;
+    --rare:#72ACC7;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161B17;
+  --card:#1E2620;
+  --card2:#242D26;
+  --ink:#E2E8DD;
+  --muted:#9BA89B;
+  --faint:#6E7B6F;
+  --line:#2D382F;
+  --line-strong:#41503F;
+  --accent:#DFA24B;
+  --risk:#D97F63;
+  --mutation:#AC92DB;
+  --success:#8CBB8E;
+  --rare:#72ACC7;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.9;
+  margin:0;
+  padding:0 1.25rem;
+}
+main{max-width:46rem;margin:0 auto;padding:3.5rem 0 5rem}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── 页眉 ─────────────────────────── */
+header.doc{border-bottom:2px solid var(--ink);padding-bottom:2rem;margin-bottom:2.5rem}
+.catline{
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;
+  color:var(--muted);text-transform:uppercase;margin-bottom:1.6rem;
+}
+h1{
+  font-family:var(--serif);font-weight:900;font-size:clamp(2.1rem,6vw,2.9rem);
+  line-height:1.25;margin:0 0 .6rem;letter-spacing:.02em;text-wrap:balance;
+}
+.subtitle{font-size:1.05rem;color:var(--muted);margin:0 0 1.4rem;text-wrap:balance}
+.metarow{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.metarow b{color:var(--ink);font-weight:500}
+
+/* ── 目录 ─────────────────────────── */
+nav.toc{
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:1.4rem 1.6rem;margin-bottom:3.5rem;
+}
+nav.toc h2{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;color:var(--muted);margin:0 0 .9rem;font-weight:600;text-transform:uppercase;border:none;padding:0}
+nav.toc ol{
+  columns:2;column-gap:2rem;margin:0;padding:0;list-style:none;
+  font-size:.92rem;
+}
+nav.toc li{margin-bottom:.35rem;break-inside:avoid}
+nav.toc .no{font-family:var(--mono);font-size:.75rem;color:var(--faint);margin-right:.5em}
+@media (max-width:560px){nav.toc ol{columns:1}}
+
+/* ── 章节 ─────────────────────────── */
+section{margin-bottom:4rem}
+.eyebrow{
+  font-family:var(--mono);font-size:.75rem;font-weight:600;
+  letter-spacing:.16em;color:var(--accent);margin-bottom:.3rem;
+}
+h2{
+  font-family:var(--serif);font-weight:700;font-size:1.55rem;line-height:1.4;
+  margin:0 0 1.2rem;padding-bottom:.6rem;border-bottom:1px solid var(--line-strong);
+  text-wrap:balance;
+}
+h3{
+  font-family:var(--sans);font-weight:700;font-size:1.05rem;
+  margin:2.2rem 0 .8rem;
+}
+h3 .h3no{font-family:var(--mono);font-size:.78rem;font-weight:600;color:var(--faint);margin-right:.6em}
+p{margin:0 0 1rem}
+ul,ol{margin:0 0 1rem;padding-left:1.4rem}
+li{margin-bottom:.35rem}
+strong{font-weight:700}
+em{font-style:normal;color:var(--accent);font-weight:500}
+.note{
+  border-left:3px solid var(--accent);background:var(--card);
+  padding:.8rem 1.1rem;border-radius:0 6px 6px 0;
+  font-size:.92rem;color:var(--muted);margin:1.2rem 0;
+}
+.note b{color:var(--ink)}
+
+/* ── 支柱卡片 ─────────────────────── */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1.4rem 0}
+@media (max-width:640px){.pillars{grid-template-columns:1fr}}
+.pillar{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1.1rem 1.2rem}
+.pillar .pno{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.15em;font-weight:600}
+.pillar h4{font-family:var(--serif);font-weight:700;font-size:1.05rem;margin:.3rem 0 .5rem}
+.pillar p{font-size:.86rem;color:var(--muted);line-height:1.75;margin:0}
+
+/* ── 核心循环流程 ─────────────────── */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:.5rem;margin:1.4rem 0 .6rem}
+.fnode{
+  flex:1 1 8.5rem;background:var(--card);border:1px solid var(--line-strong);
+  border-radius:6px;padding:.7rem .8rem;min-width:8rem;
+}
+.fnode .fno{font-family:var(--mono);font-size:.68rem;color:var(--accent);letter-spacing:.12em;font-weight:600}
+.fnode .ft{font-weight:700;font-size:.9rem;margin:.15rem 0 .2rem}
+.fnode .fd{font-size:.78rem;color:var(--muted);line-height:1.6}
+.farr{align-self:center;color:var(--faint);font-family:var(--mono);flex:0 0 auto}
+.floop{font-family:var(--mono);font-size:.75rem;color:var(--faint);text-align:right;margin:0 0 1rem}
+
+/* ── 表格 ─────────────────────────── */
+.tablewrap{overflow-x:auto;margin:1.2rem 0;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.88rem;line-height:1.7}
+th{
+  font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:.1em;
+  text-align:left;color:var(--muted);text-transform:uppercase;
+  background:var(--card2);padding:.55rem .9rem;white-space:nowrap;
+}
+td{padding:.55rem .9rem;border-top:1px solid var(--line);vertical-align:top}
+td.num,th.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.tname{font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--card) 45%,transparent)}
+
+/* ── 稀有度徽章 ───────────────────── */
+.chip{
+  display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:600;
+  padding:.05rem .55rem;border-radius:999px;border:1px solid;white-space:nowrap;
+}
+.chip.n{color:var(--muted);border-color:var(--line-strong)}
+.chip.r{color:var(--rare);border-color:var(--rare);background:color-mix(in srgb,var(--rare) 10%,transparent)}
+.chip.l{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.chip.m{color:var(--mutation);border-color:var(--mutation);background:color-mix(in srgb,var(--mutation) 10%,transparent)}
+.chip.x{color:var(--risk);border-color:var(--risk);background:color-mix(in srgb,var(--risk) 10%,transparent)}
+.chip.s{color:var(--success);border-color:var(--success);background:color-mix(in srgb,var(--success) 10%,transparent)}
+
+/* ── 揭露进度条 ───────────────────── */
+.revealbar{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:1.4rem 0 .4rem}
+@media (max-width:640px){.revealbar{grid-template-columns:repeat(4,1fr)}}
+.seg{border-radius:4px;padding:.5rem .4rem .45rem;text-align:center;border:1px dashed var(--line-strong)}
+.seg .st{font-family:var(--mono);font-size:.68rem;color:var(--faint);font-variant-numeric:tabular-nums}
+.seg .sn{font-size:.75rem;font-weight:700;color:var(--muted);line-height:1.4}
+.seg.on{border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.seg.on .st{color:var(--accent)}
+.seg.on .sn{color:var(--ink)}
+.barcap{font-family:var(--mono);font-size:.72rem;color:var(--faint);text-align:right;margin:0 0 1rem}
+
+/* ── 公式块 ───────────────────────── */
+.formula{
+  font-family:var(--mono);font-size:.84rem;line-height:1.9;
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:.9rem 1.2rem;margin:1.2rem 0;overflow-x:auto;white-space:pre;
+  font-variant-numeric:tabular-nums;
+}
+.formula .fc{color:var(--faint)}
+
+/* ── 标本卡 ───────────────────────── */
+.specimen{
+  border:2px solid var(--ink);border-radius:8px;background:var(--card);
+  padding:1.4rem 1.6rem;margin:1.6rem 0;position:relative;
+}
+.specimen .spid{
+  position:absolute;top:1.1rem;right:1.4rem;
+  font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:.1em;
+}
+.specimen h4{font-family:var(--serif);font-weight:900;font-size:1.5rem;margin:0 0 .1rem}
+.specimen .spsub{font-size:.85rem;color:var(--muted);margin-bottom:1rem}
+.spgrid{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1.2rem;font-size:.86rem}
+.spgrid dt{font-family:var(--mono);font-size:.72rem;color:var(--faint);letter-spacing:.08em;padding-top:.15rem;white-space:nowrap}
+.spgrid dd{margin:0}
+.specimen footer{
+  margin-top:1rem;padding-top:.8rem;border-top:1px dashed var(--line-strong);
+  font-size:.82rem;color:var(--muted);
+}
+
+/* ── 代码块 ───────────────────────── */
+pre.code{
+  font-family:var(--mono);font-size:.8rem;line-height:1.75;
+  background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:1rem 1.2rem;overflow-x:auto;margin:1.2rem 0;
+}
+pre.code .k{color:var(--rare)}
+pre.code .c{color:var(--faint)}
+code{font-family:var(--mono);font-size:.85em;background:var(--card2);padding:.08em .35em;border-radius:3px}
+
+/* ── 页脚 ─────────────────────────── */
+footer.doc{
+  margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);
+  font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:.08em;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<main>
+<header class="doc">
+  <div class="catline"><span>GSI · Grotesque Specimen Incubator</span><span>档案编号 GSI-0000</span></div>
+  <h1>怪奇生物孵化器</h1>
+  <p class="subtitle">一间小小的工作间，一枚每周降临的蛋。你完成现实中的待办事项，它长出没人见过的模样。</p>
+  <div class="metarow">
+    <span>文档 <b>游戏设计 · 完整版</b></span>
+    <span>版本 <b>v0.1</b></span>
+    <span>日期 <b>2026-08-21</b></span>
+    <span>形态 <b>Web 应用</b></span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><span class="no">§01</span><a href="#s01">概述与设计支柱</a></li>
+    <li><span class="no">§02</span><a href="#s02">核心循环</a></li>
+    <li><span class="no">§03</span><a href="#s03">工作间（主界面）</a></li>
+    <li><span class="no">§04</span><a href="#s04">蛋与主题原型</a></li>
+    <li><span class="no">§05</span><a href="#s05">待办系统</a></li>
+    <li><span class="no">§06</span><a href="#s06">数值设计</a></li>
+    <li><span class="no">§07</span><a href="#s07">特征系统（特征库）</a></li>
+    <li><span class="no">§08</span><a href="#s08">揭露演出</a></li>
+    <li><span class="no">§09</span><a href="#s09">命名系统</a></li>
+    <li><span class="no">§10</span><a href="#s10">图鉴与标本室</a></li>
+    <li><span class="no">§11</span><a href="#s11">长线扩展</a></li>
+    <li><span class="no">§12</span><a href="#s12">MVP 范围</a></li>
+    <li><span class="no">§13</span><a href="#s13">技术方案与数据结构</a></li>
+    <li><span class="no">§14</span><a href="#s14">开放问题</a></li>
+  </ol>
+</nav>
+
+<!-- ══════════════════════ §01 ══════════════════════ -->
+<section id="s01">
+  <div class="eyebrow">§01</div>
+  <h2>概述与设计支柱</h2>
+  <p><strong>一句话定位：</strong>把"完成待办事项"转化为"孵化怪奇生物"的自我驱动工具。待办是真实的，生物是虚构的，动机是真诚的。</p>
+  <p>用户在一个虚拟工作间里照看每周降临的怪奇生物蛋。完成现实中的待办事项会为蛋注入孵化点，逐步揭露蛋中生物的特征；拖延与失约会增加孵化畸变的风险。孵化完成的生物入册成为图鉴收藏——每一只都由随机特征组合而成，全世界不会有第二只一模一样的。</p>
+  <p><strong>目标用户：</strong>需要外部动机结构的自驱工作者与学生；对生成式收集（每只都独一无二）有天然好感的收藏型玩家。<strong>平台：</strong>Web 应用，桌面优先、移动端自适应，可常驻浏览器标签页或固定为 PWA。</p>
+
+  <div class="pillars">
+    <div class="pillar">
+      <div class="pno">支柱一</div>
+      <h4>未知即奖励</h4>
+      <p>完成待办的回报不是数字上涨，而是揭开一小块未知。奖励的核心情绪是好奇心，不是成就感——好奇心比成就感更抗疲劳。</p>
+    </div>
+    <div class="pillar">
+      <div class="pno">支柱二</div>
+      <h4>失败不清零</h4>
+      <p>拖延的代价是"孵出不完美的东西"，而不是"什么都没有"。任何一颗蛋都有结局，任何结局都入册。用户永远没有弃坑的理由。</p>
+    </div>
+    <div class="pillar">
+      <div class="pno">支柱三</div>
+      <h4>随机而自洽</h4>
+      <p>特征随机抽取，但蛋的主题、槽位互斥与联动规则保证每只生物看起来像"一种生物"，而不是零件的堆砌。怪，但怪得成立。</p>
+    </div>
+  </div>
+
+  <div class="note"><b>与同类产品的差异：</b>Habitica 用数值成长驱动打卡，Forest 用损失厌恶驱动专注，Finch 用照顾宠物驱动自我关怀。本作的差异点是<b>生成式收集</b>——完成待办的每一步都在揭晓一个不可预知、不可重来的孵化结果，把待办清单变成开盲盒的过程。</div>
+</section>
+
+<!-- ══════════════════════ §02 ══════════════════════ -->
+<section id="s02">
+  <div class="eyebrow">§02</div>
+  <h2>核心循环</h2>
+
+  <div class="flow">
+    <div class="fnode"><div class="fno">STEP 1</div><div class="ft">周一 · 获得蛋</div><div class="fd">工作间出现一枚随机主题的怪奇生物蛋</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">STEP 2</div><div class="ft">全周 · 完成待办</div><div class="fd">按难度获得孵化点，逾期与失约累积风险</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">STEP 3</div><div class="ft">逐步揭露</div><div class="fd">每 12 点揭露一个特征槽，从剪影到细节</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">STEP 4</div><div class="ft">满 100 点 · 判定</div><div class="fd">依风险值判定正常孵化或畸变孵化</div></div>
+    <span class="farr">→</span>
+    <div class="fnode"><div class="fno">STEP 5</div><div class="ft">入册</div><div class="fd">生物记入图鉴或标本室，工作间迎接下一枚蛋</div></div>
+  </div>
+  <p class="floop">↺ 每周一循环 · 未孵完的蛋进入休眠棚（见 §06）</p>
+
+  <p>循环的节奏锚定在<strong>自然周</strong>上：每周一凌晨工作间降临一枚新蛋。一枚蛋需要 100 孵化点，对应一周内完成大约 8～12 条普通粒度的待办——刚好是多数人一周的真实工作量。做得多的周提前孵化，做得少的周蛋进入休眠棚，下周继续，但风险缓慢上涨。</p>
+  <p>循环里有两股方向相反的力：<em>风险</em>来自拖延（逾期、失约、休眠），惩罚指向"孵出畸变体"；<em>惊喜</em>来自投入（完成高难度待办提升变异率、按时连击提升稀有度）。用户逃避的事情让蛋变糟，用户攻坚的事情让蛋变好——动机的指向始终与"把该做的事做掉"一致。</p>
+</section>
+
+<!-- ══════════════════════ §03 ══════════════════════ -->
+<section id="s03">
+  <div class="eyebrow">§03</div>
+  <h2>工作间（主界面）</h2>
+  <p>工作间是唯一的主场景：一个单屏的、有生活气的小房间，视觉基调是"温暖的博物学者工作室"——木桌、暖灯、玻璃罩、墙上钉着的图鉴残页。所有功能都物化为房间里的物件，不做抽屉式菜单。</p>
+  <ul>
+    <li><strong>孵化台（中央）：</strong>当前的蛋躺在孵化灯下。蛋是状态的可视化载体：进度越高微光越亮、偶尔透出内部剪影；风险越高壳上裂纹与暗斑越多。点击蛋查看已揭露的特征卡。</li>
+    <li><strong>待办板（左侧）：</strong>钉在软木板上的便签就是待办清单。新建、勾完成、标失败都在这里。临近截止的便签边缘会微微卷起变黄。</li>
+    <li><strong>休眠棚（右侧）：</strong>三格铺着干草的架子，存放未孵完的蛋。每格显示进度与当前风险。</li>
+    <li><strong>图鉴（桌上的厚册子）：</strong>点击翻开进入图鉴场景（§10）。</li>
+    <li><strong>驻场生物：</strong>最近一只孵化成功的生物会留在工作间里闲逛，按它的性格特征播放行为动画（怯懦的躲在桌下、好奇的凑到屏幕前）。这是特征系统的日常展示窗口，也是情感黏性的主要来源。</li>
+  </ul>
+  <div class="note"><b>设计意图：</b>工作间必须"值得回来看一眼"。用户每天打开它的第一动机可以只是看看蛋亮了没有、驻场的小东西在干什么——待办的完成顺势发生，而不是被逼着面对清单。</div>
+</section>
+
+<!-- ══════════════════════ §04 ══════════════════════ -->
+<section id="s04">
+  <div class="eyebrow">§04</div>
+  <h2>蛋与主题原型</h2>
+  <p>每周一发放一枚蛋，主题从主题池随机抽取，<strong>未收集过的主题权重翻倍</strong>，保证收藏广度自然铺开。若孵化位被占且休眠棚已满，新蛋顺延至有空位时降临（不惩罚，队列不丢）。</p>
+  <p>主题是"随机而自洽"的第一道保险：它决定了配色板、各特征槽的偏向权重和命名词根，让孵出的生物带有可辨认的生态气质。抽取规则见 §07。</p>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>主题</th><th>蛋的外观</th><th>主题色板</th><th>特征偏向</th><th>命名词根</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">深海蛋</td><td>深蓝玻璃质壳，内部有缓慢上浮的气泡</td><td>墨蓝 · 磷绿 · 珍珠白</td><td>触手、鳍、湿滑黏膜、半透明凝胶、微光</td><td>汐 渊 泅 沫</td></tr>
+      <tr><td class="tname">菌沼蛋</td><td>哑光壳面上长着一小圈活蘑菇</td><td>苔绿 · 土褐 · 孢子黄</td><td>苔藓覆层、菌褶层、催花、伞盖形</td><td>菌 沼 苔 孢</td></tr>
+      <tr><td class="tname">机械蛋</td><td>壳上有铆钉与细小齿轮，偶尔咔哒一声</td><td>黄铜 · 铁灰 · 信号红</td><td>金属冷光、弹簧腿、静电、骨架外置</td><td>铆 簧 齿 匣</td></tr>
+      <tr><td class="tname">幽影蛋</td><td>轮廓清晰但内部漆黑，光照不进去</td><td>炭黑 · 雾紫 · 冷白</td><td>无眼、雾缘、食影、消音领域、夜行</td><td>幽 噬 昙 霭</td></tr>
+      <tr><td class="tname">矿晶蛋</td><td>半透明晶簇蛋，转动时折射光斑</td><td>晶紫 · 冰蓝 · 岩灰</td><td>石质裂纹、冰晶霜面、裂纹透光</td><td>晶 棱 璃 矿</td></tr>
+      <tr><td class="tname">极地蛋</td><td>壳面覆霜，摸起来却是温的</td><td>霜白 · 极光绿 · 暮蓝</td><td>厚绒毛、恒温、昼夜反色、慵懒</td><td>霜 极 澌 皑</td></tr>
+      <tr><td class="tname">星尘蛋</td><td>深色壳上有会缓慢移动的星点</td><td>夜蓝 · 星金 · 云紫</td><td>星图斑点、飘浮无足、时感错乱</td><td>星 宿 辰 璇</td></tr>
+      <tr><td class="tname">草泽蛋</td><td>缠着新鲜草叶的温润的蛋</td><td>草绿 · 花粉黄 · 泥棕</td><td>羽被、招蛾、催花、好奇</td><td>苇 蓬 莞 萤</td></tr>
+      <tr><td class="tname">熔炉蛋</td><td>壳面有暗红裂纹，捧起来微微发热</td><td>炭黑 · 熔橙 · 灰烬白</td><td>石质裂纹、微光、焦躁、锯齿下颌</td><td>燠 烬 煨 烁</td></tr>
+      <tr><td class="tname">古卷蛋</td><td>像层层旧纸包裹，写满无人认得的字</td><td>纸黄 · 墨黑 · 朱砂红</td><td>墨腺、复述、模仿者、彬彬有礼</td><td>卷 笺 篆 墨</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>生物的配色</strong>不占特征槽：底色与辅色从蛋主题的专属色板中抽取，纹样槽（§07）只决定颜色的分布方式。这保证同主题的生物有家族相似性，跨主题的生物一眼可辨。</p>
+</section>
+
+<!-- ══════════════════════ §05 ══════════════════════ -->
+<section id="s05">
+  <div class="eyebrow">§05</div>
+  <h2>待办系统</h2>
+  <p>待办是<strong>用户自己的真实事务</strong>，系统不生成虚构任务。字段刻意精简：标题、难度、截止日（可选）、备注（可选）。随时可添加，添加即挂上待办板。</p>
+
+  <h3><span class="h3no">5.1</span>难度与孵化点</h3>
+  <p>难度由用户自评。不做反作弊——这是自驱工具，自欺的损失由用户自己承担；相反，把大事拆成多条小待办是被系统鼓励的行为（拆分本身就是 GTD 的正确姿势）。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>难度</th><th class="num">孵化点</th><th>参考粒度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">轻松</td><td class="num">+5</td><td>15 分钟内可完成：回一封邮件、预约、跑腿</td></tr>
+      <tr><td class="tname">普通</td><td class="num">+10</td><td>一小时级或单日任务：写周报、整理素材</td></tr>
+      <tr><td class="tname">困难</td><td class="num">+20</td><td>需要攻坚的多日任务：做完季度预算、修完一个模块</td></tr>
+      <tr><td class="tname">史诗</td><td class="num">+35</td><td>周级大事：交付一个里程碑、搬家</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">5.2</span>待办的三种离场方式</h3>
+  <ul>
+    <li><strong>完成：</strong>立即结算孵化点并触发揭露检查。逾期后补完成仍给全额孵化点（此前累积的逾期风险保留）——永远值得把事做完。</li>
+    <li><strong>主动放弃：</strong>用户删除一条未完成的待办，视为放弃，风险 +6%。给用户一个诚实的退出通道，代价温和。</li>
+    <li><strong>自动失败：</strong>逾期满 7 天仍未处理，自动标记失败，风险 +12%。避免"挂着一条烂待办永远不面对"。</li>
+  </ul>
+
+  <h3><span class="h3no">5.3</span>按时连击（正向激励）</h3>
+  <p>连续 <strong>3 条</strong>待办按时完成后进入连击状态：在连击期间揭露的特征，稀有度权重提升（稀有 ×1.5、传说 ×2）。逾期或失败即断连击。风险是鞭子，连击是糖——两者分别盯住"别拖"和"按时"。</p>
+</section>
+
+<!-- ══════════════════════ §06 ══════════════════════ -->
+<section id="s06">
+  <div class="eyebrow">§06</div>
+  <h2>数值设计</h2>
+
+  <h3><span class="h3no">6.1</span>孵化点与揭露阈值</h3>
+  <p>每枚蛋需要 <strong>100 孵化点</strong>。八个特征槽按固定顺序揭露，每 12 点一档，遵循"先形体、再表面、后灵魂"的曲线——越接近孵化，揭露的内容越接近这只生物的"人格"。</p>
+
+  <div class="revealbar">
+    <div class="seg on"><div class="st">12</div><div class="sn">体型骨架</div></div>
+    <div class="seg on"><div class="st">24</div><div class="sn">附肢</div></div>
+    <div class="seg on"><div class="st">36</div><div class="sn">头部与眼</div></div>
+    <div class="seg on"><div class="st">48</div><div class="sn">口器</div></div>
+    <div class="seg on"><div class="st">60</div><div class="sn">表皮材质</div></div>
+    <div class="seg"><div class="st">72</div><div class="sn">纹样</div></div>
+    <div class="seg"><div class="st">84</div><div class="sn">性格气质</div></div>
+    <div class="seg"><div class="st">96</div><div class="sn">异能怪癖</div></div>
+  </div>
+  <p class="barcap">示例：累积 62 点时的揭露状态 · 100 点触发孵化判定</p>
+
+  <h3><span class="h3no">6.2</span>畸变风险</h3>
+  <p>风险值决定孵化判定时畸变的概率。基础 3%，上限 <strong>85%</strong>——任何一颗蛋都保有至少 15% 的正常孵化可能，绝境里也留一线希望。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>风险来源</th><th class="num">增量</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">基础值</td><td class="num">3%</td><td>万物皆有意外</td></tr>
+      <tr><td class="tname">待办逾期</td><td class="num">首日 +4%<br>此后每日 +2%</td><td>单条待办的逾期风险上限 +12%</td></tr>
+      <tr><td class="tname">主动放弃待办</td><td class="num">+6%</td><td>删除未完成待办时结算</td></tr>
+      <tr><td class="tname">待办自动失败</td><td class="num">+12%</td><td>逾期满 7 天未处理</td></tr>
+      <tr><td class="tname">休眠</td><td class="num">每周 +8%</td><td>蛋在休眠棚中每满一周结算一次</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">6.3</span>孵化判定与变异</h3>
+  <div class="formula">达到 100 点时：
+  roll(0–100) &lt; 风险值        <span class="fc">→ 畸变孵化，入标本室（§10）</span>
+  否则                        <span class="fc">→ 正常孵化，继续变异判定 ↓</span>
+
+变异率 = 5% 基础 + 本蛋期间每完成一条困难/史诗待办 +1%   <span class="fc">（上限 15%）</span>
+  roll 命中                   <span class="fc">→ 从变异表（§07.6）中抽取一条，惊喜揭晓</span></div>
+  <p>注意方向设计：<em>畸变率</em>只被拖延行为推高，<em>变异率</em>只被攻坚行为推高。变异是荣誉——它记录着这只生物是被多少条硬仗喂大的。</p>
+
+  <h3><span class="h3no">6.4</span>休眠规则</h3>
+  <ul>
+    <li>周一新蛋降临时，孵化台上未满 100 点的蛋自动移入休眠棚（上限 3 枚），进度与风险全部保留。</li>
+    <li>用户可随时把休眠蛋与孵化台上的蛋<strong>手动交换</strong>——孵化点只进当前孵化台上的蛋。</li>
+    <li>休眠每满一周风险 +8%；休眠满 <strong>3 周</strong>强制进行孵化判定（以当前已揭露的特征孵化，未揭露的槽位随机补全但不展示揭露演出）。</li>
+  </ul>
+
+  <h3><span class="h3no">6.5</span>示例：一枚菌沼蛋的一周</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>时间</th><th>事件</th><th class="num">孵化点</th><th class="num">风险</th><th>揭露</th></tr></thead>
+    <tbody>
+      <tr><td class="num">周一</td><td>获得菌沼蛋；添加 6 条待办</td><td class="num">0</td><td class="num">3%</td><td>—</td></tr>
+      <tr><td class="num">周二</td><td>完成「回复合同邮件」（轻松）、「写周报框架」（普通）</td><td class="num">15</td><td class="num">3%</td><td>12 ▸ 体型骨架 = 矮墩形</td></tr>
+      <tr><td class="num">周三</td><td>完成「整理素材库」（普通）</td><td class="num">25</td><td class="num">3%</td><td>24 ▸ 附肢 = 纤毛裙边</td></tr>
+      <tr><td class="num">周四</td><td>「预约牙医」逾期首日</td><td class="num">25</td><td class="num">7%</td><td>—</td></tr>
+      <tr><td class="num">周五</td><td>逾期第二日 +2%；补完成「预约牙医」；完成「Q3 预算表」（困难，变异率 +1%）</td><td class="num">50</td><td class="num">9%</td><td>36 ▸ 头部 = 触角天线<br>48 ▸ 口器 = 须帘</td></tr>
+      <tr><td class="num">周六</td><td>完成「修阳台水管」（困难，变异率 +1%）</td><td class="num">70</td><td class="num">9%</td><td>60 ▸ 表皮 = 苔藓覆层</td></tr>
+      <tr><td class="num">周日</td><td>完成「月度复盘」（普通）</td><td class="num">80</td><td class="num">9%</td><td>72 ▸ 纹样 = 墨渍晕染</td></tr>
+      <tr><td class="num">次周一</td><td>新蛋降临，本蛋入休眠棚（+8%）</td><td class="num">80</td><td class="num">17%</td><td>—</td></tr>
+      <tr><td class="num">次周二</td><td>换回孵化台，完成两条普通待办 → 满 100 点判定：roll 42 ≥ 17% 正常孵化；变异 roll 未命中（7%）</td><td class="num">100</td><td class="num">—</td><td>84 ▸ 性格 = 收藏癖<br>96 ▸ 异能 = 催花<br>✦ 入册 GSI-007「菌莞」</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ══════════════════════ §07 ══════════════════════ -->
+<section id="s07">
+  <div class="eyebrow">§07</div>
+  <h2>特征系统（特征库）</h2>
+  <p>特征系统是本作最核心的内容资产。生物由 <strong>8 个特征槽</strong>组成，每槽从对应特征池中抽取一条。首发特征库共 <strong>103 条特征 + 8 条变异 + 6 条畸变</strong>，理论组合数超过 4 亿（未计配色与变异）。</p>
+
+  <h3><span class="h3no">7.1</span>抽取规则</h3>
+  <ul>
+    <li><strong>稀有度基础权重：</strong>普通 70% · 稀有 25% · 传说 5%。按时连击期间稀有 ×1.5、传说 ×2（§05.3）。</li>
+    <li><strong>主题偏向：</strong>每个蛋主题为部分槽位指定"主题池"（§04 表中的特征偏向）。抽取时 70% 概率从主题池中抽，30% 从该槽全量池中抽——保证主题气质明显，又留有跨界惊喜。</li>
+    <li><strong>互斥规则：</strong>部分特征组合在生理上不成立，抽取时后抽的槽位剔除冲突项。示例：飘浮无足 ↔ 弹簧腿/蹼足；无口 ↔ 长卷舌；雾缘 ↔ 硬质甲壳。</li>
+    <li><strong>联动规则：</strong>部分特征会拉高其他槽位相关项的权重，制造"讲得通的巧合"。示例：无眼 → 纹样「眼状斑」权重 ×3（它身上长满了不是眼睛的眼睛）；金属冷光 → 异能「静电」×3；伞盖形 → 附肢「触手束/纤毛裙边」×2；夜行 → 异能「微光」×2。</li>
+  </ul>
+
+  <h3><span class="h3no">7.2</span>槽位一 · 体型骨架（14 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">团絮形</td><td>蜷成一团的蓬松球体，看不出头尾</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">修长蛇形</td><td>细长柔韧，惯于缠绕工作间的栖木</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">矮墩形</td><td>重心极低，走路像一块挪动的年糕</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">四足伏行</td><td>标准兽形骨架，怪奇感全靠其余部位</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">双足直立</td><td>站得笔直，显得莫名郑重</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">多节虫形</td><td>分节身躯，行进时波浪般起伏</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">伞盖形</td><td>顶部展开成伞状，躯干垂在下方</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">放射对称</td><td>五向对称，没有正面与背面之分</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">飘浮无足</td><td>离地三寸悬浮，从不落地</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">不定形软体</td><td>轮廓缓慢流动，每次看都不太一样</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">骨架外置</td><td>骨骼长在体外，像穿着自己的骨头</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">掌上微型</td><td>小到能住进茶杯，图鉴里配放大镜图标</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">庞然巨物</td><td>大到工作间为它单独扩建了一格</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">双躯并联</td><td>两个身体共享一个意识，行动完全同步</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.3</span>槽位二 · 附肢（12 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">短圆四肢</td><td>圆滚滚的小短腿，跑起来很努力</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">触手束</td><td>六根灵活的触手，各有分工</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">蹼足</td><td>走路啪嗒啪嗒响的一对蹼</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">纤毛裙边</td><td>身体下缘一圈细密纤毛，滑行移动</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">螯钳一对</td><td>一大一小，大的用来撑场面</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">细长卷尾</td><td>能卷住东西的第五只手</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">翼膜</td><td>能短距离滑翔，落点堪忧</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">藤蔓卷须</td><td>植物性的卷须，晒太阳时会舒展</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">弹簧腿</td><td>移动方式只有"弹"这一种</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">伪足</td><td>需要时从身体任意位置长出一只脚</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">十二指细手</td><td>一双有十二根手指的手，极其灵巧</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">锚形重尾</td><td>尾部是一枚沉重的锚，睡觉时定在原地</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.4</span>槽位三 · 头部与眼（13 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">独眼</td><td>一只占了半张脸的大眼，情绪全写在里面</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">双目下垂</td><td>永远一副刚睡醒的样子</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">触角天线</td><td>一对天线，时常接收不明信号</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">螺旋独角</td><td>头顶一根发条似的角</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">鹿角分叉</td><td>角的分叉上偶尔停着小飞虫</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">三目纵排</td><td>纵排的第三只眼负责看"别的东西"</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">复眼群</td><td>十几只小眼，同时看向不同方向</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">无眼</td><td>以头部的孔洞感知世界，反而最敏锐</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">灯笼垂眼</td><td>眼睛垂在触须末端，像提着两盏灯</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">头顶开花</td><td>心情好时花开，心情差时花闭</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">眼生他处</td><td>眼睛长在腹部或掌心，头顶一片光滑</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">漩涡面容</td><td>面部是一个缓慢旋转的漩涡</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">可拆卸头</td><td>睡觉时把头取下来放在一边</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.5</span>槽位四 · 口器（12 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">小尖喙</td><td>啄东西时发出清脆的嗒嗒声</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">阔口咧嘴</td><td>嘴角咧到耳根，看起来永远在笑</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">须帘</td><td>垂须遮住口部，进食时才掀开</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">吸盘口</td><td>圆形吸盘口，喜欢吸在玻璃上</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">长卷舌</td><td>舌头是身长的两倍，卷取一切</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">锯齿下颌</td><td>看着凶，其实只咬得动软的东西</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">环形齿</td><td>圆形一圈整齐的细齿</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">滤食鲸须</td><td>从空气里滤食看不见的微粒</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">花瓣口</td><td>口部平时闭合如花苞，进食时四瓣展开</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">无口</td><td>不进食，靠光照或雾气维生</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">腹语孔</td><td>声音从身体的别处发出来</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">双重口</td><td>口中还有一张更小的口，用途不明</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.6</span>槽位五 · 表皮材质（14 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">短绒毛</td><td>摸起来像上好的天鹅绒</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">厚绒毛</td><td>蓬松到看不清真实体型</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">湿滑黏膜</td><td>永远水润，经过的地方留下微光痕迹</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">细鳞</td><td>细密的鳞片，光下呈现流动的光泽</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">硬质甲壳</td><td>敲起来梆梆响，本人对此很自豪</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">软胶质感</td><td>戳一下会duang地弹回来</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">羽被</td><td>一身细羽，换羽期工作间会飘毛</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">苔藓覆层</td><td>身上长着活的苔藓，雨天格外翠绿</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">菌褶层</td><td>体侧有菌褶，偶尔释放一小团孢子</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">树皮质</td><td>树皮般的表皮，一年长一圈纹</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">半透明凝胶</td><td>能隐约看见体内缓慢漂浮的光点</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">石质裂纹</td><td>岩石质地，裂纹里透出微弱的光</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">金属冷光</td><td>金属质感的冷光表面，指纹会留在上面</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">雾缘</td><td>身体的轮廓边缘化为薄雾，摸不到确切的边界</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.7</span>槽位六 · 纹样（12 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">纯色哑光</td><td>一色到底，气质极简</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">双色拼接</td><td>身体在某条线处干脆地换了颜色</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">条纹</td><td>规则的环状条纹</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">圆斑</td><td>大小不一的圆斑点</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">眼状斑</td><td>许多长得像眼睛的斑，有些好像在眨</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">涡旋纹</td><td>皮肤上缓慢旋转的涡纹</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">墨渍晕染</td><td>像宣纸上洇开的墨</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">星图斑点</td><td>斑点连线是真实存在的星座</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">荧光脉络</td><td>皮下脉络发出荧光，随呼吸明灭</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">锈迹斑驳</td><td>做旧的锈斑，出厂就是古董</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">裂纹透光</td><td>体表裂纹中透出内里的光</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">昼夜反色</td><td>白天与黑夜配色完全互换</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.8</span>槽位七 · 性格气质（12 条）</h3>
+  <p>性格决定驻场生物在工作间里的行为动画（§03），是特征库里"被看见最久"的一层。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">怯懦</td><td>有动静就躲到桌子底下，只露半只眼</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">好奇</td><td>总凑到屏幕最前面看你在干什么</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">慵懒</td><td>一天睡二十个小时，剩下四小时打哈欠</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">焦躁</td><td>在待办板下面来回踱步，替你着急</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">过度热情</td><td>你每完成一条待办它都欢呼庆祝</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">夜行</td><td>白天一动不动装标本，深夜活跃</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">彬彬有礼</td><td>获得食物时会郑重地鞠一个躬</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">恶作剧</td><td>会藏起工作间里的小物件，事后装无辜</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">忧郁</td><td>常望着窗外发呆，雨天心情反而好</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">收藏癖</td><td>收集亮晶晶的小东西堆在自己窝里</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">洁癖</td><td>永远在整理自己的毛、鳞或齿轮</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">模仿者</td><td>会模仿你完成待办时的动作，惟妙惟肖</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.9</span>槽位八 · 异能怪癖（14 条）</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>特征</th><th>描述</th><th>稀有度</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">微光</td><td>黑暗中发出萤火虫般的微光</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">预报天气</td><td>下雨前会提前竖起耳朵或触角</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">低鸣安神</td><td>发出白噪音般的呼噜声</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">静电</td><td>摸它会啪的一下，它自己也吓一跳</td><td><span class="chip n">普通</span></td></tr>
+      <tr><td class="tname">复述</td><td>偶尔复述你写在待办里的词，字正腔圆</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">食影</td><td>吃掉小块阴影，被吃过的地方亮一点</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">催花</td><td>它附近的绿植长得格外好</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">恒温</td><td>体温永远是温水的温度，冬天适合焐手</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">墨腺</td><td>分泌墨水，偶尔在图鉴页边画一笔</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">消音领域</td><td>它周围半米格外安静，适合陪伴专注</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">招蛾</td><td>身边总环绕着一两只飞蛾或蝴蝶</td><td><span class="chip r">稀有</span></td></tr>
+      <tr><td class="tname">梦境串门</td><td>据说会出现在主人的梦里，无法证实</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">时感错乱</td><td>它周围的钟表走得略慢</td><td><span class="chip l">传说</span></td></tr>
+      <tr><td class="tname">二重存在</td><td>极偶尔在两个地方被同时看到</td><td><span class="chip l">传说</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.10</span>变异表（正常孵化时判定，8 条）</h3>
+  <p>变异是全局级修饰，叠加在八个槽位之上，等概率抽取。变异生物在图鉴中带 <span class="chip m">变异</span> 徽章。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>变异</th><th>效果</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">双头</td><td>头部槽渲染为双份，两个头性格微妙不同</td></tr>
+      <tr><td class="tname">白化</td><td>全身褪为月白，纹样若隐若现</td></tr>
+      <tr><td class="tname">墨化</td><td>全身纯黑，只余眼睛发光</td></tr>
+      <tr><td class="tname">透明化</td><td>身体半透明，可见体内缓慢漂浮的光点</td></tr>
+      <tr><td class="tname">镜像双生</td><td>孵出一对镜像双子，图鉴中同占一格</td></tr>
+      <tr><td class="tname">体型极端化</td><td>在原体型基础上极大或极小</td></tr>
+      <tr><td class="tname">共生小体</td><td>身上住着一只豆粒大的共生小生物</td></tr>
+      <tr><td class="tname">残影</td><td>移动时留下半秒的残影</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="h3no">7.11</span>畸变表（风险孵化时判定，6 条）</h3>
+  <p>畸变孵化时，随机 1～2 个特征槽被畸变特征覆盖。<strong>美术方向是"令人怜爱的不完美"，绝不做恐怖谷</strong>——畸变体应该让人心疼，而不是让人不适。畸变体入标本室（§10），带 <span class="chip x">畸变</span> 徽章。</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>畸变</th><th>效果</th></tr></thead>
+    <tbody>
+      <tr><td class="tname">错位</td><td>某个器官长在了不该长的位置，它已经习惯了</td></tr>
+      <tr><td class="tname">未成形</td><td>某个槽位呈半透明的未完成态，像铅笔稿</td></tr>
+      <tr><td class="tname">色彩失谐</td><td>配色脱离主题色板，刺目却有种奇异的美</td></tr>
+      <tr><td class="tname">静默</td><td>没有性格动画，只是安静地待着，偶尔眨眼</td></tr>
+      <tr><td class="tname">外溢</td><td>轮廓超出了身体应有的范围，边缘模糊地晕开</td></tr>
+      <tr><td class="tname">逆生长</td><td>孵化后比蛋还小，据档案记载还在缓慢变小</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ══════════════════════ §08 ══════════════════════ -->
+<section id="s08">
+  <div class="eyebrow">§08</div>
+  <h2>揭露演出</h2>
+  <p>揭露是本作的核心奖励时刻，演出规格要对得起"开盲盒"的期待，但必须短——它嵌在真实的工作流里，不能变成打断。单次揭露全程 <strong>4 秒内</strong>，可跳过。</p>
+  <ol>
+    <li><strong>触发：</strong>勾掉待办的瞬间，孵化点飞入蛋中，蛋抖动、微光增强。若跨过阈值，进入揭露。</li>
+    <li><strong>揭晓：</strong>蛋内剪影闪现一瞬，随后弹出特征卡——正面是特征名、示意图与稀有度框色（普通灰 / 稀有蓝 / 传说金），翻面是一句风味文本（即 §07 各表的描述列）。</li>
+    <li><strong>沉淀：</strong>特征卡收进蛋侧的卡槽栏。未揭露的槽位显示为带"？"的卡背，用形状暗示但不剧透。</li>
+    <li><strong>日常反馈：</strong>已揭露的特征反映在蛋的外观上——揭露了荧光脉络的蛋，壳上会透出脉络的光。让进度"看得见"。</li>
+  </ol>
+  <p>孵化判定（100 点）是全篇最大的演出：孵化灯全亮、蛋壳龟裂、破壳瞬间黑屏半秒——然后生物完整登场，变异（若有）在此刻才揭晓。畸变孵化的演出同规格但配乐转为温柔的小调：破壳后它有点不知所措，工作间的灯光为它调暗了一档。</p>
+</section>
+
+<!-- ══════════════════════ §09 ══════════════════════ -->
+<section id="s09">
+  <div class="eyebrow">§09</div>
+  <h2>命名系统</h2>
+  <p>孵化完成时系统生成一个两字本名：<strong>主题词根 + 特征词根</strong>。主题词根来自蛋主题（§04 表），特征词根取自该生物已揭露特征中稀有度最高的一条（每条特征在数据中预置一个"命名字"字段）。</p>
+  <div class="formula"><span class="fc">示例：</span>
+深海蛋 ＋ 雾缘（命名字·霭）      → 「汐霭」
+菌沼蛋 ＋ 收藏癖（命名字·莞）    → 「菌莞」
+机械蛋 ＋ 弹簧腿（命名字·簧）    → 「匣簧」</div>
+  <p>本名之外，用户可以随时起<strong>昵称</strong>（图鉴中并列展示）。档案编号 <code>GSI-001</code> 起顺序累加，永久不变——编号是"你孵化生涯"的时间轴。</p>
+</section>
+
+<!-- ══════════════════════ §10 ══════════════════════ -->
+<section id="s10">
+  <div class="eyebrow">§10</div>
+  <h2>图鉴与标本室</h2>
+  <p>图鉴是长线动机的容器，形态是一本可翻页的博物志，按主题分册。每只生物占一格档案：</p>
+
+  <div class="specimen">
+    <span class="spid">档案 GSI-007</span>
+    <h4>菌莞</h4>
+    <div class="spsub">菌沼蛋 · 2026-09-01 孵化 · <span class="chip s">正常孵化</span></div>
+    <dl class="spgrid">
+      <dt>体型骨架</dt><dd>矮墩形 <span class="chip n">普通</span></dd>
+      <dt>附肢</dt><dd>纤毛裙边 <span class="chip n">普通</span></dd>
+      <dt>头部与眼</dt><dd>触角天线 <span class="chip n">普通</span></dd>
+      <dt>口器</dt><dd>须帘 <span class="chip n">普通</span></dd>
+      <dt>表皮材质</dt><dd>苔藓覆层 <span class="chip r">稀有</span></dd>
+      <dt>纹样</dt><dd>墨渍晕染 <span class="chip r">稀有</span></dd>
+      <dt>性格气质</dt><dd>收藏癖 <span class="chip r">稀有</span></dd>
+      <dt>异能怪癖</dt><dd>催花 <span class="chip r">稀有</span></dd>
+    </dl>
+    <footer>这只生物由 11 条待办喂大，其中 2 条是硬仗。孵化期间你完成了「Q3 预算表」和「修阳台水管」。</footer>
+  </div>
+
+  <p>档案底部那行小字是本作最点题的细节：<strong>图鉴同时是工作日志</strong>。每只生物记录着孵化它的那批待办——多年后翻图鉴，看见的是"那几周你完成了什么"。收藏与记忆绑在一起。</p>
+
+  <h3><span class="h3no">10.1</span>收集驱动</h3>
+  <ul>
+    <li><strong>特征收集率：</strong>103 条特征各自是否"见过"。未见过的特征在图鉴附录中显示为剪影，是最直接的收集牵引。</li>
+    <li><strong>主题完成度：</strong>每主题分册的收集格数。</li>
+    <li><strong>变异收集：</strong>8 条变异各自是否拥有，图鉴中单独一页金边展示。</li>
+  </ul>
+
+  <h3><span class="h3no">10.2</span>标本室</h3>
+  <p>畸变体入图鉴末尾的独立分册"标本室"——深色纸页、手写体标签，气质安静而温柔。畸变体档案额外记录"它经历了什么"（哪些待办的逾期与失约推高了风险）。标本室有自己的完成度统计：畸变收集是<strong>合法的收集线</strong>，但因为畸变体的特征槽会被覆盖 1～2 个，靠故意摆烂刷畸变的收集效率永远低于好好做事——系统在结构上保证了"失败可收集，但不划算"。</p>
+</section>
+
+<!-- ══════════════════════ §11 ══════════════════════ -->
+<section id="s11">
+  <div class="eyebrow">§11</div>
+  <h2>长线扩展（v0.2+）</h2>
+  <ul>
+    <li><strong>周挑战蛋：</strong>偶尔降临带条件的特殊蛋，如"本周完成 3 条困难待办则保底一条稀有特征"。把周目标游戏化。</li>
+    <li><strong>生态羁绊：</strong>集齐同主题 5 只解锁该主题的隐藏蛋（第 11 种主题的入口）。</li>
+    <li><strong>双驻场：</strong>工作间同时驻留两只生物，性格特征之间产生互动动画（恶作剧的藏起洁癖的收藏品）。</li>
+    <li><strong>分享卡：</strong>把任意一格档案导出为图片，含立绘、特征清单与"由 N 条待办喂大"——天然的传播素材。</li>
+    <li><strong>年度报告：</strong>每年一页"孵化年鉴"：今年你用 412 条待办孵化了 37 只生物，最难的一周喂出了唯一的传说特征。</li>
+    <li><strong>音景：</strong>工作间环境音随驻场生物的异能变化（消音领域=近乎无声，低鸣安神=白噪音）。</li>
+  </ul>
+</section>
+
+<!-- ══════════════════════ §12 ══════════════════════ -->
+<section id="s12">
+  <div class="eyebrow">§12</div>
+  <h2>MVP 范围</h2>
+  <p>MVP 的验证目标只有一个：<strong>"揭露驱动完成待办"这个循环是否真的成瘾</strong>。一切不服务于此的内容后置。</p>
+  <h3><span class="h3no">12.1</span>做</h3>
+  <ul>
+    <li>3 个蛋主题：深海、菌沼、幽影（气质差异最大的三个）。</li>
+    <li>特征库：每槽全部普通级 + 每槽精选 2 条稀有级（约 60 条），传说级与变异表留到 v0.2。</li>
+    <li>完整的待办系统、孵化点、风险与孵化判定、休眠棚。</li>
+    <li>工作间单场景 + 驻场生物（性格动画先做 6 种普通性格）。</li>
+    <li>图鉴与标本室（含"由 N 条待办喂大"档案行）。</li>
+    <li>揭露演出的简化版：特征卡弹出 + 蛋外观变化，破壳演出可以先用静态分镜。</li>
+  </ul>
+  <h3><span class="h3no">12.2</span>不做</h3>
+  <ul>
+    <li>账号系统与多端同步（localStorage + 手动导出存档顶住）。</li>
+    <li>反作弊、社交、分享卡、音效音景、移动端深度优化。</li>
+    <li>按时连击（数值层的锦上添花，验证期噪音）。</li>
+  </ul>
+</section>
+
+<!-- ══════════════════════ §13 ══════════════════════ -->
+<section id="s13">
+  <div class="eyebrow">§13</div>
+  <h2>技术方案与数据结构</h2>
+  <h3><span class="h3no">13.1</span>技术栈</h3>
+  <ul>
+    <li><strong>纯前端 SPA：</strong>Vite + React + TypeScript。无后端，localStorage 持久化，提供 JSON 存档导出/导入（防丢档、防换机）。</li>
+    <li><strong>生物渲染：SVG 分层部件拼装。</strong>每条特征对应一组可换色矢量部件；生物 = 特征 ID 列表 + 主题色板，渲染是纯函数，完全可复现。图层顺序：躯干 → 表皮效果 → 纹样 → 附肢 → 头部 → 口器 → 特效层（变异、异能微粒）。部件绘制走 Figma/Illustrator 导出 SVG 的管线，代码侧只做组装与换色。</li>
+    <li><strong>时间处理：</strong>逾期判定用本地自然日；每周刷新锚定 ISO 周（周一 00:00 本地时间）。打开应用时补结算离线期间的风险与周事件。</li>
+    <li><strong>随机性：</strong>所有抽取用带种子的 PRNG，种子在蛋生成时固定——同一颗蛋的孵化结果在生成瞬间已注定，防止刷新重roll，也让"命运感"成立。</li>
+  </ul>
+
+  <h3><span class="h3no">13.2</span>核心数据结构</h3>
+  <pre class="code"><span class="c">// 特征定义（静态数据，103 条）</span>
+{ <span class="k">"id"</span>: "surface_moss",
+  <span class="k">"slot"</span>: "surface",            <span class="c">// 8 个槽位之一</span>
+  <span class="k">"name"</span>: "苔藓覆层",
+  <span class="k">"rarity"</span>: "R",                <span class="c">// N / R / L</span>
+  <span class="k">"flavor"</span>: "身上长着活的苔藓，雨天格外翠绿",
+  <span class="k">"nameChar"</span>: "苔",             <span class="c">// 命名词根（§09）</span>
+  <span class="k">"excludes"</span>: [],               <span class="c">// 互斥特征 id</span>
+  <span class="k">"boosts"</span>: { "quirk_bloom": 2 } } <span class="c">// 联动权重倍率</span>
+
+<span class="c">// 蛋（运行时实例）</span>
+{ <span class="k">"id"</span>: "egg_2026w36",
+  <span class="k">"theme"</span>: "fungal",
+  <span class="k">"seed"</span>: 84721937,             <span class="c">// 生成时固定，命运已注定</span>
+  <span class="k">"points"</span>: 62,
+  <span class="k">"risk"</span>: 0.09,
+  <span class="k">"mutationBonus"</span>: 0.02,        <span class="c">// 困难/史诗待办累积</span>
+  <span class="k">"revealed"</span>: ["frame_squat", "limbs_cilia", "..."],
+  <span class="k">"state"</span>: "incubating",        <span class="c">// incubating / dormant / hatched</span>
+  <span class="k">"dormantWeeks"</span>: 0 }
+
+<span class="c">// 待办</span>
+{ <span class="k">"id"</span>: "todo_0142",
+  <span class="k">"title"</span>: "做完 Q3 预算表",
+  <span class="k">"difficulty"</span>: "hard",         <span class="c">// easy / normal / hard / epic</span>
+  <span class="k">"due"</span>: "2026-09-04",          <span class="c">// 可为 null</span>
+  <span class="k">"eggId"</span>: "egg_2026w36",       <span class="c">// 完成时归属的蛋</span>
+  <span class="k">"state"</span>: "open",              <span class="c">// open / done / abandoned / failed</span>
+  <span class="k">"overdueDays"</span>: 0 }
+
+<span class="c">// 图鉴档案（孵化后不可变）</span>
+{ <span class="k">"id"</span>: "GSI-007",
+  <span class="k">"name"</span>: "菌莞", <span class="k">"nickname"</span>: null,
+  <span class="k">"theme"</span>: "fungal",
+  <span class="k">"traits"</span>: ["frame_squat", "...共8条"],
+  <span class="k">"mutation"</span>: null,             <span class="c">// 变异 id 或 null</span>
+  <span class="k">"aberrations"</span>: [],            <span class="c">// 畸变覆盖，正常孵化为空</span>
+  <span class="k">"palette"</span>: ["#2E4A3B", "#8A7B3C", "#D8CFA0"],
+  <span class="k">"hatchedAt"</span>: "2026-09-01",
+  <span class="k">"fedBy"</span>: ["todo_0139", "...11 条待办 id"] }</pre>
+</section>
+
+<!-- ══════════════════════ §14 ══════════════════════ -->
+<section id="s14">
+  <div class="eyebrow">§14</div>
+  <h2>开放问题</h2>
+  <ul>
+    <li><strong>难度自评的通胀：</strong>长期使用后用户可能把一切标成"困难"换变异率。是否需要软约束（如每周困难+史诗总数上限），还是信任用户？倾向后者，观察 MVP 数据再定。</li>
+    <li><strong>外部待办源：</strong>是否接入滴答清单 / Things / 日历导入？会显著降低迁移成本，但引入同步复杂度。建议 v0.3 之后再评估。</li>
+    <li><strong>孵化后的养成层：</strong>目前生物孵化即入册，仅一只驻场。是否需要喂养、互动等养成玩法？倾向不做——养成会稀释"孵化揭露"的核心，且带来负罪感（忘喂），违背支柱二。</li>
+    <li><strong>美术产能：</strong>103 条特征 × 部件适配是最大的内容成本。SVG 部件是否可以先用参数化几何风格（扁平剪纸感）压低单条成本，验证循环后再提美术规格？</li>
+    <li><strong>周节奏与假期：</strong>长假周待办骤减，蛋大概率休眠。是否需要"休假模式"（冻结风险）？倾向需要，一个开关即可，防止假期回来面对一棚高危蛋的挫败感。</li>
+  </ul>
+</section>
+
+<footer class="doc">
+  <span>GSI · 怪奇生物孵化器 · 设计文档 v0.1</span>
+  <span>2026-08-21</span>
+</footer>
+</main>
