@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { SLOT_ORDER, type CreatureRecord, type ThemeId } from '../core/types'
-import { ABERRATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
+import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
 import { THEMES, THEME_IDS } from '../data/themes'
 import { Creature } from '../render/Creature'
 
@@ -19,6 +19,7 @@ export function Codex({
 
   const seenTraits = new Set(codex.flatMap((r) => Object.values(r.traits)))
   const aberrantCount = codex.filter((r) => r.outcome === 'aberrant').length
+  const mutatedCount = codex.filter((r) => r.mutation).length
 
   const shown = codex
     .filter((r) => {
@@ -40,6 +41,9 @@ export function Codex({
             </span>
             <span>
               特征收集 <b>{seenTraits.size}</b>/{TRAITS.length}
+            </span>
+            <span>
+              变异 <b>{mutatedCount}</b>
             </span>
             <span>
               标本室 <b>{aberrantCount}</b>
@@ -102,6 +106,7 @@ function CreatureCard({
           traits={r.traits}
           theme={r.theme}
           aberrations={r.aberrations}
+          mutation={r.mutation}
           seed={r.seed}
           size={150}
           idle={false}
@@ -117,6 +122,7 @@ function CreatureCard({
         <span className={`oc-pill ${r.outcome === 'aberrant' ? 'ab' : 'ok'}`}>
           {r.outcome === 'aberrant' ? '畸变' : '正常'}
         </span>
+        {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
         {r.forced && <span className="oc-pill ab">自行破壳</span>}
         {!editing ? (
           <button className="cc-edit" onClick={() => setEditing(true)} title="起昵称">
@@ -148,7 +154,7 @@ function CreatureCard({
           const t = TRAIT_MAP[r.traits[slot]]
           const ab = r.aberrations.find((a) => a.slot === slot)
           return (
-            <span key={slot} className={ab ? 'abt' : t.rarity === 'R' ? 'hr' : ''}>
+            <span key={slot} className={ab ? 'abt' : t.rarity === 'L' ? 'hl' : t.rarity === 'R' ? 'hr' : ''}>
               {t.name}
               {ab ? `·${ABERRATION_MAP[ab.ab].name}` : ''}
             </span>

@@ -15,6 +15,8 @@ import { SLOT_ORDER, type GameState } from '../src/core/types'
 import { THEMES, THEME_IDS } from '../src/data/themes'
 import { TRAIT_MAP } from '../src/data/traits'
 
+// fresh 定义在下方，此处先声明使用顺序无碍（函数提升）
+
 // 2026-08-21 是周五
 const FRI = '2026-08-21'
 const TUE = '2026-08-18'
@@ -27,6 +29,62 @@ describe('time', () => {
     expect(daysBetween('2026-08-01', FRI)).toBe(20)
     expect(addDays(FRI, 3)).toBe('2026-08-24')
     expect(addDays('2026-08-31', 1)).toBe('2026-09-01')
+  })
+})
+
+describe('传说稀有度', () => {
+  it('L 级特征以低权重可被抽中，且各槽仍合法', () => {
+    let legendSeen = 0
+    for (const themeId of THEME_IDS) {
+      for (let seed = 1000; seed < 1400; seed++) {
+        const d = rollDestiny(THEMES[themeId], seed)
+        for (const slot of SLOT_ORDER) {
+          if (TRAIT_MAP[d.traits[slot]].rarity === 'L') legendSeen++
+        }
+        expect(d.mutationRoll).toBeGreaterThanOrEqual(0)
+        expect(d.mutationRoll).toBeLessThan(1)
+        expect(d.mutationPick).toMatch(/^mut_/)
+      }
+    }
+    expect(legendSeen).toBeGreaterThan(0)
+  })
+})
+
+describe('变异判定', () => {
+  function hatchWith(mutationRoll: number, judgmentRoll: number, risk: number) {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: '收尾', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.risk = risk
+    s.currentEgg!.destiny.judgmentRoll = judgmentRoll
+    s.currentEgg!.destiny.mutationRoll = mutationRoll
+    return completeTodo(s, 'todo-1', FRI).state.codex[0]
+  }
+
+  it('基础变异率 5%：骰值低于命中，高于落空', () => {
+    expect(hatchWith(0.04, 50, 3).mutation).toBeTruthy()
+    expect(hatchWith(0.2, 50, 3).mutation).toBeNull()
+  })
+
+  it('畸变孵化不参与变异', () => {
+    const rec = hatchWith(0.001, 1, 60)
+    expect(rec.outcome).toBe('aberrant')
+    expect(rec.mutation).toBeNull()
+  })
+
+  it('困难待办提升变异率（5% + 每条 1%）', () => {
+    let s = fresh(FRI)
+    for (let i = 0; i < 5; i++) {
+      s = addTodo(s, { title: `硬仗${i + 1}`, difficulty: 'hard', due: null }, FRI)
+    }
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s.currentEgg!.destiny.mutationRoll = 0.09 // 5 条困难 → 10% 变异率
+    let r = { state: s, events: [] as unknown[] }
+    for (let i = 1; i <= 5; i++) r = completeTodo(r.state, `todo-${i}`, FRI)
+    const rec = r.state.codex[0]
+    expect(rec.outcome).toBe('normal')
+    expect(rec.mutation).toBeTruthy()
+    expect(rec.fedTodos).toHaveLength(5)
   })
 })
 

@@ -72,6 +72,9 @@ function spawnEgg(s: GameState, day: string, events: GameEvent[]): void {
   events.push({ type: 'eggArrived', theme })
 }
 
+/** 变异率 = 5% 基础 + 每条困难/史诗待办 +1%，上限 15%（§06.3） */
+export const MUTATION = { base: 0.05, perHard: 0.01, cap: 0.15 }
+
 /** 孵化结算：判定 → 建档 → 入册。不负责从孵化台/休眠棚移除。 */
 function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): CreatureRecord {
   const aberrant = egg.destiny.judgmentRoll < egg.risk
@@ -79,6 +82,10 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
     .map((id) => s.todos.find((t) => t.id === id))
     .filter((t): t is Todo => !!t)
     .map((t) => ({ title: t.title, difficulty: t.difficulty }))
+  // 变异只属于正常孵化：畸变由拖延推高，变异由攻坚推高（§06.3）
+  const hardFed = fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
+  const mutationRate = Math.min(MUTATION.cap, MUTATION.base + MUTATION.perHard * hardFed)
+  const mutation = !aberrant && egg.destiny.mutationRoll < mutationRate ? egg.destiny.mutationPick : null
   const record: CreatureRecord = {
     id: gsiId(s.gsiCounter),
     name: makeName(THEMES[egg.theme], egg.destiny, egg.seed),
@@ -88,6 +95,7 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
     traits: egg.destiny.traits,
     aberrations: aberrant ? egg.destiny.aberrations : [],
     outcome: aberrant ? 'aberrant' : 'normal',
+    mutation,
     hatchedDay: day,
     riskAtHatch: Math.round(egg.risk),
     fedTodos,

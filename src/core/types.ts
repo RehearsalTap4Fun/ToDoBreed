@@ -31,7 +31,9 @@ export const SLOT_NAMES: Record<SlotId, string> = {
   quirk: '异能怪癖',
 }
 
-export type Rarity = 'N' | 'R'
+export type Rarity = 'N' | 'R' | 'L'
+
+export const RARITY_NAMES: Record<Rarity, string> = { N: '普通', R: '稀有', L: '传说' }
 
 export interface TraitDef {
   id: string
@@ -72,6 +74,10 @@ export interface Destiny {
   judgmentRoll: number
   /** 若判定为畸变时套用的畸变（1–2 条） */
   aberrations: { slot: SlotId; ab: string }[]
+  /** 变异判定骰 0–1，正常孵化时与变异率比较（§06.3） */
+  mutationRoll: number
+  /** 若变异命中时揭晓的变异 id */
+  mutationPick: string
   /** 命名用主题词根 */
   rootChar: string
 }
@@ -130,6 +136,8 @@ export interface CreatureRecord {
   traits: Record<SlotId, string>
   aberrations: { slot: SlotId; ab: string }[]
   outcome: Outcome
+  /** 变异 id；正常孵化才可能非 null（§06.3） */
+  mutation: string | null
   hatchedDay: string
   riskAtHatch: number
   fedTodos: FedTodoSnapshot[]

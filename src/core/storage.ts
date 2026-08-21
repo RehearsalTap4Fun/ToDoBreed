@@ -1,7 +1,25 @@
-import type { GameState } from './types'
+import type { Egg, GameState } from './types'
+import { mulberry32 } from './rng'
+import { MUTATIONS } from '../data/traits'
 
 const KEY = 'gsi-save-v1'
 const DEV_OFFSET_KEY = 'gsi-dev-day-offset'
+
+/** 向后兼容：给 v0.2 之前的存档补齐变异字段（种子派生，保持确定性） */
+function migrate(s: GameState): GameState {
+  const fixEgg = (egg: Egg | null) => {
+    if (!egg || egg.destiny.mutationRoll !== undefined) return
+    const r = mulberry32(egg.seed ^ 0xbeef)
+    egg.destiny.mutationRoll = r()
+    egg.destiny.mutationPick = MUTATIONS[Math.floor(r() * MUTATIONS.length)].id
+  }
+  fixEgg(s.currentEgg)
+  s.shed?.forEach(fixEgg)
+  s.codex?.forEach((c) => {
+    if (c.mutation === undefined) c.mutation = null
+  })
+  return s
+}
 
 export function loadState(): GameState | null {
   try {
@@ -9,7 +27,7 @@ export function loadState(): GameState | null {
     if (!raw) return null
     const parsed = JSON.parse(raw) as GameState
     if (parsed.version !== 1) return null
-    return parsed
+    return migrate(parsed)
   } catch {
     return null
   }
@@ -41,7 +59,7 @@ export function parseImport(text: string): GameState | null {
   try {
     const parsed = JSON.parse(text) as GameState
     if (parsed.version !== 1 || typeof parsed.gsiCounter !== 'number') return null
-    return parsed
+    return migrate(parsed)
   } catch {
     return null
   }

@@ -91,7 +91,11 @@ export function Workshop({
                     )
                   const t = TRAIT_MAP[egg.destiny.traits[slot]]
                   return (
-                    <span key={slot} className={`tchip${t.rarity === 'R' ? ' rare' : ''}`} title={t.flavor}>
+                    <span
+                      key={slot}
+                      className={`tchip${t.rarity === 'L' ? ' legend' : t.rarity === 'R' ? ' rare' : ''}`}
+                      title={t.flavor}
+                    >
                       <span className="slotname">{SLOT_NAMES[slot]}</span>
                       {t.name}
                     </span>
@@ -178,6 +182,7 @@ function Resident({ codex }: { codex: CreatureRecord[] }) {
           traits={rec.traits}
           theme={rec.theme}
           aberrations={rec.aberrations}
+          mutation={rec.mutation}
           seed={rec.seed}
           size={104}
           idle={!silent}

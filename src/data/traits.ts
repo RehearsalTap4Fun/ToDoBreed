@@ -1,8 +1,8 @@
 import type { AberrationDef, TraitDef } from '../core/types'
 
 /**
- * MVP 特征库（设计文档 §07 / §12.1）：
- * 每槽全部普通级 + 每槽精选 2 条稀有级，共 59 条。传说级与变异表留待 v0.2。
+ * 特征库（设计文档 §07）：
+ * v0.1 每槽全部普通级 + 精选稀有级共 59 条；v0.2 加入传说级 18 条，共 77 条。
  */
 export const TRAITS: TraitDef[] = [
   // ── 槽位一 · 体型骨架 ────────────────────────────
@@ -14,6 +14,9 @@ export const TRAITS: TraitDef[] = [
   { id: 'frame_segmented', slot: 'frame', name: '多节虫形', rarity: 'N', nameChar: '节', flavor: '分节身躯，行进时波浪般起伏' },
   { id: 'frame_umbrella', slot: 'frame', name: '伞盖形', rarity: 'R', nameChar: '伞', flavor: '顶部展开成伞状，躯干垂在下方', boosts: { limb_tentacles: 2, limb_cilia: 2 } },
   { id: 'frame_float', slot: 'frame', name: '飘浮无足', rarity: 'R', nameChar: '浮', flavor: '离地三寸悬浮，从不落地', excludes: ['limb_stub', 'limb_webbed'] },
+  { id: 'frame_tiny', slot: 'frame', name: '掌上微型', rarity: 'L', nameChar: '芥', flavor: '小到能住进茶杯，图鉴里配放大镜图标' },
+  { id: 'frame_giant', slot: 'frame', name: '庞然巨物', rarity: 'L', nameChar: '巍', flavor: '大到工作间为它单独扩建了一格' },
+  { id: 'frame_twin', slot: 'frame', name: '双躯并联', rarity: 'L', nameChar: '双', flavor: '两个身体共享一个意识，行动完全同步' },
 
   // ── 槽位二 · 附肢 ────────────────────────────────
   { id: 'limb_stub', slot: 'limbs', name: '短圆四肢', rarity: 'N', nameChar: '笃', flavor: '圆滚滚的小短腿，跑起来很努力' },
@@ -24,6 +27,8 @@ export const TRAITS: TraitDef[] = [
   { id: 'limb_curltail', slot: 'limbs', name: '细长卷尾', rarity: 'N', nameChar: '蜷', flavor: '能卷住东西的第五只手' },
   { id: 'limb_wings', slot: 'limbs', name: '翼膜', rarity: 'R', nameChar: '翎', flavor: '能短距离滑翔，落点堪忧' },
   { id: 'limb_vines', slot: 'limbs', name: '藤蔓卷须', rarity: 'R', nameChar: '蔓', flavor: '植物性的卷须，晒太阳时会舒展' },
+  { id: 'limb_manyfingers', slot: 'limbs', name: '十二指细手', rarity: 'L', nameChar: '拈', flavor: '一双有十二根手指的手，极其灵巧' },
+  { id: 'limb_anchor', slot: 'limbs', name: '锚形重尾', rarity: 'L', nameChar: '锚', flavor: '尾部是一枚沉重的锚，睡觉时定在原地' },
 
   // ── 槽位三 · 头部与眼 ────────────────────────────
   { id: 'head_mono', slot: 'head', name: '独眼', rarity: 'N', nameChar: '瞳', flavor: '一只占了半张脸的大眼，情绪全写在里面' },
@@ -33,6 +38,9 @@ export const TRAITS: TraitDef[] = [
   { id: 'head_antlers', slot: 'head', name: '鹿角分叉', rarity: 'N', nameChar: '茸', flavor: '角的分叉上偶尔停着小飞虫' },
   { id: 'head_eyeless', slot: 'head', name: '无眼', rarity: 'R', nameChar: '窈', flavor: '以头部的孔洞感知世界，反而最敏锐', boosts: { pat_eyespots: 3 } },
   { id: 'head_lantern', slot: 'head', name: '灯笼垂眼', rarity: 'R', nameChar: '灯', flavor: '眼睛垂在触须末端，像提着两盏灯' },
+  { id: 'head_elseeyes', slot: 'head', name: '眼生他处', rarity: 'L', nameChar: '觅', flavor: '眼睛长在腹部，头顶一片光滑' },
+  { id: 'head_vortexface', slot: 'head', name: '漩涡面容', rarity: 'L', nameChar: '涡', flavor: '面部是一个缓慢旋转的漩涡' },
+  { id: 'head_detach', slot: 'head', name: '可拆卸头', rarity: 'L', nameChar: '离', flavor: '睡觉时把头取下来放在一边' },
 
   // ── 槽位四 · 口器 ────────────────────────────────
   { id: 'mouth_beak', slot: 'mouth', name: '小尖喙', rarity: 'N', nameChar: '啄', flavor: '啄东西时发出清脆的嗒嗒声' },
@@ -42,6 +50,8 @@ export const TRAITS: TraitDef[] = [
   { id: 'mouth_tongue', slot: 'mouth', name: '长卷舌', rarity: 'N', nameChar: '舔', flavor: '舌头是身长的两倍，卷取一切' },
   { id: 'mouth_petal', slot: 'mouth', name: '花瓣口', rarity: 'R', nameChar: '蕾', flavor: '口部平时闭合如花苞，进食时四瓣展开', boosts: { quirk_bloom: 2 } },
   { id: 'mouth_baleen', slot: 'mouth', name: '滤食鲸须', rarity: 'R', nameChar: '鲸', flavor: '从空气里滤食看不见的微粒' },
+  { id: 'mouth_ventriloquist', slot: 'mouth', name: '腹语孔', rarity: 'L', nameChar: '喃', flavor: '声音从身体的别处发出来' },
+  { id: 'mouth_double', slot: 'mouth', name: '双重口', rarity: 'L', nameChar: '叠', flavor: '口中还有一张更小的口，用途不明' },
 
   // ── 槽位五 · 表皮材质 ────────────────────────────
   { id: 'surf_fuzz', slot: 'surface', name: '短绒毛', rarity: 'N', nameChar: '绒', flavor: '摸起来像上好的天鹅绒' },
@@ -53,6 +63,8 @@ export const TRAITS: TraitDef[] = [
   { id: 'surf_feather', slot: 'surface', name: '羽被', rarity: 'N', nameChar: '羽', flavor: '一身细羽，换羽期工作间会飘毛' },
   { id: 'surf_moss', slot: 'surface', name: '苔藓覆层', rarity: 'R', nameChar: '苔', flavor: '身上长着活的苔藓，雨天格外翠绿', boosts: { quirk_bloom: 2 } },
   { id: 'surf_gel', slot: 'surface', name: '半透明凝胶', rarity: 'R', nameChar: '澈', flavor: '能隐约看见体内缓慢漂浮的光点' },
+  { id: 'surf_metal', slot: 'surface', name: '金属冷光', rarity: 'L', nameChar: '银', flavor: '金属质感的冷光表面，指纹会留在上面', boosts: { quirk_static: 3 } },
+  { id: 'surf_mist', slot: 'surface', name: '雾缘', rarity: 'L', nameChar: '霭', flavor: '身体的轮廓边缘化为薄雾，摸不到确切的边界' },
 
   // ── 槽位六 · 纹样 ────────────────────────────────
   { id: 'pat_plain', slot: 'pattern', name: '纯色哑光', rarity: 'N', nameChar: '素', flavor: '一色到底，气质极简' },
@@ -61,6 +73,8 @@ export const TRAITS: TraitDef[] = [
   { id: 'pat_spots', slot: 'pattern', name: '圆斑', rarity: 'N', nameChar: '点', flavor: '大小不一的圆斑点' },
   { id: 'pat_eyespots', slot: 'pattern', name: '眼状斑', rarity: 'R', nameChar: '眈', flavor: '许多长得像眼睛的斑，有些好像在眨' },
   { id: 'pat_veins', slot: 'pattern', name: '荧光脉络', rarity: 'R', nameChar: '荧', flavor: '皮下脉络发出荧光，随呼吸明灭' },
+  { id: 'pat_cracklight', slot: 'pattern', name: '裂纹透光', rarity: 'L', nameChar: '隙', flavor: '体表裂纹中透出内里的光' },
+  { id: 'pat_daynight', slot: 'pattern', name: '昼夜反色', rarity: 'L', nameChar: '昼', flavor: '白天与黑夜配色完全互换' },
 
   // ── 槽位七 · 性格气质 ────────────────────────────
   { id: 'temp_timid', slot: 'temperament', name: '怯懦', rarity: 'N', nameChar: '怯', flavor: '有动静就躲到桌子底下，只露半只眼' },
@@ -71,6 +85,7 @@ export const TRAITS: TraitDef[] = [
   { id: 'temp_nocturnal', slot: 'temperament', name: '夜行', rarity: 'N', nameChar: '宵', flavor: '白天一动不动装标本，深夜活跃', boosts: { quirk_glow: 2 } },
   { id: 'temp_gloomy', slot: 'temperament', name: '忧郁', rarity: 'R', nameChar: '郁', flavor: '常望着窗外发呆，雨天心情反而好' },
   { id: 'temp_hoarder', slot: 'temperament', name: '收藏癖', rarity: 'R', nameChar: '珍', flavor: '收集亮晶晶的小东西堆在自己窝里' },
+  { id: 'temp_mimic', slot: 'temperament', name: '模仿者', rarity: 'L', nameChar: '仿', flavor: '会模仿你完成待办时的动作，惟妙惟肖' },
 
   // ── 槽位八 · 异能怪癖 ────────────────────────────
   { id: 'quirk_glow', slot: 'quirk', name: '微光', rarity: 'N', nameChar: '萤', flavor: '黑暗中发出萤火虫般的微光' },
@@ -79,6 +94,9 @@ export const TRAITS: TraitDef[] = [
   { id: 'quirk_static', slot: 'quirk', name: '静电', rarity: 'N', nameChar: '电', flavor: '摸它会啪的一下，它自己也吓一跳' },
   { id: 'quirk_shadoweat', slot: 'quirk', name: '食影', rarity: 'R', nameChar: '噬', flavor: '吃掉小块阴影，被吃过的地方亮一点' },
   { id: 'quirk_bloom', slot: 'quirk', name: '催花', rarity: 'R', nameChar: '芽', flavor: '它附近的绿植长得格外好' },
+  { id: 'quirk_dreamvisit', slot: 'quirk', name: '梦境串门', rarity: 'L', nameChar: '梦', flavor: '据说会出现在主人的梦里，无法证实' },
+  { id: 'quirk_timeskew', slot: 'quirk', name: '时感错乱', rarity: 'L', nameChar: '晷', flavor: '它周围的钟表走得略慢' },
+  { id: 'quirk_bilocation', slot: 'quirk', name: '二重存在', rarity: 'L', nameChar: '幻', flavor: '极偶尔在两个地方被同时看到' },
 ]
 
 export const TRAIT_MAP: Record<string, TraitDef> = Object.fromEntries(TRAITS.map((t) => [t.id, t]))
@@ -95,4 +113,20 @@ export const ABERRATIONS: AberrationDef[] = [
 
 export const ABERRATION_MAP: Record<string, AberrationDef> = Object.fromEntries(
   ABERRATIONS.map((a) => [a.id, a]),
+)
+
+/** 变异表（§07.10）——正常孵化时按变异率判定，等概率抽取，图鉴带金边徽章 */
+export const MUTATIONS: AberrationDef[] = [
+  { id: 'mut_twoheads', name: '双头', desc: '多了一个头，两个头性格微妙不同' },
+  { id: 'mut_albino', name: '白化', desc: '全身褪为月白，纹样若隐若现' },
+  { id: 'mut_melanistic', name: '墨化', desc: '全身纯黑，只余眼睛发光' },
+  { id: 'mut_translucent', name: '透明化', desc: '身体半透明，可见体内缓慢漂浮的光点' },
+  { id: 'mut_mirror', name: '镜像双生', desc: '孵出一对镜像双子，图鉴中同占一格' },
+  { id: 'mut_extreme', name: '体型极端化', desc: '在原体型基础上极大或极小' },
+  { id: 'mut_symbiote', name: '共生小体', desc: '身上住着一只豆粒大的共生小生物' },
+  { id: 'mut_afterimage', name: '残影', desc: '移动时留下半秒的残影' },
+]
+
+export const MUTATION_MAP: Record<string, AberrationDef> = Object.fromEntries(
+  MUTATIONS.map((m) => [m.id, m]),
 )

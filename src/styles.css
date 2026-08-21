@@ -446,6 +446,10 @@ select:focus-visible {
   border-color: var(--rare);
   color: var(--rare);
 }
+.tchip.legend {
+  border-color: var(--amber);
+  color: var(--amber);
+}
 .tchip .slotname {
   color: var(--faint);
   font-size: 0.68rem;
@@ -661,6 +665,11 @@ select:focus-visible {
   border-color: #2a6b85;
   background: #2a6b8514;
 }
+.rarity-L {
+  color: #8a6100;
+  border-color: #b98a1f;
+  background: #b98a1f1f;
+}
 .modal-card .primary {
   background: var(--amber-deep);
   color: #fff8ec;
@@ -713,6 +722,19 @@ select:focus-visible {
 .hatch-traits span.hr {
   color: #2a6b85;
   background: #2a6b8514;
+}
+.hatch-traits span.hl {
+  color: #8a6100;
+  background: #b98a1f22;
+}
+.mut-note {
+  font-size: 0.8rem;
+  color: #8a6100;
+  background: #b98a1f1c;
+  border: 1px solid #b98a1f55;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  margin: 0.4rem 0;
 }
 .hatch-fed {
   font-size: 0.78rem;
@@ -864,6 +886,14 @@ select:focus-visible {
 .cc-traits span.hr {
   color: #2a6b85;
   background: #2a6b8514;
+}
+.cc-traits span.hl {
+  color: #8a6100;
+  background: #b98a1f22;
+}
+.oc-pill.mut {
+  color: #8a6100;
+  border-color: #b98a1f;
 }
 .cc-traits span.abt {
   color: #a5402a;

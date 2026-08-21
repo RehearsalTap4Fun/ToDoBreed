@@ -1,7 +1,7 @@
 import { useId, useMemo } from 'react'
 import type { Egg as EggT } from '../core/types'
 import { THEMES } from '../data/themes'
-import { shade } from './colors'
+import { mix, shade } from './colors'
 
 const EGG_PATH =
   'M100,26 C136,26 158,80 158,116 C158,152 132,174 100,174 C68,174 42,152 42,116 C42,80 64,26 100,26 Z'
@@ -17,11 +17,25 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
   return (
     <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label={theme.name}>
       <defs>
+        {/* 粉彩壳色 + 贴纸描边，与生物默认画风统一 */}
         <linearGradient id={`${uid}-shell`} x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%" stopColor={shade(primary, 0.28)} />
-          <stop offset="55%" stopColor={primary} />
-          <stop offset="100%" stopColor={shade(primary, -0.22)} />
+          <stop offset="0%" stopColor={mix(primary, '#FFFFFF', 0.38)} />
+          <stop offset="55%" stopColor={mix(primary, '#FFFFFF', 0.12)} />
+          <stop offset="100%" stopColor={shade(primary, -0.14)} />
         </linearGradient>
+        <filter id={`${uid}-sticker`} x="-25%" y="-25%" width="150%" height="150%">
+          <feMorphology in="SourceAlpha" operator="dilate" radius={2} result="d1" />
+          <feFlood floodColor="#2E2418" result="inkc" />
+          <feComposite in="inkc" in2="d1" operator="in" result="outline" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius={5.5} result="d2" />
+          <feFlood floodColor="#FFFFFF" result="wf" />
+          <feComposite in="wf" in2="d2" operator="in" result="border" />
+          <feMerge>
+            <feMergeNode in="border" />
+            <feMergeNode in="outline" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
         <radialGradient id={`${uid}-halo`}>
           <stop offset="0%" stopColor={accent} stopOpacity={0.9} />
           <stop offset="100%" stopColor={accent} stopOpacity={0} />
@@ -34,8 +48,17 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
       {/* 孵化灯微光：随进度增强 */}
       <ellipse className="egg-halo" cx={100} cy={120} rx={86} ry={78} fill={`url(#${uid}-halo)`} opacity={glow} />
 
-      <g className="egg-wobble">
+      <g className="egg-wobble" filter={`url(#${uid}-sticker)`}>
         <path d={EGG_PATH} fill={`url(#${uid}-shell)`} />
+
+        {/* 呆毛 */}
+        <path
+          d="M100,30 C99,21 91,17 96,11 C99,8 104,10 103,15"
+          stroke={shade(primary, -0.35)}
+          strokeWidth={3}
+          strokeLinecap="round"
+          fill="none"
+        />
 
         <g clipPath={`url(#${uid}-clip)`}>
           {/* 主题装饰 */}

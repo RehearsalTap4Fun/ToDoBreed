@@ -124,9 +124,9 @@ footer.doc{margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);fo
     <thead><tr><th>维度</th><th>当前状态（2026-08-21）</th></tr></thead>
     <tbody>
       <tr><td class="tname">功能</td><td>MVP 闭环全部可玩：待办 → 孵化点 → 揭露 → 判定 → 图鉴/标本室，含休眠棚、顺延队列、驻场生物</td></tr>
-      <tr><td class="tname">内容</td><td>3 主题（深海/菌沼/幽影）、8 槽位 59 条特征、6 条畸变</td></tr>
+      <tr><td class="tname">内容</td><td>3 主题（深海/菌沼/幽影）、8 槽位 77 条特征（含传说级 18 条）、6 条畸变、8 条变异</td></tr>
       <tr><td class="tname">画风</td><td>造型已完成"可爱治愈"深化；5 种渲染风格可切（默认贴纸卡通），主风格待定稿</td></tr>
-      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 12/12 通过</td></tr>
+      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 16/16 通过</td></tr>
       <tr><td class="tname">启动</td><td><code>npm install && npm run dev</code></td></tr>
     </tbody>
   </table></div>
@@ -320,7 +320,8 @@ CreatureRecord { id "GSI-001", name, nickname?, traits×8,
     <tbody>
       <tr><td class="tname">v0.1</td><td>MVP 闭环：3 主题 59 特征、完整数值、图鉴/标本室、驻场生物、存档</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.1.x</td><td>造型可爱治愈化 + 5 画风实验室</td><td><span class="chip done">已完成</span></td></tr>
-      <tr><td class="tname">v0.2</td><td>主画风定稿（sticker / plush / 场景组合待拍板）；蛋的可爱化改造；破壳演出完整版；传说级特征 + 变异表（变异率=5%+困难待办×1%，引擎已留 <code>mutationBonus</code> 概念位）；按时连击</td><td><span class="chip next">下一步</span></td></tr>
+      <tr><td class="tname">v0.2a</td><td>传说级特征 18 条（共 77）+ 变异表 8 条（变异率 = 5% + 困难待办 ×1%，上限 15%，判定骰预掷于命运）；蛋的可爱化（粉彩壳 + 呆毛 + 贴纸描边）；图鉴变异统计与金边徽章；旧档自动迁移</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">v0.2b</td><td>主画风定稿（sticker / plush / 场景组合待拍板）；破壳演出完整版；按时连击——<em>与命运预掷冲突</em>：需改为揭露时懒掷（点数即时入档防刷新重掷）或改为提升变异率，设计待拍板</td><td><span class="chip next">下一步</span></td></tr>
       <tr><td class="tname">v0.2.x</td><td>剩余 7 主题逐批放出（每主题=色板+偏向池+词根+蛋装饰，纯内容扩充）；驻场生物动画补全 R 级性格</td><td><span class="chip later">规划中</span></td></tr>
       <tr><td class="tname">v0.3+</td><td>分享卡导出、周挑战蛋、生态羁绊、双驻场、年度报告、音景；多端同步与外部待办源接入再评估</td><td><span class="chip later">远期</span></td></tr>
     </tbody>

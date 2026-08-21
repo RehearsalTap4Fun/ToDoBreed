@@ -17,7 +17,13 @@ function slots(arr: string[]): Record<SlotId, string> {
   }
 }
 
-const SPECIMENS: { label: string; theme: ThemeId; seed: number; traits: Record<SlotId, string> }[] = [
+const SPECIMENS: {
+  label: string
+  theme: ThemeId
+  seed: number
+  traits: Record<SlotId, string>
+  mutation?: string
+}[] = [
   {
     label: '幽影 · 蛇形无眼',
     theme: 'shadow',
@@ -41,6 +47,19 @@ const SPECIMENS: { label: string; theme: ThemeId; seed: number; traits: Record<S
     theme: 'deepsea',
     seed: 31,
     traits: slots(['frame_biped', 'limb_wings', 'head_droopy', 'mouth_beak', 'surf_feather', 'pat_stripes', 'temp_zealous', 'quirk_weather']),
+  },
+  {
+    label: '传说 · 银巍巨物',
+    theme: 'deepsea',
+    seed: 47,
+    traits: slots(['frame_giant', 'limb_anchor', 'head_elseeyes', 'mouth_double', 'surf_metal', 'pat_cracklight', 'temp_gloomy', 'quirk_timeskew']),
+  },
+  {
+    label: '变异 · 双头苔墩',
+    theme: 'fungal',
+    seed: 53,
+    traits: slots(['frame_squat', 'limb_stub', 'head_spiral', 'mouth_curtain', 'surf_moss', 'pat_spots', 'temp_lazy', 'quirk_bloom']),
+    mutation: 'mut_twoheads',
   },
 ]
 
@@ -88,7 +107,15 @@ function StyleRow({ style, dark }: { style: { id: ArtStyle; name: string; desc: 
       </div>
       {SPECIMENS.map((s) => (
         <div key={s.label} className={`lab-cell${dark ? ' dark' : ''}`}>
-          <Creature traits={s.traits} theme={s.theme} seed={s.seed} size={168} artStyle={style.id} idle={false} />
+          <Creature
+            traits={s.traits}
+            theme={s.theme}
+            mutation={s.mutation ?? null}
+            seed={s.seed}
+            size={168}
+            artStyle={style.id}
+            idle={false}
+          />
         </div>
       ))}
     </>

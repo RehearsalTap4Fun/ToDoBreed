@@ -25,6 +25,10 @@ interface FrameGeo {
   sideR: Pt
   tailC: Pt
   floats?: boolean
+  /** 双躯并联：第二张脸的水平偏移 */
+  twinDx?: number
+  /** 腮红间距（小体型需收窄） */
+  blushGap?: number
 }
 
 /** 可爱治愈方向的造型基准：大头身比、圆润剪影、无锐角 */
@@ -148,6 +152,45 @@ const FRAME_GEO: Record<string, FrameGeo> = {
     tailC: { x: 130, y: 132 },
     floats: true,
   },
+  frame_tiny: {
+    silhouette: <circle cx={100} cy={152} r={30} fill="#fff" />,
+    headC: { x: 100, y: 144 },
+    mouthC: { x: 100, y: 165 },
+    limbC: { x: 100, y: 180 },
+    limbSpread: 24,
+    sideL: { x: 72, y: 152 },
+    sideR: { x: 128, y: 152 },
+    tailC: { x: 124, y: 164 },
+    blushGap: 16,
+  },
+  frame_giant: {
+    silhouette: <ellipse cx={100} cy={116} rx={76} ry={66} fill="#fff" />,
+    headC: { x: 100, y: 92 },
+    mouthC: { x: 100, y: 134 },
+    limbC: { x: 100, y: 178 },
+    limbSpread: 62,
+    sideL: { x: 24, y: 116 },
+    sideR: { x: 176, y: 116 },
+    tailC: { x: 172, y: 150 },
+    blushGap: 27,
+  },
+  frame_twin: {
+    silhouette: (
+      <>
+        <rect x={58} y={94} width={36} height={72} rx={18} fill="#fff" />
+        <rect x={106} y={94} width={36} height={72} rx={18} fill="#fff" />
+      </>
+    ),
+    headC: { x: 76, y: 112 },
+    mouthC: { x: 76, y: 140 },
+    limbC: { x: 100, y: 164 },
+    limbSpread: 52,
+    sideL: { x: 58, y: 130 },
+    sideR: { x: 142, y: 130 },
+    tailC: { x: 140, y: 152 },
+    twinDx: 48,
+    blushGap: 13,
+  },
 }
 
 /* ── 附肢 ─────────────────────────────────────────── */
@@ -243,6 +286,51 @@ function renderLimbs(id: string, geo: FrameGeo, color: string, seed: number): Re
           <path
             d={`M${sideR.x},${sideR.y} Q${sideR.x + 30},${sideR.y - 34} ${sideR.x + 46},${sideR.y - 14} Q${sideR.x + 28},${sideR.y - 4} ${sideR.x},${sideR.y + 6} Z`}
           />
+        </g>
+      )
+    case 'limb_manyfingers':
+      return (
+        <g stroke={color} strokeLinecap="round" fill="none">
+          {[
+            { p: geo.sideL, s: -1 },
+            { p: geo.sideR, s: 1 },
+          ].map(({ p, s }, k) => {
+            const bx = p.x + s * 18
+            const by = p.y + 24
+            return (
+              <g key={k}>
+                <path d={`M${p.x},${p.y} q${s * 14},8 ${s * 18},24`} strokeWidth={6} />
+                {Array.from({ length: 6 }, (_, i) => {
+                  const ang = ((24 + i * 13) * Math.PI) / 180
+                  return (
+                    <line
+                      key={i}
+                      x1={bx}
+                      y1={by}
+                      x2={bx + s * Math.cos(ang) * 9.5}
+                      y2={by + Math.sin(ang) * 9.5}
+                      strokeWidth={2.2}
+                    />
+                  )
+                })}
+              </g>
+            )
+          })}
+        </g>
+      )
+    case 'limb_anchor':
+      return (
+        <g
+          transform={`translate(${tailC.x},${tailC.y})`}
+          stroke={color}
+          strokeWidth={4.5}
+          strokeLinecap="round"
+          fill="none"
+        >
+          <circle cx={0} cy={-16} r={3.5} strokeWidth={3} />
+          <line x1={0} y1={-12} x2={0} y2={10} />
+          <line x1={-8} y1={-6} x2={8} y2={-6} strokeWidth={3} />
+          <path d="M-13,1 Q0,15 13,1" />
         </g>
       )
     case 'limb_vines':
@@ -373,6 +461,36 @@ function renderHead(id: string, geo: FrameGeo, secondary: string, accent: string
           ))}
         </g>
       )
+    case 'head_elseeyes': {
+      // 眼睛长在腹部，头顶一片光滑
+      const belly = { x: geo.limbC.x, y: geo.limbC.y - (geo.floats ? 14 : 28) }
+      return cuteEyes(belly, 11, 5.5)
+    }
+    case 'head_vortexface':
+      return (
+        <path
+          d={`M${c.x + 12},${c.y} a12,12 0 1 0 -12,12 a8,8 0 1 0 -8,-8 a4.5,4.5 0 1 1 4.5,-4.5`}
+          stroke={PUPIL}
+          strokeWidth={2.6}
+          strokeLinecap="round"
+          fill="none"
+          opacity={0.85}
+        />
+      )
+    case 'head_detach':
+      return (
+        <g>
+          <g transform="translate(0,-8)">{cuteEyes(c, 12, 6)}</g>
+          <path
+            d={`M${c.x - 15},${c.y + 8} h30`}
+            stroke={PUPIL}
+            strokeWidth={1.8}
+            strokeDasharray="4 3"
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+        </g>
+      )
     default:
       return cuteEyes(c)
   }
@@ -459,6 +577,27 @@ function renderMouth(id: string, geo: FrameGeo, secondary: string): ReactNode {
           ))}
         </g>
       )
+    case 'mouth_ventriloquist': {
+      // 声音从身体的别处发出来：口部只余一道浅痕，腹侧开一个发声孔
+      const spot = { x: geo.limbC.x + 17, y: geo.limbC.y - (geo.floats ? 16 : 30) }
+      return (
+        <g>
+          <path d={`M${c.x - 6},${c.y + 2} h12`} stroke={PUPIL} strokeWidth={2.4} strokeLinecap="round" opacity={0.65} />
+          <circle cx={spot.x} cy={spot.y} r={3.4} fill={PUPIL} opacity={0.8} />
+          <g stroke={PUPIL} strokeWidth={1.6} fill="none" opacity={0.5} strokeLinecap="round">
+            <path d={`M${spot.x + 6},${spot.y - 4} q4,4 0,8`} />
+            <path d={`M${spot.x + 10},${spot.y - 6} q6,6 0,12`} />
+          </g>
+        </g>
+      )
+    }
+    case 'mouth_double':
+      return (
+        <g stroke={PUPIL} strokeLinecap="round" fill="none">
+          <path d={`M${c.x - 14},${c.y - 2} Q${c.x},${c.y + 10} ${c.x + 14},${c.y - 2}`} strokeWidth={2.8} />
+          <path d={`M${c.x - 6},${c.y + 6} Q${c.x},${c.y + 11} ${c.x + 6},${c.y + 6}`} strokeWidth={1.9} opacity={0.75} />
+        </g>
+      )
     default:
       return null
   }
@@ -471,7 +610,7 @@ interface SurfaceFx {
   decal?: ReactNode
   bodyOpacity?: number
   /** 应用在蒙版躯体上的滤镜 id 后缀 */
-  bodyFilter?: 'fuzz' | 'fur'
+  bodyFilter?: 'fuzz' | 'fur' | 'mist'
 }
 
 function surfaceFx(id: string, geo: FrameGeo, colors: { dark: string; accent: string; body: string }, seed: number): SurfaceFx {
@@ -581,6 +720,34 @@ function surfaceFx(id: string, geo: FrameGeo, colors: { dark: string; accent: st
           </g>
         ),
       }
+    case 'surf_metal':
+      return {
+        inMask: (
+          <g>
+            <rect x={20} y={62} width={160} height={10} fill="#FFFFFF" opacity={0.35} transform="rotate(-24 100 100)" />
+            <rect x={20} y={80} width={160} height={4} fill="#FFFFFF" opacity={0.18} transform="rotate(-24 100 100)" />
+            <rect x={20} y={132} width={160} height={12} fill="#000000" opacity={0.14} transform="rotate(-24 100 100)" />
+          </g>
+        ),
+        decal: (
+          <g fill="#FFFFFF" opacity={0.9}>
+            <path d={`M${top.x + 18},${top.y - 4} l1.7,4.3 4.3,1.7 -4.3,1.7 -1.7,4.3 -1.7,-4.3 -4.3,-1.7 4.3,-1.7 z`} />
+            <path d={`M${top.x - 24},${top.y + 8} l1.2,3.1 3.1,1.2 -3.1,1.2 -1.2,3.1 -1.2,-3.1 -3.1,-1.2 3.1,-1.2 z`} opacity={0.7} />
+          </g>
+        ),
+      }
+    case 'surf_mist':
+      return {
+        bodyFilter: 'mist',
+        bodyOpacity: 0.88,
+        decal: (
+          <g fill={colors.body} opacity={0.35}>
+            <ellipse cx={geo.sideL.x - 6} cy={geo.sideL.y + 10} rx={10} ry={5} />
+            <ellipse cx={geo.sideR.x + 8} cy={geo.sideR.y - 6} rx={8} ry={4} />
+            <ellipse cx={geo.headC.x + 22} cy={geo.headC.y - 22} rx={7} ry={3.5} />
+          </g>
+        ),
+      }
     default:
       return {}
   }
@@ -635,6 +802,22 @@ function renderPattern(id: string, secondary: string, accent: string, seed: numb
         </g>
       )
     }
+    case 'pat_cracklight': {
+      const d = 'M62,150 l10,-14 -4,-12 9,-10 M118,158 l-6,-16 8,-12 -5,-10 M92,122 l8,-12 -3,-12'
+      return (
+        <g className="veins-pulse" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d={d} stroke={accent} strokeWidth={5} opacity={0.4} filter={`url(#${glowId})`} />
+          <path d={d} stroke={accent} strokeWidth={2.2} opacity={0.95} />
+        </g>
+      )
+    }
+    case 'pat_daynight':
+      return (
+        <g>
+          <rect x={100} y={0} width={100} height={200} fill="#FFFFFF" opacity={0.9} style={{ mixBlendMode: 'difference' }} />
+          <line x1={100} y1={0} x2={100} y2={200} stroke="#FFFFFF" strokeWidth={1.2} opacity={0.4} />
+        </g>
+      )
     default:
       return null
   }
@@ -649,6 +832,8 @@ export interface CreatureProps {
   traits: Record<SlotId, string>
   theme: ThemeId
   aberrations?: { slot: SlotId; ab: string }[]
+  /** 变异 id（§07.10），仅正常孵化的生物可能携带 */
+  mutation?: string | null
   seed: number
   size?: number
   idle?: boolean
@@ -659,6 +844,7 @@ export function Creature({
   traits,
   theme,
   aberrations = [],
+  mutation = null,
   seed,
   size = 160,
   idle = true,
@@ -671,9 +857,11 @@ export function Creature({
   const unformed = new Set(aberrations.filter((a) => a.ab === 'ab_unformed').map((a) => a.slot))
   const op = (slot: SlotId) => (unformed.has(slot) ? 0.32 : 1)
 
-  const palette = has('ab_discord')
+  let palette = has('ab_discord')
     ? DISCORD_PALETTES[seed % DISCORD_PALETTES.length]
     : THEMES[theme].palette
+  if (mutation === 'mut_albino') palette = ['#EAE8E0', '#D6D2C6', '#F8F6EE']
+  if (mutation === 'mut_melanistic') palette = ['#282530', '#3D3947', '#B9B0CE']
 
   const rng = mulberry32(seed ^ 0x77aa)
   // 粉彩化：底色向白偏移，暗部收敛，整体更柔和（可爱治愈方向）
@@ -717,7 +905,9 @@ export function Creature({
       ? `url(#${fuzzId})`
       : fx.bodyFilter === 'fur'
         ? `url(#${furId})`
-        : undefined
+        : fx.bodyFilter === 'mist'
+          ? `url(#${blurId})`
+          : undefined
 
   const dislocated = aberrations.filter((a) => a.ab === 'ab_dislocate')
   const headShift = dislocated.some((a) => a.slot === 'head') ? 'translate(-13,11) rotate(-9)' : undefined
@@ -734,6 +924,70 @@ export function Creature({
   ]
     .filter(Boolean)
     .join(' ')
+
+  // 体型极端化（变异）与逆生长（畸变）互斥：变异只出现在正常孵化
+  const rng2 = mulberry32(seed ^ 0x515e)
+  const extremeScale = mutation === 'mut_extreme' ? (rng2() < 0.5 ? 1.18 : 0.6) : 1
+  const outerT = shrink
+    ? 'translate(38,66.5) scale(0.62)'
+    : extremeScale !== 1
+      ? `translate(${(100 * (1 - extremeScale)).toFixed(1)},${(185 * (1 - extremeScale)).toFixed(1)}) scale(${extremeScale})`
+      : undefined
+  const mirror = mutation === 'mut_mirror'
+
+  // 脸部件：双躯并联/双头变异需要多张脸；毛绒风时整组独立于绒面之上
+  const faceUnit = (
+    <>
+      <g opacity={op('head')} transform={headShift}>
+        {renderHead(traits.head, geo, secondary, accent, glowId)}
+        {blushMarks(geo.headC, geo.blushGap)}
+      </g>
+      <g opacity={op('mouth')} transform={mouthShift}>
+        {renderMouth(traits.mouth, geo, secondary)}
+      </g>
+    </>
+  )
+  const faceOffsets: [number, number, number][] = geo.twinDx
+    ? [
+        [0, 0, 1],
+        [geo.twinDx, 0, 1],
+      ]
+    : mutation === 'mut_twoheads'
+      ? [
+          [-15, 3, 0.82],
+          [15, -3, 0.82],
+        ]
+      : [[0, 0, 1]]
+  const faces = (
+    <>
+      {faceOffsets.map(([dx, dy, sc], i) => (
+        <g
+          key={i}
+          transform={
+            dx !== 0 || dy !== 0 || sc !== 1
+              ? `translate(${dx},${dy}) translate(${geo.headC.x},${geo.headC.y}) scale(${sc}) translate(${-geo.headC.x},${-geo.headC.y})`
+              : undefined
+          }
+        >
+          {faceUnit}
+        </g>
+      ))}
+      {mutation === 'mut_symbiote' && (
+        <g transform={`translate(${geo.headC.x + 24},${geo.headC.y - 24})`}>
+          <circle r={7.5} fill={mix(secondary, '#FFFFFF', 0.35)} />
+          <circle cx={-2.2} cy={-1} r={1.5} fill={PUPIL} />
+          <circle cx={2.2} cy={-1} r={1.5} fill={PUPIL} />
+          <path d="M-2,2.5 q2,2 4,0" stroke={PUPIL} strokeWidth={1} fill="none" strokeLinecap="round" />
+        </g>
+      )}
+      {traits.frame === 'frame_tiny' && (
+        <g fill={accent} opacity={0.9}>
+          <path d="M68,122 l1.8,4.5 4.5,1.8 -4.5,1.8 -1.8,4.5 -1.8,-4.5 -4.5,-1.8 4.5,-1.8 z" />
+          <path d="M134,138 l1.4,3.5 3.5,1.4 -3.5,1.4 -1.4,3.5 -1.4,-3.5 -3.5,-1.4 3.5,-1.4 z" opacity={0.7} />
+        </g>
+      )}
+    </>
+  )
 
   return (
     <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label="怪奇生物">
@@ -850,7 +1104,8 @@ export function Creature({
       )}
       {geo.floats && <ellipse cx={100} cy={182} rx={24} ry={4.5} fill="#000" opacity={0.2} />}
 
-      <g transform={shrink ? 'translate(38,66.5) scale(0.62)' : undefined}>
+      <g transform={outerT}>
+        <g id={`${uid}-whole`} transform={mirror ? 'translate(-7,70.3) scale(0.62)' : undefined}>
         <g className={wrapClass || undefined}>
           {/* 异能：微光 */}
           {traits.quirk === 'quirk_glow' && (
@@ -864,14 +1119,71 @@ export function Creature({
               filter={`url(#${glowId})`}
             />
           )}
+          {/* 异能：梦境串门（小月牙）/ 时感错乱（歪钟） */}
+          {traits.quirk === 'quirk_dreamvisit' && (
+            <g className="quirk-glow" fill={accent} opacity={0.85}>
+              <path
+                d={`M${geo.headC.x + 30},${geo.headC.y - 32} a8,8 0 1 0 7,12 a6.2,6.2 0 1 1 -7,-12`}
+              />
+              <circle cx={geo.headC.x + 43} cy={geo.headC.y - 24} r={1.6} />
+            </g>
+          )}
+          {traits.quirk === 'quirk_timeskew' && (
+            <g
+              className="quirk-glow"
+              stroke={accent}
+              fill="none"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              opacity={0.9}
+            >
+              <circle cx={geo.sideL.x - 12} cy={geo.sideL.y - 28} r={7} />
+              <path
+                d={`M${geo.sideL.x - 12},${geo.sideL.y - 28} l0,-4.5 M${geo.sideL.x - 12},${geo.sideL.y - 28} l3.5,2.5`}
+              />
+            </g>
+          )}
+          {/* 异能：二重存在 / 变异：残影 —— 蒙版剪影回声 */}
+          {traits.quirk === 'quirk_bilocation' && (
+            <g transform="translate(12,-7)" opacity={0.18}>
+              <g mask={`url(#${maskId})`}>
+                <rect width={200} height={200} fill={body} />
+              </g>
+            </g>
+          )}
+          {mutation === 'mut_afterimage' && (
+            <>
+              <g transform="translate(-12,0)" opacity={0.16}>
+                <g mask={`url(#${maskId})`}>
+                  <rect width={200} height={200} fill={accent} />
+                </g>
+              </g>
+              <g transform="translate(-22,0)" opacity={0.09}>
+                <g mask={`url(#${maskId})`}>
+                  <rect width={200} height={200} fill={accent} />
+                </g>
+              </g>
+            </>
+          )}
 
           <g filter={styleFilter}>
             <g opacity={op('limbs')}>{renderLimbs(traits.limbs, geo, dark, seed)}</g>
 
-            <g mask={`url(#${maskId})`} filter={bodyFilter} opacity={(fx.bodyOpacity ?? 1) * op('frame')}>
+            <g
+              mask={`url(#${maskId})`}
+              filter={bodyFilter}
+              opacity={(fx.bodyOpacity ?? 1) * op('frame') * (mutation === 'mut_translucent' ? 0.62 : 1)}
+            >
               <rect width={200} height={200} fill={volumetric ? `url(#${gradId})` : body} />
               <g opacity={op('pattern')}>{renderPattern(traits.pattern, secondary, accent, seed, glowId)}</g>
               <g opacity={op('surface')}>{fx.inMask}</g>
+              {mutation === 'mut_translucent' && (
+                <g fill={accent} opacity={0.6}>
+                  <circle className="gel-dot gel-d1" cx={88} cy={142} r={3.6} />
+                  <circle className="gel-dot gel-d2" cx={110} cy={150} r={2.8} />
+                  <circle className="gel-dot gel-d3" cx={99} cy={132} r={2.2} />
+                </g>
+              )}
               {volumetric && (
                 <g>
                   <ellipse
@@ -929,31 +1241,16 @@ export function Creature({
             </g>
 
             <g opacity={op('surface')}>{fx.decal}</g>
-            {artStyle !== 'plush' && (
-              <>
-                <g opacity={op('head')} transform={headShift}>
-                  {renderHead(traits.head, geo, secondary, accent, glowId)}
-                  {blushMarks(geo.headC)}
-                </g>
-                <g opacity={op('mouth')} transform={mouthShift}>
-                  {renderMouth(traits.mouth, geo, secondary)}
-                </g>
-              </>
-            )}
+            {artStyle !== 'plush' && faces}
           </g>
           {artStyle === 'plush' && (
             /* 毛绒风：脸部件独立于绒面之上，模拟塑料眼+刺绣脸谱 */
-            <g filter={`url(#${faceDropId})`}>
-              <g opacity={op('head')} transform={headShift}>
-                {renderHead(traits.head, geo, secondary, accent, glowId)}
-                {blushMarks(geo.headC)}
-              </g>
-              <g opacity={op('mouth')} transform={mouthShift}>
-                {renderMouth(traits.mouth, geo, secondary)}
-              </g>
-            </g>
+            <g filter={`url(#${faceDropId})`}>{faces}</g>
           )}
         </g>
+        </g>
+        {/* 镜像双生：左本体 + 右镜像 */}
+        {mirror && <use href={`#${uid}-whole`} transform="scale(-1,1) translate(-200,0)" />}
       </g>
     </svg>
   )

@@ -9,8 +9,10 @@ import { TRAIT_MAP } from '../data/traits'
 export function makeName(theme: ThemeDef, destiny: Destiny, seed: number): string {
   const rng = mulberry32(seed ^ 0x9e3779b9)
   const traits = Object.values(destiny.traits).map((id) => TRAIT_MAP[id])
+  // 稀有度优先：L > R > N
+  const legends = traits.filter((t) => t.rarity === 'L')
   const rares = traits.filter((t) => t.rarity === 'R')
-  const source = rares.length > 0 ? rares : traits
+  const source = legends.length > 0 ? legends : rares.length > 0 ? rares : traits
   const trait = pick(rng, source)
 
   let root = destiny.rootChar

@@ -1,5 +1,5 @@
-import { SLOT_NAMES, SLOT_ORDER, type CreatureRecord, type GameEvent } from '../core/types'
-import { ABERRATION_MAP, TRAIT_MAP } from '../data/traits'
+import { RARITY_NAMES, SLOT_NAMES, SLOT_ORDER, type CreatureRecord, type GameEvent } from '../core/types'
+import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP } from '../data/traits'
 import { THEMES } from '../data/themes'
 import { Creature } from '../render/Creature'
 
@@ -12,9 +12,7 @@ export function EventModals({ event, onNext }: { event: GameEvent | null; onNext
         <div className="modal-card">
           <div className="eyebrow">特征揭露 · {SLOT_NAMES[event.slot]}</div>
           <h3>{t.name}</h3>
-          <span className={`rarity-chip rarity-${t.rarity}`}>
-            {t.rarity === 'R' ? '稀有' : '普通'}
-          </span>
+          <span className={`rarity-chip rarity-${t.rarity}`}>{RARITY_NAMES[t.rarity]}</span>
           <p className="flavor">{t.flavor}</p>
           <button className="primary" onClick={onNext} autoFocus>
             收下
@@ -43,6 +41,7 @@ function HatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => v
           traits={record.traits}
           theme={record.theme}
           aberrations={record.aberrations}
+          mutation={record.mutation}
           seed={record.seed}
           size={200}
         />
@@ -64,11 +63,16 @@ function HatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => v
               .join('、')}
           </div>
         )}
+        {record.mutation && (
+          <div className="mut-note">
+            ✦ 变异降临：{MUTATION_MAP[record.mutation].name}——{MUTATION_MAP[record.mutation].desc}
+          </div>
+        )}
         <div className="hatch-traits">
           {SLOT_ORDER.map((slot) => {
             const t = TRAIT_MAP[record.traits[slot]]
             return (
-              <span key={slot} className={t.rarity === 'R' ? 'hr' : ''}>
+              <span key={slot} className={t.rarity === 'L' ? 'hl' : t.rarity === 'R' ? 'hr' : ''}>
                 {t.name}
               </span>
             )

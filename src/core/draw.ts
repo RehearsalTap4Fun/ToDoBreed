@@ -1,8 +1,9 @@
 import { mulberry32, pick, shuffle, weightedPick } from './rng'
 import { SLOT_ORDER, type Destiny, type SlotId, type ThemeDef } from './types'
-import { ABERRATIONS, TRAITS } from '../data/traits'
+import { ABERRATIONS, MUTATIONS, TRAITS } from '../data/traits'
 
-const RARITY_WEIGHT = { N: 70, R: 25 } as const
+/** 稀有度基础权重 N70 / R25 / L5（§07.1） */
+const RARITY_WEIGHT = { N: 70, R: 25, L: 5 } as const
 /** 主题池命中概率（§07.1：70% 主题池 / 30% 全量池） */
 const THEME_POOL_CHANCE = 0.7
 
@@ -37,7 +38,10 @@ export function rollDestiny(theme: ThemeDef, seed: number): Destiny {
   const abSlots = shuffle(rng, SLOT_ORDER).slice(0, abCount)
   const aberrations = abSlots.map((slot) => ({ slot, ab: pick(rng, ABERRATIONS).id }))
 
+  const mutationRoll = rng()
+  const mutationPick = pick(rng, MUTATIONS).id
+
   const rootChar = pick(rng, theme.nameRoots)
 
-  return { traits: chosen, judgmentRoll, aberrations, rootChar }
+  return { traits: chosen, judgmentRoll, aberrations, mutationRoll, mutationPick, rootChar }
 }
