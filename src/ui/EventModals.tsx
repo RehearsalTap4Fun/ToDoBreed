@@ -1,7 +1,16 @@
-import { RARITY_NAMES, SLOT_NAMES, SLOT_ORDER, type CreatureRecord, type GameEvent } from '../core/types'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  RARITY_NAMES,
+  SLOT_NAMES,
+  SLOT_ORDER,
+  type CreatureRecord,
+  type Egg,
+  type GameEvent,
+} from '../core/types'
 import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP } from '../data/traits'
 import { THEMES } from '../data/themes'
 import { Creature } from '../render/Creature'
+import { EggView } from '../render/Egg'
 
 export function EventModals({ event, onNext }: { event: GameEvent | null; onNext: () => void }) {
   if (!event) return null
@@ -31,6 +40,46 @@ export function EventModals({ event, onNext }: { event: GameEvent | null; onNext
 function HatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => void }) {
   const aberrant = record.outcome === 'aberrant'
   const hardFed = record.fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
+
+  // 破壳演出（§08）：蓄力抖动 → 白光迸发 → 生物登场；可点击跳过，尊重减动效偏好
+  const reduced = useMemo(
+    () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+    [],
+  )
+  const [stage, setStage] = useState<'charge' | 'flash' | 'reveal'>(reduced ? 'reveal' : 'charge')
+  useEffect(() => {
+    if (stage === 'charge') {
+      const t = setTimeout(() => setStage('flash'), 1700)
+      return () => clearTimeout(t)
+    }
+    if (stage === 'flash') {
+      const t = setTimeout(() => setStage('reveal'), 480)
+      return () => clearTimeout(t)
+    }
+  }, [stage])
+
+  if (stage !== 'reveal') {
+    const displayEgg = {
+      theme: record.theme,
+      points: 100,
+      risk: record.riskAtHatch,
+    } as unknown as Egg
+    return (
+      <div
+        className="overlay hatch-stage"
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setStage('reveal')}
+      >
+        <div className={stage === 'charge' ? 'hatch-egg-charging' : undefined}>
+          <EggView egg={displayEgg} size={250} />
+        </div>
+        {stage === 'flash' && <div className="hatch-flash" />}
+        <p className="hatch-hint">破壳中……（点击跳过）</p>
+      </div>
+    )
+  }
+
   return (
     <div className="overlay" role="dialog" aria-modal="true">
       <div className="modal-card hatch-card">

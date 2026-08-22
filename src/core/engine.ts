@@ -1,7 +1,7 @@
 import { hashStr, mulberry32, weightedPick } from './rng'
 import { addDays, daysBetween, isMonday } from './time'
 import { gsiId, makeName } from './naming'
-import { rollDestiny } from './draw'
+import { rollDestiny, rollTraitForSlot } from './draw'
 import { THEMES, THEME_IDS } from '../data/themes'
 import {
   DIFFICULTY_META,
@@ -11,6 +11,7 @@ import {
   type Egg,
   type GameEvent,
   type GameState,
+  type SlotId,
   type Todo,
 } from './types'
 
@@ -64,6 +65,7 @@ function spawnEgg(s: GameState, day: string, events: GameEvent[]): void {
     points: 0,
     risk: RISK.base,
     destiny: rollDestiny(THEMES[theme], seed),
+    revealed: {},
     dormantWeeks: 0,
     fedBy: [],
   }
@@ -74,6 +76,9 @@ function spawnEgg(s: GameState, day: string, events: GameEvent[]): void {
 
 /** 变异率 = 5% 基础 + 每条困难/史诗待办 +1%，上限 15%（§06.3） */
 export const MUTATION = { base: 0.05, perHard: 0.01, cap: 0.15 }
+
+/** 按时连击：连续 3 条按时完成后，揭露稀有度加成 R×1.5 / L×2（§05.3） */
+export const STREAK_ACTIVATE = 3
 
 /** 孵化结算：判定 → 建档 → 入册。不负责从孵化台/休眠棚移除。 */
 function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): CreatureRecord {
@@ -86,13 +91,20 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
   const hardFed = fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
   const mutationRate = Math.min(MUTATION.cap, MUTATION.base + MUTATION.perHard * hardFed)
   const mutation = !aberrant && egg.destiny.mutationRoll < mutationRate ? egg.destiny.mutationPick : null
+  // 未揭露的槽位静默补掷（不吃连击加成，§06.4）
+  SLOT_ORDER.forEach((slot, i) => {
+    if (!egg.revealed[slot]) {
+      egg.revealed[slot] = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, false)
+    }
+  })
+  const traits = egg.revealed as Record<SlotId, string>
   const record: CreatureRecord = {
     id: gsiId(s.gsiCounter),
-    name: makeName(THEMES[egg.theme], egg.destiny, egg.seed),
+    name: makeName(THEMES[egg.theme], egg.destiny.rootChar, traits, egg.seed),
     nickname: null,
     theme: egg.theme,
     seed: egg.seed,
-    traits: egg.destiny.traits,
+    traits,
     aberrations: aberrant ? egg.destiny.aberrations : [],
     outcome: aberrant ? 'aberrant' : 'normal',
     mutation,
@@ -159,9 +171,10 @@ function dailyTick(s: GameState, day: string, events: GameEvent[]): void {
       todo.riskFromOverdue += applied
       if (s.currentEgg) addRisk(s.currentEgg, applied)
     }
-    // 逾期满 7 天自动失败，额外 +12%（§05.2）
+    // 逾期满 7 天自动失败，额外 +12%，连击清零（§05.2）
     if (overdue >= RISK.autoFailDays) {
       todo.state = 'failed'
+      s.streak = 0
       if (s.currentEgg) addRisk(s.currentEgg, RISK.autoFail)
       events.push({ type: 'autoFail', todoTitle: todo.title })
     }
@@ -179,6 +192,7 @@ export function initState(today: string): TickResult {
     pendingEggs: 0,
     todos: [],
     codex: [],
+    streak: 0,
     lastDay: today,
     firstDay: today,
   }
@@ -220,27 +234,19 @@ export function addTodo(
   return s
 }
 
-/** 完成待办：结算孵化点 → 揭露 → 可能触发孵化（§05.2） */
-export function completeTodo(state: GameState, todoId: string, today: string): TickResult {
-  const s = clone(state)
-  const events: GameEvent[] = []
-  const todo = s.todos.find((t) => t.id === todoId)
-  if (!todo || todo.state !== 'open') return { state, events }
-  todo.state = 'done'
-  todo.doneDay = today
-
+/** 注入孵化点：揭露（连击加成在此刻生效）→ 可能触发孵化 */
+function feedPoints(s: GameState, points: number, today: string, events: GameEvent[]): void {
   const egg = s.currentEgg
-  if (!egg) {
-    events.push({ type: 'noEgg' })
-    return { state: s, events }
-  }
-  egg.fedBy.push(todo.id)
+  if (!egg) return
   const before = revealCount(egg.points)
-  egg.points = Math.min(HATCH_POINTS, egg.points + DIFFICULTY_META[todo.difficulty].points)
+  egg.points = Math.min(HATCH_POINTS, egg.points + points)
   const after = revealCount(egg.points)
+  const boost = s.streak >= STREAK_ACTIVATE
   for (let i = before; i < after; i++) {
     const slot = SLOT_ORDER[i]
-    events.push({ type: 'reveal', slot, traitId: egg.destiny.traits[slot], index: i })
+    const traitId = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, boost)
+    egg.revealed[slot] = traitId
+    events.push({ type: 'reveal', slot, traitId, index: i })
   }
   if (egg.points >= HATCH_POINTS) {
     const record = hatchEgg(s, egg, today, false)
@@ -248,6 +254,38 @@ export function completeTodo(state: GameState, todoId: string, today: string): T
     events.push({ type: 'hatch', record })
     refillTable(s, today, events)
   }
+}
+
+/** 连击结算（§05.3）：按时 +1、逾期完成清零、无截止日不影响 */
+function settleStreak(s: GameState, todo: Todo, today: string, events: GameEvent[]): void {
+  if (!todo.due) return
+  const prev = s.streak
+  if (today <= todo.due) s.streak += 1
+  else s.streak = 0
+  if (s.streak >= STREAK_ACTIVATE && prev < STREAK_ACTIVATE) {
+    events.push({ type: 'streakOn', count: s.streak })
+  } else if (prev >= STREAK_ACTIVATE && s.streak === 0) {
+    events.push({ type: 'streakBreak' })
+  }
+}
+
+/** 完成待办：连击结算 → 孵化点 → 揭露 → 可能触发孵化（§05.2） */
+export function completeTodo(state: GameState, todoId: string, today: string): TickResult {
+  const s = clone(state)
+  const events: GameEvent[] = []
+  const todo = s.todos.find((t) => t.id === todoId)
+  if (!todo || todo.state !== 'open') return { state, events }
+  todo.state = 'done'
+  todo.doneDay = today
+  settleStreak(s, todo, today, events)
+
+  const egg = s.currentEgg
+  if (!egg) {
+    events.push({ type: 'noEgg' })
+    return { state: s, events }
+  }
+  egg.fedBy.push(todo.id)
+  feedPoints(s, DIFFICULTY_META[todo.difficulty].points, today, events)
   return { state: s, events }
 }
 
@@ -257,6 +295,7 @@ export function abandonTodo(state: GameState, todoId: string): GameState {
   const todo = s.todos.find((t) => t.id === todoId)
   if (!todo || todo.state !== 'open') return state
   todo.state = 'abandoned'
+  s.streak = 0
   if (s.currentEgg) addRisk(s.currentEgg, RISK.abandon)
   return s
 }
@@ -286,20 +325,7 @@ export function renameCreature(state: GameState, recordId: string, nickname: str
 export function devFeed(state: GameState, points: number, today: string): TickResult {
   const s = clone(state)
   const events: GameEvent[] = []
-  const egg = s.currentEgg
-  if (!egg) return { state, events }
-  const before = revealCount(egg.points)
-  egg.points = Math.min(HATCH_POINTS, egg.points + points)
-  const after = revealCount(egg.points)
-  for (let i = before; i < after; i++) {
-    const slot = SLOT_ORDER[i]
-    events.push({ type: 'reveal', slot, traitId: egg.destiny.traits[slot], index: i })
-  }
-  if (egg.points >= HATCH_POINTS) {
-    const record = hatchEgg(s, egg, today, false)
-    s.currentEgg = null
-    events.push({ type: 'hatch', record })
-    refillTable(s, today, events)
-  }
+  if (!s.currentEgg) return { state, events }
+  feedPoints(s, points, today, events)
   return { state: s, events }
 }

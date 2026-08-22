@@ -126,7 +126,7 @@ footer.doc{margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);fo
       <tr><td class="tname">功能</td><td>MVP 闭环全部可玩：待办 → 孵化点 → 揭露 → 判定 → 图鉴/标本室，含休眠棚、顺延队列、驻场生物</td></tr>
       <tr><td class="tname">内容</td><td>3 主题（深海/菌沼/幽影）、8 槽位 77 条特征（含传说级 18 条）、6 条畸变、8 条变异</td></tr>
       <tr><td class="tname">画风</td><td>造型已完成"可爱治愈"深化；5 种渲染风格可切（默认贴纸卡通），主风格待定稿</td></tr>
-      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 16/16 通过</td></tr>
+      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 19/19 通过</td></tr>
       <tr><td class="tname">启动</td><td><code>npm install && npm run dev</code></td></tr>
     </tbody>
   </table></div>
@@ -209,11 +209,11 @@ footer.doc{margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);fo
   <div class="eyebrow">§05</div>
   <h2>核心机制实现要点</h2>
 
-  <h3><span class="h3no">5.1</span>命运预掷（draw.ts）</h3>
-  <p>蛋生成时用固定种子一次掷完全部命运：按槽位顺序抽 8 特征（互斥剔除 + 联动权重倍率沿途累积）、孵化判定骰（0–100，孵化时与最终风险比较）、畸变预案（1–2 条，仅判定失败时套用）、命名词根。同一 seed 结果完全可复现——测试与"防刷新重roll"都依赖这一点。</p>
-  <pre class="code"><span class="c">// 抽取顺序即揭露顺序（先形体后灵魂）</span>
+  <h3><span class="h3no">5.1</span>命运预掷 + 揭露懒掷（draw.ts）</h3>
+  <p><strong>预掷（蛋生成时，seed 固定）：</strong>孵化判定骰（0–100）、畸变预案（1–2 条）、变异骰、命名词根。<strong>懒掷（v0.2b 决议）：</strong>8 个特征改为揭露瞬间掷定并立即存档——结果由 (蛋种子, 槽位, 连击状态) 决定，互斥/联动从已揭露特征即时重算，连击加成得以生效且刷新依然无法重掷。休眠强制孵化时未揭露槽位静默补掷（无加成）。</p>
+  <pre class="code"><span class="c">// 揭露顺序（先形体后灵魂）</span>
 frame → limbs → head → mouth → surface → pattern → temperament → quirk
-<span class="c">// 每槽：70% 主题池 / 30% 全量池 → 稀有度权重 N70:R25 × 联动倍率 → 加权抽取</span></pre>
+<span class="c">// 每槽：70% 主题池 / 30% 全量池 → 稀有度权重 N70:R25:L5 ×（连击时 R×1.5 / L×2）× 联动倍率</span></pre>
 
   <h3><span class="h3no">5.2</span>时间结算（engine.processTime）</h3>
   <ul>
@@ -321,7 +321,8 @@ CreatureRecord { id "GSI-001", name, nickname?, traits×8,
       <tr><td class="tname">v0.1</td><td>MVP 闭环：3 主题 59 特征、完整数值、图鉴/标本室、驻场生物、存档</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.1.x</td><td>造型可爱治愈化 + 5 画风实验室</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.2a</td><td>传说级特征 18 条（共 77）+ 变异表 8 条（变异率 = 5% + 困难待办 ×1%，上限 15%，判定骰预掷于命运）；蛋的可爱化（粉彩壳 + 呆毛 + 贴纸描边）；图鉴变异统计与金边徽章；旧档自动迁移</td><td><span class="chip done">已完成</span></td></tr>
-      <tr><td class="tname">v0.2b</td><td>主画风定稿（sticker / plush / 场景组合待拍板）；破壳演出完整版；按时连击——<em>与命运预掷冲突</em>：需改为揭露时懒掷（点数即时入档防刷新重掷）或改为提升变异率，设计待拍板</td><td><span class="chip next">下一步</span></td></tr>
+      <tr><td class="tname">v0.2b</td><td>破壳演出完整版（蓄力抖动→白光迸发→登场，可跳过、尊重减动效）；按时连击（连续 3 条按时 → 揭露 R×1.5/L×2，特征改为揭露时懒掷，无截止日中性，放弃/自动失败清零）；旧档迁移</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">v0.2c</td><td>主画风定稿（sticker / plush / 场景组合，待用户拍板）</td><td><span class="chip next">待拍板</span></td></tr>
       <tr><td class="tname">v0.2.x</td><td>剩余 7 主题逐批放出（每主题=色板+偏向池+词根+蛋装饰，纯内容扩充）；驻场生物动画补全 R 级性格</td><td><span class="chip later">规划中</span></td></tr>
       <tr><td class="tname">v0.3+</td><td>分享卡导出、周挑战蛋、生态羁绊、双驻场、年度报告、音景；多端同步与外部待办源接入再评估</td><td><span class="chip later">远期</span></td></tr>
     </tbody>

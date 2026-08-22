@@ -1,17 +1,32 @@
-import type { Egg, GameState } from './types'
+import { SLOT_ORDER, type Egg, type GameState, type SlotId } from './types'
 import { mulberry32 } from './rng'
+import { revealCount } from './engine'
 import { MUTATIONS } from '../data/traits'
 
 const KEY = 'gsi-save-v1'
 const DEV_OFFSET_KEY = 'gsi-dev-day-offset'
 
-/** 向后兼容：给 v0.2 之前的存档补齐变异字段（种子派生，保持确定性） */
+/** 向后兼容：给旧版存档补齐变异字段（v0.2a）、揭露记录与连击（v0.2b） */
 function migrate(s: GameState): GameState {
+  if (s.streak === undefined) s.streak = 0
   const fixEgg = (egg: Egg | null) => {
-    if (!egg || egg.destiny.mutationRoll !== undefined) return
-    const r = mulberry32(egg.seed ^ 0xbeef)
-    egg.destiny.mutationRoll = r()
-    egg.destiny.mutationPick = MUTATIONS[Math.floor(r() * MUTATIONS.length)].id
+    if (!egg) return
+    if (egg.destiny.mutationRoll === undefined) {
+      const r = mulberry32(egg.seed ^ 0xbeef)
+      egg.destiny.mutationRoll = r()
+      egg.destiny.mutationPick = MUTATIONS[Math.floor(r() * MUTATIONS.length)].id
+    }
+    if (egg.revealed === undefined) {
+      // 旧档特征在 destiny 上预掷：已揭露的部分照单全收，未揭露的交给懒掷
+      egg.revealed = {}
+      const legacy = (egg.destiny as unknown as { traits?: Record<SlotId, string> }).traits
+      if (legacy) {
+        for (const slot of SLOT_ORDER.slice(0, revealCount(egg.points))) {
+          egg.revealed[slot] = legacy[slot]
+        }
+      }
+      delete (egg.destiny as unknown as { traits?: unknown }).traits
+    }
   }
   fixEgg(s.currentEgg)
   s.shed?.forEach(fixEgg)

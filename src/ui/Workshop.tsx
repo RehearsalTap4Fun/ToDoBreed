@@ -37,6 +37,12 @@ export function Workshop({
         <h2 className="panel-title">
           待办板 <span className="cnt">{state.todos.filter((t) => t.state === 'open').length} 条进行中</span>
         </h2>
+        {state.streak > 0 && (
+          <p className={`streak-line${state.streak >= 3 ? ' on' : ''}`}>
+            按时连击 ×{state.streak}
+            {state.streak >= 3 ? ' · 揭露稀有度加成中（稀有×1.5 / 传说×2）' : '（满 3 触发稀有度加成）'}
+          </p>
+        )}
         <TodoBoard todos={state.todos} today={today} actions={actions} hasEgg={!!egg} />
       </div>
 
@@ -89,7 +95,14 @@ export function Workshop({
                         <span className="slotname">{SLOT_NAMES[slot]}</span>？
                       </span>
                     )
-                  const t = TRAIT_MAP[egg.destiny.traits[slot]]
+                  const traitId = egg.revealed[slot]
+                  if (!traitId)
+                    return (
+                      <span key={slot} className="tchip unknown">
+                        <span className="slotname">{SLOT_NAMES[slot]}</span>？
+                      </span>
+                    )
+                  const t = TRAIT_MAP[traitId]
                   return (
                     <span
                       key={slot}

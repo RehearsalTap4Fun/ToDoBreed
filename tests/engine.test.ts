@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, daysBetween, isMonday, mondayOf } from '../src/core/time'
-import { rollDestiny } from '../src/core/draw'
+import { rollDestiny, rollTraitForSlot } from '../src/core/draw'
 import { makeName } from '../src/core/naming'
 import {
   abandonTodo,
@@ -11,15 +11,26 @@ import {
   revealCount,
   swapEgg,
 } from '../src/core/engine'
-import { SLOT_ORDER, type GameState } from '../src/core/types'
+import { SLOT_ORDER, type SlotId, type GameState } from '../src/core/types'
 import { THEMES, THEME_IDS } from '../src/data/themes'
 import { TRAIT_MAP } from '../src/data/traits'
-
-// fresh 定义在下方，此处先声明使用顺序无碍（函数提升）
 
 // 2026-08-21 是周五
 const FRI = '2026-08-21'
 const TUE = '2026-08-18'
+
+function fresh(day: string): GameState {
+  return initState(day).state
+}
+
+/** 按槽位顺序掷满 8 特征（模拟完整揭露） */
+function rollAll(themeId: (typeof THEME_IDS)[number], seed: number, boost = false) {
+  const chosen: Partial<Record<SlotId, string>> = {}
+  SLOT_ORDER.forEach((slot, i) => {
+    chosen[slot] = rollTraitForSlot(THEMES[themeId], seed, i, chosen, boost)
+  })
+  return chosen as Record<SlotId, string>
+}
 
 describe('time', () => {
   it('mondayOf / isMonday / daysBetween / addDays', () => {
@@ -32,21 +43,142 @@ describe('time', () => {
   })
 })
 
-describe('传说稀有度', () => {
-  it('L 级特征以低权重可被抽中，且各槽仍合法', () => {
-    let legendSeen = 0
+describe('特征掷定（揭露时懒掷）', () => {
+  it('8 槽合法、可复现、互斥生效', () => {
     for (const themeId of THEME_IDS) {
-      for (let seed = 1000; seed < 1400; seed++) {
-        const d = rollDestiny(THEMES[themeId], seed)
+      for (let seed = 1; seed <= 300; seed++) {
+        const traits = rollAll(themeId, seed)
         for (const slot of SLOT_ORDER) {
-          if (TRAIT_MAP[d.traits[slot]].rarity === 'L') legendSeen++
+          const t = TRAIT_MAP[traits[slot]]
+          expect(t, `seed=${seed} slot=${slot}`).toBeTruthy()
+          expect(t.slot).toBe(slot)
         }
-        expect(d.mutationRoll).toBeGreaterThanOrEqual(0)
-        expect(d.mutationRoll).toBeLessThan(1)
-        expect(d.mutationPick).toMatch(/^mut_/)
+        if (traits.frame === 'frame_float') {
+          expect(['limb_stub', 'limb_webbed']).not.toContain(traits.limbs)
+        }
       }
+      expect(rollAll(themeId, 42)).toEqual(rollAll(themeId, 42))
     }
-    expect(legendSeen).toBeGreaterThan(0)
+  })
+
+  it('传说级可被抽中，连击加成显著提高 L 频率', () => {
+    let base = 0
+    let boosted = 0
+    for (let seed = 1; seed <= 1500; seed++) {
+      const chosen: Partial<Record<SlotId, string>> = {}
+      if (TRAIT_MAP[rollTraitForSlot(THEMES.deepsea, seed, 0, chosen, false)].rarity === 'L') base++
+      if (TRAIT_MAP[rollTraitForSlot(THEMES.deepsea, seed, 0, chosen, true)].rarity === 'L') boosted++
+    }
+    expect(base).toBeGreaterThan(0)
+    expect(boosted).toBeGreaterThan(base * 1.3)
+  })
+
+  it('命运预掷字段完备', () => {
+    const d = rollDestiny(THEMES.shadow, 7)
+    expect(d.judgmentRoll).toBeGreaterThanOrEqual(0)
+    expect(d.judgmentRoll).toBeLessThan(100)
+    expect(d.aberrations.length).toBeGreaterThanOrEqual(1)
+    expect(d.aberrations.length).toBeLessThanOrEqual(2)
+    expect(d.mutationRoll).toBeGreaterThanOrEqual(0)
+    expect(d.mutationRoll).toBeLessThan(1)
+    expect(d.mutationPick).toMatch(/^mut_/)
+    expect(rollDestiny(THEMES.shadow, 7)).toEqual(d)
+  })
+})
+
+describe('naming', () => {
+  it('主题词根 + 特征命名字，不撞字', () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      const d = rollDestiny(THEMES.shadow, seed)
+      const name = makeName(THEMES.shadow, d.rootChar, rollAll('shadow', seed), seed)
+      expect(name).toHaveLength(2)
+      expect(THEMES.shadow.nameRoots).toContain(name[0])
+      expect(name[0]).not.toBe(name[1])
+    }
+  })
+})
+
+describe('孵化点与揭露', () => {
+  it('完成待办按难度给点、按阈值揭露并即时入档', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: '写周报', difficulty: 'hard', due: null }, FRI)
+    const r = completeTodo(s, 'todo-1', FRI)
+    expect(r.state.currentEgg!.points).toBe(20)
+    const reveals = r.events.filter((e) => e.type === 'reveal')
+    expect(reveals).toHaveLength(1) // 跨过 12
+    expect(reveals[0]).toMatchObject({ slot: 'frame', index: 0 })
+    expect(r.state.currentEgg!.revealed.frame).toBeTruthy()
+    expect(r.state.todos[0].state).toBe('done')
+    expect(r.state.currentEgg!.fedBy).toEqual(['todo-1'])
+  })
+
+  it('revealCount 阈值', () => {
+    expect(revealCount(0)).toBe(0)
+    expect(revealCount(12)).toBe(1)
+    expect(revealCount(95)).toBe(7)
+    expect(revealCount(96)).toBe(8)
+  })
+})
+
+describe('按时连击', () => {
+  it('按时 +1、满 3 触发事件；逾期完成清零；无截止日不影响', () => {
+    let s = fresh(FRI)
+    for (let i = 1; i <= 3; i++) {
+      s = addTodo(s, { title: `准时${i}`, difficulty: 'easy', due: FRI }, FRI)
+    }
+    s = addTodo(s, { title: '无截止', difficulty: 'easy', due: null }, FRI)
+    s = addTodo(s, { title: '迟到的', difficulty: 'easy', due: '2026-08-20' }, FRI)
+
+    let r = completeTodo(s, 'todo-1', FRI)
+    r = completeTodo(r.state, 'todo-2', FRI)
+    expect(r.state.streak).toBe(2)
+    r = completeTodo(r.state, 'todo-3', FRI)
+    expect(r.state.streak).toBe(3)
+    expect(r.events.some((e) => e.type === 'streakOn')).toBe(true)
+
+    r = completeTodo(r.state, 'todo-4', FRI) // 无截止日：不加不断
+    expect(r.state.streak).toBe(3)
+
+    r = completeTodo(r.state, 'todo-5', FRI) // 逾期完成：清零
+    expect(r.state.streak).toBe(0)
+    expect(r.events.some((e) => e.type === 'streakBreak')).toBe(true)
+  })
+
+  it('放弃待办清零连击', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'easy', due: FRI }, FRI)
+    s = addTodo(s, { title: 'b', difficulty: 'easy', due: FRI }, FRI)
+    s = completeTodo(s, 'todo-1', FRI).state
+    expect(s.streak).toBe(1)
+    s = abandonTodo(s, 'todo-2')
+    expect(s.streak).toBe(0)
+  })
+})
+
+describe('孵化判定', () => {
+  it('判定骰 ≥ 风险 → 正常；< 风险 → 畸变；档案 8 槽齐全', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: '大扫除', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.risk = 10
+    s.currentEgg!.destiny.judgmentRoll = 50
+    let r = completeTodo(s, 'todo-1', FRI)
+    let hatch = r.events.find((e) => e.type === 'hatch')
+    expect(hatch && hatch.type === 'hatch' && hatch.record.outcome).toBe('normal')
+    expect(r.state.codex).toHaveLength(1)
+    expect(Object.keys(r.state.codex[0].traits)).toHaveLength(8)
+    expect(r.state.codex[0].aberrations).toEqual([])
+    expect(r.state.codex[0].fedTodos.map((t) => t.title)).toEqual(['大扫除'])
+
+    s = fresh(FRI)
+    s = addTodo(s, { title: '大扫除', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.risk = 60
+    s.currentEgg!.destiny.judgmentRoll = 5
+    r = completeTodo(s, 'todo-1', FRI)
+    hatch = r.events.find((e) => e.type === 'hatch')
+    expect(hatch && hatch.type === 'hatch' && hatch.record.outcome).toBe('aberrant')
+    expect(r.state.codex[0].aberrations.length).toBeGreaterThanOrEqual(1)
   })
 })
 
@@ -88,102 +220,11 @@ describe('变异判定', () => {
   })
 })
 
-describe('rollDestiny', () => {
-  it('填满 8 槽、可复现、互斥生效', () => {
-    for (const themeId of THEME_IDS) {
-      const theme = THEMES[themeId]
-      for (let seed = 1; seed <= 300; seed++) {
-        const d = rollDestiny(theme, seed)
-        for (const slot of SLOT_ORDER) {
-          const t = TRAIT_MAP[d.traits[slot]]
-          expect(t, `seed=${seed} slot=${slot}`).toBeTruthy()
-          expect(t.slot).toBe(slot)
-        }
-        // 飘浮无足 互斥 短圆四肢/蹼足
-        if (d.traits.frame === 'frame_float') {
-          expect(['limb_stub', 'limb_webbed']).not.toContain(d.traits.limbs)
-        }
-        expect(d.judgmentRoll).toBeGreaterThanOrEqual(0)
-        expect(d.judgmentRoll).toBeLessThan(100)
-        expect(d.aberrations.length).toBeGreaterThanOrEqual(1)
-        expect(d.aberrations.length).toBeLessThanOrEqual(2)
-      }
-      const a = rollDestiny(theme, 42)
-      const b = rollDestiny(theme, 42)
-      expect(a).toEqual(b)
-    }
-  })
-})
-
-describe('naming', () => {
-  it('主题词根 + 特征命名字，不撞字', () => {
-    for (let seed = 1; seed <= 100; seed++) {
-      const d = rollDestiny(THEMES.shadow, seed)
-      const name = makeName(THEMES.shadow, d, seed)
-      expect(name).toHaveLength(2)
-      expect(THEMES.shadow.nameRoots).toContain(name[0])
-      expect(name[0]).not.toBe(name[1])
-    }
-  })
-})
-
-function fresh(day: string): GameState {
-  return initState(day).state
-}
-
-describe('孵化点与揭露', () => {
-  it('完成待办按难度给点并按阈值揭露', () => {
-    let s = fresh(FRI)
-    s = addTodo(s, { title: '写周报', difficulty: 'hard', due: null }, FRI)
-    const r = completeTodo(s, 'todo-1', FRI)
-    expect(r.state.currentEgg!.points).toBe(20)
-    const reveals = r.events.filter((e) => e.type === 'reveal')
-    expect(reveals).toHaveLength(1) // 跨过 12
-    expect(reveals[0]).toMatchObject({ slot: 'frame', index: 0 })
-    expect(r.state.todos[0].state).toBe('done')
-    expect(r.state.currentEgg!.fedBy).toEqual(['todo-1'])
-  })
-
-  it('revealCount 阈值', () => {
-    expect(revealCount(0)).toBe(0)
-    expect(revealCount(12)).toBe(1)
-    expect(revealCount(95)).toBe(7)
-    expect(revealCount(96)).toBe(8)
-  })
-})
-
-describe('孵化判定', () => {
-  it('判定骰 ≥ 风险 → 正常；< 风险 → 畸变', () => {
-    let s = fresh(FRI)
-    s = addTodo(s, { title: '大扫除', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.risk = 10
-    s.currentEgg!.destiny.judgmentRoll = 50
-    let r = completeTodo(s, 'todo-1', FRI)
-    let hatch = r.events.find((e) => e.type === 'hatch')
-    expect(hatch && hatch.type === 'hatch' && hatch.record.outcome).toBe('normal')
-    expect(r.state.codex).toHaveLength(1)
-    expect(r.state.codex[0].aberrations).toEqual([])
-    expect(r.state.codex[0].fedTodos.map((t) => t.title)).toEqual(['大扫除'])
-
-    s = fresh(FRI)
-    s = addTodo(s, { title: '大扫除', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.risk = 60
-    s.currentEgg!.destiny.judgmentRoll = 5
-    r = completeTodo(s, 'todo-1', FRI)
-    hatch = r.events.find((e) => e.type === 'hatch')
-    expect(hatch && hatch.type === 'hatch' && hatch.record.outcome).toBe('aberrant')
-    expect(r.state.codex[0].aberrations.length).toBeGreaterThanOrEqual(1)
-  })
-})
-
 describe('逾期风险', () => {
   it('首日 +4、此后每日 +2、单条上限 12', () => {
     let s = fresh(TUE)
     s = addTodo(s, { title: '约牙医', difficulty: 'easy', due: TUE }, TUE)
     const baseRisk = s.currentEgg!.risk
-    // 周三~周日：5 个逾期日（避开周一的周事件）
     const r = processTime(s, '2026-08-23')
     const todo = r.state.todos[0]
     expect(todo.riskFromOverdue).toBe(12) // 4+2+2+2+2
@@ -191,14 +232,14 @@ describe('逾期风险', () => {
     expect(r.state.currentEgg!.risk).toBe(baseRisk + 12)
   })
 
-  it('逾期满 7 天自动失败并额外 +12', () => {
+  it('逾期满 7 天自动失败并额外 +12，连击清零', () => {
     let s = fresh(TUE)
     s = addTodo(s, { title: '约牙医', difficulty: 'easy', due: TUE }, TUE)
+    s.streak = 4
     const r = processTime(s, '2026-08-25')
-    const todo = r.state.todos[0]
-    expect(todo.state).toBe('failed')
+    expect(r.state.todos[0].state).toBe('failed')
     expect(r.events.some((e) => e.type === 'autoFail')).toBe(true)
-    // 周一(8-24)蛋入棚换新蛋：失败的 +12 落在新蛋上（基础3 + 8-25当日已到逾期上限无增量 + 12）
+    expect(r.state.streak).toBe(0)
     expect(r.state.currentEgg!.risk).toBe(15)
   })
 
@@ -226,12 +267,13 @@ describe('周循环与休眠', () => {
     expect(r.events.some((e) => e.type === 'eggArrived')).toBe(true)
   })
 
-  it('休眠满 3 周强制孵化入册', () => {
+  it('休眠满 3 周强制孵化入册（8 槽补齐）', () => {
     const s = fresh(TUE)
     const eggId = s.currentEgg!.id
-    const r = processTime(s, '2026-09-14') // 经过 8-24 / 8-31 / 9-7 / 9-14 四个周一
+    const r = processTime(s, '2026-09-14')
     expect(r.state.codex).toHaveLength(1)
     expect(r.state.codex[0].forced).toBe(true)
+    expect(Object.keys(r.state.codex[0].traits)).toHaveLength(8)
     expect(r.events.some((e) => e.type === 'forcedHatch')).toBe(true)
     expect(r.state.shed.every((e) => e.id !== eggId)).toBe(true)
   })

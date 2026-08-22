@@ -67,6 +67,9 @@ export default function App() {
         else if (e.type === 'forcedHatch')
           pushToast(`${e.record.name} 在休眠棚里自行破壳了，档案已入册`)
         else if (e.type === 'noEgg') pushToast('孵化台空着——这次完成没有喂到任何蛋')
+        else if (e.type === 'streakOn')
+          pushToast(`按时连击 ×${e.count}！接下来揭露的稀有度提升（稀有×1.5 / 传说×2）`)
+        else if (e.type === 'streakBreak') pushToast('连击中断了……稀有度加成失效')
       }
       if (modal.length > 0) setQueue((q) => [...q, ...modal])
     },

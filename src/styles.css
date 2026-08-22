@@ -689,6 +689,65 @@ select:focus-visible {
   margin-top: 0.7rem;
 }
 
+/* 破壳演出 */
+.hatch-stage {
+  flex-direction: column;
+  background: #0c0805ee;
+  cursor: pointer;
+}
+.hatch-egg-charging {
+  animation: hatch-shake 0.26s linear infinite;
+}
+@keyframes hatch-shake {
+  0%,
+  100% {
+    transform: rotate(0deg) translateX(0);
+  }
+  25% {
+    transform: rotate(-2.6deg) translateX(-3px);
+  }
+  75% {
+    transform: rotate(2.6deg) translateX(3px);
+  }
+}
+.hatch-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 48%, #fff8e8 0%, #ffffff 42%, transparent 78%);
+  animation: flash-burst 0.5s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes flash-burst {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+.hatch-hint {
+  color: var(--faint);
+  font-size: 0.78rem;
+  margin-top: 1.1rem;
+  font-family: var(--mono);
+}
+
+/* 连击 */
+.streak-line {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin: -0.3rem 0 0.55rem;
+}
+.streak-line.on {
+  color: var(--amber);
+}
+
 /* 孵化弹窗 */
 .hatch-card {
   max-width: 460px;

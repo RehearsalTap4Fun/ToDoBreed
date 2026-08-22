@@ -67,9 +67,12 @@ export interface AberrationDef {
   desc: string
 }
 
+/**
+ * 命运（蛋生成瞬间注定的部分）。
+ * v0.2b 决议：8 个特征改为「揭露瞬间懒掷」并立即存档（连击加成得以生效，仍防刷新重掷），
+ * 判定骰、畸变预案、变异骰、命名词根保持预掷——结局注定，过程由你。
+ */
 export interface Destiny {
-  /** 蛋生成瞬间已注定的 8 个特征（§13.1 固定种子） */
-  traits: Record<SlotId, string>
   /** 孵化判定的骰值 0–100，孵化时与风险值比较 */
   judgmentRoll: number
   /** 若判定为畸变时套用的畸变（1–2 条） */
@@ -100,6 +103,8 @@ export interface Egg {
   /** 畸变风险，百分数 3–85 */
   risk: number
   destiny: Destiny
+  /** 已揭露的特征（揭露瞬间掷定并立即存档） */
+  revealed: Partial<Record<SlotId, string>>
   dormantWeeks: number
   /** 喂养此蛋的待办 id */
   fedBy: string[]
@@ -156,6 +161,8 @@ export interface GameState {
   pendingEggs: number
   todos: Todo[]
   codex: CreatureRecord[]
+  /** 按时连击：连续按时完成的待办数，≥3 时揭露稀有度加成（§05.3） */
+  streak: number
   /** 上次结算到的自然日 */
   lastDay: string
   firstDay: string
@@ -168,3 +175,5 @@ export type GameEvent =
   | { type: 'autoFail'; todoTitle: string }
   | { type: 'forcedHatch'; record: CreatureRecord }
   | { type: 'noEgg' }
+  | { type: 'streakOn'; count: number }
+  | { type: 'streakBreak' }
