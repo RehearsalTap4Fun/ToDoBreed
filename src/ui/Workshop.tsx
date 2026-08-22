@@ -1,4 +1,4 @@
-import { HATCH_POINTS, THRESHOLDS, revealCount } from '../core/engine'
+import { HATCH_POINTS, revealCount } from '../core/engine'
 import {
   SLOT_NAMES,
   SLOT_ORDER,
@@ -51,8 +51,30 @@ export function Workshop({
           <div className="lamp" />
           {egg ? (
             <>
+              {/* 孵化器装置：玻璃罩 + 金属基座（LED 揭露进度 + 风险指示灯） */}
               <div className="egg-stage">
-                <EggView egg={egg} size={210} />
+                <div className="machine">
+                  <div className="egg-holder">
+                    <EggView egg={egg} size={188} />
+                  </div>
+                  <div className="dome" />
+                  <div className="machine-base">
+                    <span className="machine-label">GSI·MK-I</span>
+                    <div className="led-strip">
+                      {SLOT_ORDER.map((slot, i) => (
+                        <span
+                          key={slot}
+                          className={`led${i < revealCount(egg.points) ? ' lit' : ''}`}
+                          title={`${SLOT_NAMES[slot]}${i < revealCount(egg.points) ? '（已揭露）' : ''}`}
+                        />
+                      ))}
+                    </div>
+                    <span
+                      className={`risk-lamp ${egg.risk < 15 ? 'low' : egg.risk < 40 ? 'mid' : 'high'}`}
+                      title={`畸变风险 ${Math.round(egg.risk)}%`}
+                    />
+                  </div>
+                </div>
               </div>
               <p className="theme-label">{THEMES[egg.theme].name}</p>
               <p className="theme-desc">{THEMES[egg.theme].eggDesc}</p>
@@ -62,20 +84,7 @@ export function Workshop({
                   <span>
                     孵化点 <b>{egg.points}</b> / {HATCH_POINTS}
                   </span>
-                  <span>
-                    已揭露 {revealCount(egg.points)} / 8
-                  </span>
-                </div>
-                <div className="seg-bar">
-                  {THRESHOLDS.map((th, i) => {
-                    const prev = i === 0 ? 0 : THRESHOLDS[i - 1]
-                    const frac = Math.max(0, Math.min(1, (egg.points - prev) / (th - prev)))
-                    return (
-                      <div key={th} className="seg" title={`${th} 点揭露：${SLOT_NAMES[SLOT_ORDER[i]]}`}>
-                        <div className="fill" style={{ transform: `scaleX(${frac})` }} />
-                      </div>
-                    )
-                  })}
+                  <span>已揭露 {revealCount(egg.points)} / 8</span>
                 </div>
                 <div className="risk-line">
                   <span>畸变风险</span>
@@ -117,11 +126,25 @@ export function Workshop({
               </div>
             </>
           ) : (
-            <div className="no-egg">
-              孵化台空着。
-              {state.shed.length > 0
-                ? '可以从休眠棚换一枚蛋上来。'
-                : '下一枚蛋将在周一降临。'}
+            <div className="egg-stage">
+              <div className="machine">
+                <div className="egg-holder empty-holder">
+                  <span>
+                    孵化舱空着。
+                    {state.shed.length > 0 ? '从休眠棚换一枚蛋上来。' : '下一枚蛋周一降临。'}
+                  </span>
+                </div>
+                <div className="dome" />
+                <div className="machine-base">
+                  <span className="machine-label">GSI·MK-I</span>
+                  <div className="led-strip">
+                    {SLOT_ORDER.map((slot) => (
+                      <span key={slot} className="led" />
+                    ))}
+                  </div>
+                  <span className="risk-lamp off" />
+                </div>
+              </div>
             </div>
           )}
 

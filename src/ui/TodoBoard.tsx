@@ -131,6 +131,7 @@ export function TodoBoard({
           </ul>
         </details>
       )}
+      <div className="board-ledge" />
     </div>
   )
 }
