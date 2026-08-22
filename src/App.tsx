@@ -2,8 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   abandonTodo,
   addTodo,
+  adoptInbox,
   completeTodo,
   devFeed,
+  dismissInbox,
+  importSuggestions,
   initState,
   processTime,
   renameCreature,
@@ -23,6 +26,7 @@ import type { Difficulty, GameEvent, GameState } from './core/types'
 import { THEMES } from './data/themes'
 import { Workshop } from './ui/Workshop'
 import { Codex } from './ui/Codex'
+import { Inbox } from './ui/Inbox'
 import { EventModals } from './ui/EventModals'
 import { DevPanel } from './ui/DevPanel'
 
@@ -37,6 +41,7 @@ export default function App() {
   const [queue, setQueue] = useState<GameEvent[]>([])
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([])
   const [showCodex, setShowCodex] = useState(false)
+  const [showInbox, setShowInbox] = useState(false)
   const [devOffset, setDevOffsetState] = useState(getDevOffset)
   const toastId = useRef(1)
   const stateRef = useRef<GameState | null>(null)
@@ -99,6 +104,35 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // 线索信箱：拉取采集器产出的建议文件（public/gsi-inbox.json），哈希去重后入箱
+  useEffect(() => {
+    const pull = async () => {
+      try {
+        const res = await fetch('/gsi-inbox.json', { cache: 'no-store' })
+        if (!res.ok) return
+        const data = await res.json()
+        const items = Array.isArray(data?.items) ? data.items : []
+        if (items.length === 0) return
+        const cur = stateRef.current
+        if (!cur) return
+        const r = importSuggestions(cur, items)
+        if (r.added > 0) {
+          saveState(r.state)
+          setState(r.state)
+          pushToast(`信箱收到 ${r.added} 条新线索`)
+        }
+      } catch {
+        // 无采集文件或离线，静默
+      }
+    }
+    const first = setTimeout(pull, 2500)
+    const iv = setInterval(pull, 300_000)
+    return () => {
+      clearTimeout(first)
+      clearInterval(iv)
+    }
+  }, [pushToast])
+
   if (!state) return null
 
   const today = nowDay()
@@ -117,6 +151,14 @@ export default function App() {
     },
     swap: (i: number) => absorb(swapEgg(state, i), []),
     rename: (rid: string, nick: string) => absorb(renameCreature(state, rid, nick), []),
+  }
+
+  const inboxHandlers = {
+    adopt: (hash: string, difficulty: Difficulty, due: string | null) => {
+      absorb(adoptInbox(state, hash, difficulty, due, today), [])
+      pushToast('已钉上黑板')
+    },
+    dismiss: (hash: string) => absorb(dismissInbox(state, hash), []),
   }
 
   const onImportFile = async (f: File | null) => {
@@ -152,12 +194,23 @@ export default function App() {
         devOffset={devOffset}
         actions={actions}
         onOpenCodex={() => setShowCodex(true)}
+        onOpenInbox={() => setShowInbox(true)}
         onExport={() => exportSave(state)}
         onImportClick={() => fileRef.current?.click()}
       />
 
       {showCodex && (
         <Codex codex={state.codex} onClose={() => setShowCodex(false)} onRename={actions.rename} />
+      )}
+
+      {showInbox && (
+        <Inbox
+          items={state.inbox}
+          today={today}
+          onAdopt={inboxHandlers.adopt}
+          onDismiss={inboxHandlers.dismiss}
+          onClose={() => setShowInbox(false)}
+        />
       )}
 
       <EventModals event={queue[0] ?? null} onNext={() => setQueue((q) => q.slice(1))} />

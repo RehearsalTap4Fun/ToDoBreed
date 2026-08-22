@@ -1536,6 +1536,178 @@ select:focus-visible {
   margin-left: 0.3em;
 }
 
+/* 墙上的线索信箱 */
+.mailbox-obj {
+  position: absolute;
+  right: calc(2% + 118px);
+  top: 4%;
+  width: 66px;
+  height: 48px;
+  border: 2px solid #2b1c0f;
+  border-radius: 8px 8px 5px 5px;
+  background: linear-gradient(#5f4a33, #3d2c1b);
+  box-shadow: 0 5px 10px #0008;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.15s ease-out;
+}
+.mailbox-obj:hover {
+  transform: translateY(-2px);
+}
+.mail-slot {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  width: 36px;
+  margin-left: -18px;
+  height: 5px;
+  border-radius: 3px;
+  background: #17100a;
+  box-shadow: inset 0 1px 2px #000;
+}
+.mail-flag {
+  position: absolute;
+  left: -10px;
+  top: 4px;
+  width: 8px;
+  height: 20px;
+  background: #a3311f;
+  border-radius: 2px 4px 0 2px;
+  box-shadow: 0 2px 3px #0008;
+}
+.mail-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #a3311f;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  line-height: 20px;
+  padding: 0 4px;
+  box-shadow: 0 2px 4px #0009;
+}
+
+/* 线索信箱弹层 */
+.inbox-modal {
+  background: var(--paper);
+  color: var(--paper-ink);
+  width: min(94vw, 520px);
+  max-height: 82vh;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 1.3rem 1.4rem 1.1rem;
+  box-shadow: 0 18px 60px #000c;
+  animation: card-in 0.3s cubic-bezier(0.2, 1.4, 0.5, 1);
+}
+.inbox-head h3 {
+  font-family: var(--serif);
+  font-weight: 900;
+  font-size: 1.25rem;
+  margin: 0;
+}
+.inbox-sub {
+  font-size: 0.76rem;
+  color: var(--paper-muted);
+  display: block;
+  margin: 0.15rem 0 0.9rem;
+}
+.inbox-empty {
+  color: var(--paper-muted);
+  font-size: 0.88rem;
+  padding: 1.4rem 0.5rem;
+  text-align: center;
+  line-height: 2;
+}
+.inbox-empty code {
+  background: #00000012;
+  color: var(--paper-ink);
+}
+.inbox-list {
+  display: flex;
+  flex-direction: column;
+}
+.inbox-row {
+  border-top: 1px dashed #c9bda0;
+  padding: 0.65rem 0.1rem;
+}
+.ir-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+.ir-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  flex: 1;
+  line-height: 1.5;
+}
+.ir-source {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--paper-muted);
+  border: 1px solid #c9bda0;
+  border-radius: 999px;
+  padding: 0 0.45rem;
+  white-space: nowrap;
+}
+.ir-controls {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ir-controls select,
+.ir-controls input[type='date'] {
+  background: #ffffff80;
+  border: 1px solid #c9bda0;
+  border-radius: 4px;
+  padding: 0.18rem 0.3rem;
+  font-size: 0.76rem;
+  color: var(--paper-ink);
+}
+.ir-adopt {
+  background: #5d7c4a;
+  color: #f2f0e4;
+  border: none;
+  border-radius: 4px;
+  padding: 0.22rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.ir-adopt:hover {
+  background: #6e9158;
+}
+.ir-dismiss {
+  background: none;
+  border: 1px solid #b9ac90;
+  color: var(--paper-muted);
+  border-radius: 4px;
+  padding: 0.22rem 0.6rem;
+  font-size: 0.78rem;
+}
+.ir-dismiss:hover {
+  color: var(--risk);
+  border-color: var(--risk);
+}
+.inbox-close {
+  margin-top: 0.9rem;
+  background: none;
+  border: 1px solid #b9ac90;
+  color: var(--paper-muted);
+  border-radius: 5px;
+  padding: 0.3rem 1rem;
+  font-size: 0.82rem;
+}
+.inbox-close:hover {
+  color: var(--paper-ink);
+  border-color: var(--paper-ink);
+}
+
 /* 黑板挂墙 */
 .board-wrap {
   position: absolute;

@@ -29,6 +29,7 @@ export interface WorkshopProps {
   devOffset: number
   actions: Actions
   onOpenCodex(): void
+  onOpenInbox(): void
   onExport(): void
   onImportClick(): void
 }
@@ -41,6 +42,7 @@ export function Workshop({
   devOffset,
   actions,
   onOpenCodex,
+  onOpenInbox,
   onExport,
   onImportClick,
 }: WorkshopProps) {
@@ -67,6 +69,21 @@ export function Workshop({
           {devOffset !== 0 && <em>偏移{devOffset}天</em>}
         </div>
       </div>
+
+      {/* 墙上的线索信箱 */}
+      <button
+        className="mailbox-obj"
+        onClick={onOpenInbox}
+        title="线索信箱：采集脚本从 git 与 AI 会话中送来的待办建议"
+      >
+        <span className="mail-slot" />
+        {state.inbox.length > 0 && (
+          <>
+            <span className="mail-flag" />
+            <span className="mail-badge">{state.inbox.length}</span>
+          </>
+        )}
+      </button>
 
       {/* 黑板（含便签、粉笔连击、写便签入口） */}
       <div className="board-wrap">

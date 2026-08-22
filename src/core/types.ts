@@ -127,6 +127,16 @@ export interface Todo {
 
 export type Outcome = 'normal' | 'aberrant'
 
+/** 线索信箱条目：采集脚本从 git/AI 会话中提炼的待办建议，需人工采纳才上黑板 */
+export interface InboxItem {
+  /** 采集器生成的去重哈希 */
+  hash: string
+  title: string
+  /** 来源简述，如 "git:incubator" / "claude会话" */
+  source: string
+  difficulty: Difficulty
+}
+
 export interface FedTodoSnapshot {
   title: string
   difficulty: Difficulty
@@ -159,6 +169,10 @@ export interface GameState {
   currentEgg: Egg | null
   shed: Egg[]
   todos: Todo[]
+  /** 线索信箱（待审阅的待办建议） */
+  inbox: InboxItem[]
+  /** 已见过的建议哈希（去重，含已采纳/已忽略），保留最近 500 条 */
+  seenSuggestions: string[]
   codex: CreatureRecord[]
   /** 按时连击：连续按时完成的待办数，≥3 时揭露稀有度加成（§05.3） */
   streak: number

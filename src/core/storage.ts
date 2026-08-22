@@ -9,6 +9,8 @@ const DEV_OFFSET_KEY = 'gsi-dev-day-offset'
 /** 向后兼容：给旧版存档补齐变异字段（v0.2a）、揭露记录与连击（v0.2b） */
 function migrate(s: GameState): GameState {
   if (s.streak === undefined) s.streak = 0
+  if (s.inbox === undefined) s.inbox = []
+  if (s.seenSuggestions === undefined) s.seenSuggestions = []
   const fixEgg = (egg: Egg | null) => {
     if (!egg) return
     if (egg.destiny.mutationRoll === undefined) {

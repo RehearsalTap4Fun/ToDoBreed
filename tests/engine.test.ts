@@ -5,7 +5,10 @@ import { makeName } from '../src/core/naming'
 import {
   abandonTodo,
   addTodo,
+  adoptInbox,
   completeTodo,
+  dismissInbox,
+  importSuggestions,
   initState,
   processTime,
   revealCount,
@@ -250,6 +253,48 @@ describe('逾期风险', () => {
     const s2 = abandonTodo(s, 'todo-1')
     expect(s2.todos[0].state).toBe('abandoned')
     expect(s2.currentEgg!.risk).toBe(before + 6)
+  })
+})
+
+describe('线索信箱', () => {
+  const sug = (hash: string, title: string) => ({ hash, title, source: 'git:test', difficulty: 'hard' })
+
+  it('导入去重：同哈希只进一次，忽略后也不再送来', () => {
+    let s = fresh(FRI)
+    let r = importSuggestions(s, [sug('h1', '修复登录超时'), sug('h2', '补齐周报')])
+    expect(r.added).toBe(2)
+    expect(r.state.inbox).toHaveLength(2)
+    // 重复导入
+    r = importSuggestions(r.state, [sug('h1', '修复登录超时'), sug('h3', '整理会议纪要')])
+    expect(r.added).toBe(1)
+    expect(r.state.inbox).toHaveLength(3)
+    // 忽略 h2 后再导入 h2 → 不进
+    s = dismissInbox(r.state, 'h2')
+    expect(s.inbox).toHaveLength(2)
+    r = importSuggestions(s, [sug('h2', '补齐周报')])
+    expect(r.added).toBe(0)
+  })
+
+  it('采纳：移出信箱并按所选难度/截止钉上黑板', () => {
+    let s = fresh(FRI)
+    s = importSuggestions(s, [sug('h1', '修复登录超时')]).state
+    s = adoptInbox(s, 'h1', 'epic', '2026-08-25', FRI)
+    expect(s.inbox).toHaveLength(0)
+    const todo = s.todos.find((t) => t.title === '修复登录超时')!
+    expect(todo.state).toBe('open')
+    expect(todo.difficulty).toBe('epic')
+    expect(todo.due).toBe('2026-08-25')
+  })
+
+  it('非法条目被过滤，难度非法时回退普通', () => {
+    const s = fresh(FRI)
+    const r = importSuggestions(s, [
+      { hash: '', title: '没哈希' },
+      { hash: 'h9', title: '' },
+      { hash: 'h10', title: '难度非法', difficulty: 'legendary' },
+    ])
+    expect(r.added).toBe(1)
+    expect(r.state.inbox[0].difficulty).toBe('normal')
   })
 })
 

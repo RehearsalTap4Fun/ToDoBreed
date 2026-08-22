@@ -11,6 +11,7 @@ import {
   type Egg,
   type GameEvent,
   type GameState,
+  type InboxItem,
   type SlotId,
   type Todo,
 } from './types'
@@ -180,6 +181,8 @@ export function initState(today: string): TickResult {
     currentEgg: null,
     shed: [],
     todos: [],
+    inbox: [],
+    seenSuggestions: [],
     codex: [],
     streak: 0,
     lastDay: today,
@@ -303,6 +306,83 @@ export function swapEgg(state: GameState, shedIndex: number): GameState {
     s.shed.splice(shedIndex, 1)
   }
   s.currentEgg = shedEgg
+  return s
+}
+
+/* ── 线索信箱（外部待办建议） ─────────────────────── */
+
+const INBOX_CAP = 20
+const SEEN_CAP = 500
+const DIFFICULTIES: Difficulty[] = ['easy', 'normal', 'hard', 'epic']
+
+export interface SuggestionInput {
+  hash?: string
+  title?: string
+  source?: string
+  difficulty?: string
+}
+
+/** 导入采集器产出的建议：按哈希去重（含历史采纳/忽略），只进信箱不上黑板 */
+export function importSuggestions(
+  state: GameState,
+  items: SuggestionInput[],
+): { state: GameState; added: number } {
+  const seen = new Set(state.seenSuggestions)
+  const fresh: InboxItem[] = []
+  for (const raw of items) {
+    const title = (raw.title ?? '').trim().slice(0, 60)
+    const hash = (raw.hash ?? '').trim()
+    if (!title || !hash || seen.has(hash)) continue
+    seen.add(hash)
+    fresh.push({
+      hash,
+      title,
+      source: (raw.source ?? '外部').trim().slice(0, 20) || '外部',
+      difficulty: DIFFICULTIES.includes(raw.difficulty as Difficulty)
+        ? (raw.difficulty as Difficulty)
+        : 'normal',
+    })
+    if (state.inbox.length + fresh.length >= INBOX_CAP) break
+  }
+  if (fresh.length === 0) return { state, added: 0 }
+  const s = clone(state)
+  s.inbox.push(...fresh)
+  s.seenSuggestions.push(...fresh.map((f) => f.hash))
+  if (s.seenSuggestions.length > SEEN_CAP) {
+    s.seenSuggestions = s.seenSuggestions.slice(-SEEN_CAP)
+  }
+  return { state: s, added: fresh.length }
+}
+
+/** 采纳建议：从信箱移除并钉上黑板（可调难度与截止日） */
+export function adoptInbox(
+  state: GameState,
+  hash: string,
+  difficulty: Difficulty,
+  due: string | null,
+  today: string,
+): GameState {
+  const item = state.inbox.find((i) => i.hash === hash)
+  if (!item) return state
+  const s = clone(state)
+  s.inbox = s.inbox.filter((i) => i.hash !== hash)
+  s.todos.push({
+    id: `todo-${s.todos.length + 1}`,
+    title: item.title,
+    difficulty,
+    due,
+    createdDay: today,
+    state: 'open',
+    riskFromOverdue: 0,
+  })
+  return s
+}
+
+/** 忽略建议：移出信箱（哈希已入 seen，不会再送来） */
+export function dismissInbox(state: GameState, hash: string): GameState {
+  if (!state.inbox.some((i) => i.hash === hash)) return state
+  const s = clone(state)
+  s.inbox = s.inbox.filter((i) => i.hash !== hash)
   return s
 }
 
