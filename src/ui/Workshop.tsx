@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { HATCH_POINTS, revealCount } from '../core/engine'
 import {
   SLOT_NAMES,
@@ -21,142 +22,189 @@ export interface Actions {
   rename(rid: string, nick: string): void
 }
 
+export interface WorkshopProps {
+  state: GameState
+  today: string
+  dow: string
+  devOffset: number
+  actions: Actions
+  onOpenCodex(): void
+  onExport(): void
+  onImportClick(): void
+}
+
+/** 场景化工作间（§03）：所有功能物化为房间里的物件，不做抽屉式菜单 */
 export function Workshop({
   state,
   today,
+  dow,
+  devOffset,
   actions,
-}: {
-  state: GameState
-  today: string
-  actions: Actions
-}) {
+  onOpenCodex,
+  onExport,
+  onImportClick,
+}: WorkshopProps) {
   const egg = state.currentEgg
+  const [chestOpen, setChestOpen] = useState(false)
+
   return (
-    <main className="workshop">
-      <div className="col-left">
-        <h2 className="panel-title">
-          待办板 <span className="cnt">{state.todos.filter((t) => t.state === 'open').length} 条进行中</span>
-        </h2>
-        {state.streak > 0 && (
-          <p className={`streak-line${state.streak >= 3 ? ' on' : ''}`}>
-            按时连击 ×{state.streak}
-            {state.streak >= 3 ? ' · 揭露稀有度加成中（稀有×1.5 / 传说×2）' : '（满 3 触发稀有度加成）'}
-          </p>
-        )}
-        <TodoBoard todos={state.todos} today={today} actions={actions} hasEgg={!!egg} />
+    <main className="scene">
+      {/* 吊灯与光锥 */}
+      <div className="light-cone" />
+      <div className="lamp-obj">
+        <div className="lamp-cord" />
+        <div className="lamp-shade" />
+        <div className="lamp-bulb" />
       </div>
 
-      <div className="col-center">
-        <div className="incubator">
-          <div className="lamp" />
-          {egg ? (
-            <>
-              {/* 孵化器装置：玻璃罩 + 金属基座（LED 揭露进度 + 风险指示灯） */}
-              <div className="egg-stage">
-                <div className="machine">
-                  <div className="egg-holder">
-                    <EggView egg={egg} size={188} />
-                  </div>
-                  <div className="dome" />
-                  <div className="machine-base">
-                    <span className="machine-label">GSI·MK-I</span>
-                    <div className="led-strip">
-                      {SLOT_ORDER.map((slot, i) => (
-                        <span
-                          key={slot}
-                          className={`led${i < revealCount(egg.points) ? ' lit' : ''}`}
-                          title={`${SLOT_NAMES[slot]}${i < revealCount(egg.points) ? '（已揭露）' : ''}`}
-                        />
-                      ))}
-                    </div>
-                    <span
-                      className={`risk-lamp ${egg.risk < 15 ? 'low' : egg.risk < 40 ? 'mid' : 'high'}`}
-                      title={`畸变风险 ${Math.round(egg.risk)}%`}
-                    />
-                  </div>
-                </div>
-              </div>
-              <p className="theme-label">{THEMES[egg.theme].name}</p>
-              <p className="theme-desc">{THEMES[egg.theme].eggDesc}</p>
+      {/* 墙上的木牌与挂历 */}
+      <div className="wall-sign">怪奇生物孵化器</div>
+      <div className="calendar-obj" title={`${today} ${dow}`}>
+        <div className="cal-top">{today.slice(0, 7)}</div>
+        <div className="cal-day">{today.slice(8)}</div>
+        <div className="cal-dow">
+          {dow}
+          {devOffset !== 0 && <em>偏移{devOffset}天</em>}
+        </div>
+      </div>
 
-              <div className="progress-wrap">
-                <div className="pt-line">
-                  <span>
-                    孵化点 <b>{egg.points}</b> / {HATCH_POINTS}
-                  </span>
-                  <span>已揭露 {revealCount(egg.points)} / 8</span>
-                </div>
+      {/* 黑板（含便签、粉笔连击、写便签入口） */}
+      <div className="board-wrap">
+        <TodoBoard
+          todos={state.todos}
+          today={today}
+          actions={actions}
+          hasEgg={!!egg}
+          streak={state.streak}
+        />
+      </div>
+
+      {/* 墙上的 8 张观察卡：已揭露特征 */}
+      <div className="trait-wall">
+        {SLOT_ORDER.map((slot) => {
+          const id = egg?.revealed[slot]
+          const t = id ? TRAIT_MAP[id] : null
+          return (
+            <div
+              key={slot}
+              className={`wallcard${t ? '' : ' unknown'}${t?.rarity === 'L' ? ' l' : t?.rarity === 'R' ? ' r' : ''}`}
+              title={t ? t.flavor : '尚未揭露'}
+            >
+              <span className="wc-slot">{SLOT_NAMES[slot]}</span>
+              <span className="wc-name">{t ? t.name : '？'}</span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 墙上的休眠棚搁板 */}
+      <Shed shed={state.shed} pending={state.pendingEggs} onSwap={actions.swap} hasEgg={!!egg} />
+
+      {/* 工作桌：孵化器 + 记录夹 + 图鉴 + 存档匣 */}
+      <div className="desk">
+        <div className="on-desk machine-spot">
+          <div className="machine">
+            {egg ? (
+              <div className="egg-holder">
+                <EggView egg={egg} size={188} />
+              </div>
+            ) : (
+              <div className="egg-holder empty-holder">
+                <span>
+                  孵化舱空着。
+                  {state.shed.length > 0 ? '点击搁板上的蛋放进来。' : '下一枚蛋周一降临。'}
+                </span>
+              </div>
+            )}
+            <div className="dome" />
+            <div className="machine-base">
+              <span className="machine-label">GSI·MK-I</span>
+              <div className="led-strip">
+                {SLOT_ORDER.map((slot, i) => (
+                  <span
+                    key={slot}
+                    className={`led${egg && i < revealCount(egg.points) ? ' lit' : ''}`}
+                    title={SLOT_NAMES[slot]}
+                  />
+                ))}
+              </div>
+              <span
+                className={`risk-lamp ${
+                  !egg ? 'off' : egg.risk < 15 ? 'low' : egg.risk < 40 ? 'mid' : 'high'
+                }`}
+                title={egg ? `畸变风险 ${Math.round(egg.risk)}%` : '待机'}
+              />
+            </div>
+          </div>
+        </div>
+
+        <button className="on-desk book-obj" onClick={onOpenCodex} title="翻开怪奇图鉴">
+          <span className="book-title">怪奇图鉴</span>
+          <span className="book-count">{state.codex.length}</span>
+        </button>
+
+        <div className="on-desk chest-wrap">
+          <button
+            className="chest-obj"
+            onClick={() => setChestOpen((v) => !v)}
+            title="存档匣：导出 / 导入"
+          >
+            <span className="chest-clasp" />
+          </button>
+          {chestOpen && (
+            <div className="chest-menu">
+              <button
+                onClick={() => {
+                  onExport()
+                  setChestOpen(false)
+                }}
+              >
+                导出存档
+              </button>
+              <button
+                onClick={() => {
+                  onImportClick()
+                  setChestOpen(false)
+                }}
+              >
+                导入存档
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="desk-top" />
+        <div className="desk-front">
+          <div className="clipboard">
+            {egg ? (
+              <>
+                <b>{THEMES[egg.theme].name}</b>
+                <span className="cb-line">
+                  孵化点 <em>{egg.points}</em> / {HATCH_POINTS} · 已揭露 {revealCount(egg.points)}/8
+                </span>
                 <div className="risk-line">
-                  <span>畸变风险</span>
+                  <span>风险</span>
                   <div className="risk-meter">
                     <div className="rf" style={{ width: `${(egg.risk / 85) * 100}%` }} />
                   </div>
                   <span className="risk-num">{Math.round(egg.risk)}%</span>
                 </div>
-              </div>
-
-              <div className="trait-chips">
-                {SLOT_ORDER.map((slot, i) => {
-                  const revealed = i < revealCount(egg.points)
-                  if (!revealed)
-                    return (
-                      <span key={slot} className="tchip unknown">
-                        <span className="slotname">{SLOT_NAMES[slot]}</span>？
-                      </span>
-                    )
-                  const traitId = egg.revealed[slot]
-                  if (!traitId)
-                    return (
-                      <span key={slot} className="tchip unknown">
-                        <span className="slotname">{SLOT_NAMES[slot]}</span>？
-                      </span>
-                    )
-                  const t = TRAIT_MAP[traitId]
-                  return (
-                    <span
-                      key={slot}
-                      className={`tchip${t.rarity === 'L' ? ' legend' : t.rarity === 'R' ? ' rare' : ''}`}
-                      title={t.flavor}
-                    >
-                      <span className="slotname">{SLOT_NAMES[slot]}</span>
-                      {t.name}
-                    </span>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="egg-stage">
-              <div className="machine">
-                <div className="egg-holder empty-holder">
-                  <span>
-                    孵化舱空着。
-                    {state.shed.length > 0 ? '从休眠棚换一枚蛋上来。' : '下一枚蛋周一降临。'}
-                  </span>
-                </div>
-                <div className="dome" />
-                <div className="machine-base">
-                  <span className="machine-label">GSI·MK-I</span>
-                  <div className="led-strip">
-                    {SLOT_ORDER.map((slot) => (
-                      <span key={slot} className="led" />
-                    ))}
-                  </div>
-                  <span className="risk-lamp off" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="floor">
-            <Resident codex={state.codex} />
+              </>
+            ) : (
+              <>
+                <b>孵化舱空置</b>
+                <span className="cb-line">
+                  {state.shed.length > 0 ? '从休眠棚换一枚蛋进来' : '新蛋将于周一降临'}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="col-right">
-        <h2 className="panel-title">休眠棚</h2>
-        <Shed shed={state.shed} pending={state.pendingEggs} onSwap={actions.swap} hasEgg={!!egg} />
+      {/* 地板与驻场生物 */}
+      <div className="floor-area">
+        <Resident codex={state.codex} />
       </div>
     </main>
   )

@@ -134,36 +134,27 @@ export default function App() {
 
   return (
     <>
-      <header className="topbar">
-        <h1>怪奇生物孵化器</h1>
-        <span className="tagline">完成待办，孵一只没人见过的东西</span>
-        <span className="spacer" />
-        <span className="date">
-          {today} {dow}
-          {devOffset !== 0 && `（偏移 ${devOffset} 天）`}
-        </span>
-        <button className="tbtn" onClick={() => setShowCodex(true)}>
-          图鉴 · {state.codex.length}
-        </button>
-        <button className="tbtn" onClick={() => exportSave(state)}>
-          导出存档
-        </button>
-        <button className="tbtn" onClick={() => fileRef.current?.click()}>
-          导入
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            onImportFile(e.target.files?.[0] ?? null)
-            e.target.value = ''
-          }}
-        />
-      </header>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          onImportFile(e.target.files?.[0] ?? null)
+          e.target.value = ''
+        }}
+      />
 
-      <Workshop state={state} today={today} actions={actions} />
+      <Workshop
+        state={state}
+        today={today}
+        dow={dow}
+        devOffset={devOffset}
+        actions={actions}
+        onOpenCodex={() => setShowCodex(true)}
+        onExport={() => exportSave(state)}
+        onImportClick={() => fileRef.current?.click()}
+      />
 
       {showCodex && (
         <Codex codex={state.codex} onClose={() => setShowCodex(false)} onRename={actions.rename} />
