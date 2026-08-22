@@ -123,10 +123,10 @@ footer.doc{margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);fo
   <div class="tablewrap"><table>
     <thead><tr><th>维度</th><th>当前状态（2026-08-21）</th></tr></thead>
     <tbody>
-      <tr><td class="tname">功能</td><td>MVP 闭环全部可玩：待办 → 孵化点 → 揭露 → 判定 → 图鉴/标本室，含休眠棚、顺延队列、驻场生物</td></tr>
+      <tr><td class="tname">功能</td><td>MVP 闭环全部可玩：待办 → 孵化点 → 揭露 → 判定 → 图鉴/标本室，含休眠棚、事件化领蛋、驻场生物、场景化工作间</td></tr>
       <tr><td class="tname">内容</td><td>3 主题（深海/菌沼/幽影）、8 槽位 77 条特征（含传说级 18 条）、6 条畸变、8 条变异</td></tr>
       <tr><td class="tname">画风</td><td>造型已完成"可爱治愈"深化；5 种渲染风格可切（默认贴纸卡通），主风格待定稿</td></tr>
-      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 19/19 通过</td></tr>
+      <tr><td class="tname">质量</td><td><code>npm run build</code> 通过（tsc 严格模式 + vite），<code>npm test</code> 22/22 通过</td></tr>
       <tr><td class="tname">启动</td><td><code>npm install && npm run dev</code></td></tr>
     </tbody>
   </table></div>
@@ -218,9 +218,9 @@ frame → limbs → head → mouth → surface → pattern → temperament → q
   <h3><span class="h3no">5.2</span>时间结算（engine.processTime）</h3>
   <ul>
     <li>逐日循环 <code>lastDay+1 … today</code>；每日先判 <code>isMonday</code> 走周事件，再结算逾期。</li>
-    <li><strong>周一：</strong>休眠棚每蛋 <code>dormantWeeks++</code> 且 +8% 风险，&gt;3 周强制孵化；台上未满蛋入棚（入棚即 +8%）；台空则新蛋降临，台被占（棚满）则 <code>pendingEggs++</code> 顺延。</li>
+    <li><strong>周一：</strong>休眠棚每蛋 <code>dormantWeeks++</code> 且 +8% 风险，&gt;3 周强制孵化；台上未满蛋入棚（入棚即 +8%）并随即降临新蛋；棚满则蛋留台继续孵化。</li>
     <li><strong>逾期：</strong>首日 +4%、此后每日 +2%，单条待办累计上限 12%；逾期满 7 天自动判失败再 +12%。风险落在<em>结算当日孵化台上的蛋</em>。</li>
-    <li><strong>补位：</strong>孵化完成后依次取顺延队列 → 自动换上最早休眠的蛋，避免"空台浪费孵化点"。</li>
+    <li><strong>事件化获取（v0.2 修订）：</strong>孵化完成即刻降临新蛋，顺延队列已移除；<code>processTime</code> 兜底"空台即领"，孵化台理论上不再空置。</li>
   </ul>
 
   <h3><span class="h3no">5.3</span>孵化判定</h3>
@@ -270,7 +270,7 @@ frame → limbs → head → mouth → surface → pattern → temperament → q
   <h2>数据结构</h2>
   <p>单一存档对象存于 localStorage key <code>gsi-save-v1</code>，含 <code>version</code> 字段供后续迁移。要点：</p>
   <pre class="code">GameState { version, gsiCounter, seedTick, <span class="k">saveSalt</span>,   <span class="c">// 存档级随机盐</span>
-            currentEgg, shed[≤3], pendingEggs,
+            currentEgg, shed[≤3],
             todos[], codex[], lastDay, firstDay }
 
 Egg   { id, theme, <span class="k">seed</span>, points, risk, <span class="k">destiny</span>,        <span class="c">// 命运在生成时已注定</span>
@@ -321,7 +321,7 @@ CreatureRecord { id "GSI-001", name, nickname?, traits×8,
       <tr><td class="tname">v0.1</td><td>MVP 闭环：3 主题 59 特征、完整数值、图鉴/标本室、驻场生物、存档</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.1.x</td><td>造型可爱治愈化 + 5 画风实验室</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.2a</td><td>传说级特征 18 条（共 77）+ 变异表 8 条（变异率 = 5% + 困难待办 ×1%，上限 15%，判定骰预掷于命运）；蛋的可爱化（粉彩壳 + 呆毛 + 贴纸描边）；图鉴变异统计与金边徽章；旧档自动迁移</td><td><span class="chip done">已完成</span></td></tr>
-      <tr><td class="tname">v0.2b</td><td>破壳演出完整版（蓄力抖动→白光迸发→登场，可跳过、尊重减动效）；按时连击（连续 3 条按时 → 揭露 R×1.5/L×2，特征改为揭露时懒掷，无截止日中性，放弃/自动失败清零）；旧档迁移</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">v0.2b</td><td>破壳演出完整版（蓄力抖动→白光迸发→登场，可跳过、尊重减动效）；按时连击（连续 3 条按时 → 揭露 R×1.5/L×2，特征改为揭露时懒掷，无截止日中性，放弃/自动失败清零）；旧档迁移；蛋获取事件化（孵化完成/入棚休眠即领新蛋，移除顺延队列与周一空等）</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.2c</td><td>主画风定稿（sticker / plush / 场景组合，待用户拍板）</td><td><span class="chip next">待拍板</span></td></tr>
       <tr><td class="tname">v0.2.x</td><td>剩余 7 主题逐批放出（每主题=色板+偏向池+词根+蛋装饰，纯内容扩充）；驻场生物动画补全 R 级性格</td><td><span class="chip later">规划中</span></td></tr>
       <tr><td class="tname">v0.3+</td><td>分享卡导出、周挑战蛋、生态羁绊、双驻场、年度报告、音景；多端同步与外部待办源接入再评估</td><td><span class="chip later">远期</span></td></tr>

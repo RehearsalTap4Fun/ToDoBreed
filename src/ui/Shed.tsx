@@ -6,12 +6,10 @@ import { EggView } from '../render/Egg'
 /** 休眠棚：墙上的木搁板 + 三个干草窝，点击蛋直接与孵化舱交换 */
 export function Shed({
   shed,
-  pending,
   onSwap,
   hasEgg,
 }: {
   shed: Egg[]
-  pending: number
   onSwap: (i: number) => void
   hasEgg: boolean
 }) {
@@ -47,7 +45,6 @@ export function Shed({
       </div>
       <div className="shelf-plank">
         <span className="shelf-label">休 眠 棚</span>
-        {pending > 0 && <span className="pending-tag">+{pending} 排队中</span>}
       </div>
     </div>
   )

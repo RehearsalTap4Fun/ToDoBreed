@@ -158,7 +158,6 @@ export interface GameState {
   saveSalt: number
   currentEgg: Egg | null
   shed: Egg[]
-  pendingEggs: number
   todos: Todo[]
   codex: CreatureRecord[]
   /** 按时连击：连续按时完成的待办数，≥3 时揭露稀有度加成（§05.3） */

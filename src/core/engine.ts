@@ -118,16 +118,6 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
   return record
 }
 
-/** 孵化台空出后的补位：先取顺延队列，再自动换上最早休眠的蛋 */
-function refillTable(s: GameState, day: string, events: GameEvent[]): void {
-  if (s.pendingEggs > 0) {
-    s.pendingEggs -= 1
-    spawnEgg(s, day, events)
-  } else if (s.shed.length > 0) {
-    s.currentEgg = s.shed.shift()!
-  }
-}
-
 function weeklyTick(s: GameState, day: string, events: GameEvent[]): void {
   // 1) 休眠棚结算：每满一周 +8%，休眠满 3 周强制孵化判定（§06.4）
   const remaining: Egg[] = []
@@ -143,7 +133,8 @@ function weeklyTick(s: GameState, day: string, events: GameEvent[]): void {
   }
   s.shed = remaining
 
-  // 2) 孵化台上未满 100 点的蛋移入休眠棚（入棚即 +8%，见 §06.5 推演示例）
+  // 2) 孵化台上未满 100 点的蛋移入休眠棚（入棚即 +8%，见 §06.5 推演示例）；
+  //    棚满则蛋留在台上继续孵化
   if (s.currentEgg && s.currentEgg.points < HATCH_POINTS && s.shed.length < SHED_CAP) {
     const egg = s.currentEgg
     egg.dormantWeeks = 1
@@ -152,9 +143,8 @@ function weeklyTick(s: GameState, day: string, events: GameEvent[]): void {
     s.currentEgg = null
   }
 
-  // 3) 新蛋降临；若孵化台仍被占（棚满），新蛋顺延不丢（§04）
+  // 3) 蛋获取事件化（v0.2 修订）：入棚休眠腾出孵化台的瞬间，新蛋降临
   if (s.currentEgg === null) spawnEgg(s, day, events)
-  else s.pendingEggs += 1
 }
 
 function dailyTick(s: GameState, day: string, events: GameEvent[]): void {
@@ -189,7 +179,6 @@ export function initState(today: string): TickResult {
     saveSalt: Math.floor(Math.random() * 2 ** 31),
     currentEgg: null,
     shed: [],
-    pendingEggs: 0,
     todos: [],
     codex: [],
     streak: 0,
@@ -201,9 +190,9 @@ export function initState(today: string): TickResult {
   return { state: s, events }
 }
 
-/** 补结算离线期间的每一天（含周一事件），打开应用与跨日时调用 */
+/** 补结算离线期间的每一天（含周一事件），打开应用与跨日时调用；空台即领新蛋 */
 export function processTime(state: GameState, today: string): TickResult {
-  if (today <= state.lastDay) return { state, events: [] }
+  if (today <= state.lastDay && state.currentEgg !== null) return { state, events: [] }
   const s = clone(state)
   const events: GameEvent[] = []
   let day = s.lastDay
@@ -211,7 +200,9 @@ export function processTime(state: GameState, today: string): TickResult {
     day = addDays(day, 1)
     dailyTick(s, day, events)
   }
-  s.lastDay = today
+  if (today > s.lastDay) s.lastDay = today
+  // 兜底（含旧档迁移）：孵化台空着就即刻领新蛋
+  if (s.currentEgg === null) spawnEgg(s, today, events)
   return { state: s, events }
 }
 
@@ -252,7 +243,8 @@ function feedPoints(s: GameState, points: number, today: string, events: GameEve
     const record = hatchEgg(s, egg, today, false)
     s.currentEgg = null
     events.push({ type: 'hatch', record })
-    refillTable(s, today, events)
+    // 蛋获取事件化（v0.2 修订）：孵化完成即刻降临新蛋
+    spawnEgg(s, today, events)
   }
 }
 

@@ -278,6 +278,43 @@ describe('周循环与休眠', () => {
     expect(r.state.shed.every((e) => e.id !== eggId)).toBe(true)
   })
 
+  it('蛋获取事件化：孵化完成即刻降临新蛋', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: '收尾', difficulty: 'normal', due: null }, FRI)
+    const oldId = s.currentEgg!.id
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    const r = completeTodo(s, 'todo-1', FRI)
+    expect(r.state.codex).toHaveLength(1)
+    expect(r.state.currentEgg).toBeTruthy()
+    expect(r.state.currentEgg!.id).not.toBe(oldId)
+    expect(r.state.currentEgg!.points).toBe(0)
+    expect(r.events.some((e) => e.type === 'eggArrived')).toBe(true)
+  })
+
+  it('棚满时周一蛋留台上继续孵化，不生新蛋', () => {
+    const s = fresh(TUE)
+    const tableId = s.currentEgg!.id
+    s.shed = [1, 2, 3].map((n) => ({
+      ...structuredClone(s.currentEgg!),
+      id: `shed-${n}`,
+      dormantWeeks: 1,
+    }))
+    const r = processTime(s, '2026-08-24')
+    expect(r.state.currentEgg!.id).toBe(tableId)
+    expect(r.state.shed).toHaveLength(3)
+    expect(r.state.shed.every((e) => e.dormantWeeks === 2)).toBe(true)
+    expect(r.events.some((e) => e.type === 'eggArrived')).toBe(false)
+  })
+
+  it('空台兜底：旧档孵化台为空时即刻领新蛋', () => {
+    const s = fresh(FRI)
+    s.currentEgg = null
+    const r = processTime(s, FRI)
+    expect(r.state.currentEgg).toBeTruthy()
+    expect(r.events.some((e) => e.type === 'eggArrived')).toBe(true)
+  })
+
   it('手动交换孵化台与休眠棚', () => {
     const s = fresh(TUE)
     const first = s.currentEgg!.id

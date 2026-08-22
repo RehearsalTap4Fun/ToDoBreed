@@ -98,7 +98,7 @@ export function Workshop({
       </div>
 
       {/* 墙上的休眠棚搁板 */}
-      <Shed shed={state.shed} pending={state.pendingEggs} onSwap={actions.swap} hasEgg={!!egg} />
+      <Shed shed={state.shed} onSwap={actions.swap} hasEgg={!!egg} />
 
       {/* 工作桌：孵化器 + 记录夹 + 图鉴 + 存档匣 */}
       <div className="desk">
@@ -110,10 +110,7 @@ export function Workshop({
               </div>
             ) : (
               <div className="egg-holder empty-holder">
-                <span>
-                  孵化舱空着。
-                  {state.shed.length > 0 ? '点击搁板上的蛋放进来。' : '下一枚蛋周一降临。'}
-                </span>
+                <span>孵化舱空着，新蛋正在路上。</span>
               </div>
             )}
             <div className="dome" />
@@ -193,9 +190,7 @@ export function Workshop({
             ) : (
               <>
                 <b>孵化舱空置</b>
-                <span className="cb-line">
-                  {state.shed.length > 0 ? '从休眠棚换一枚蛋进来' : '新蛋将于周一降临'}
-                </span>
+                <span className="cb-line">新蛋即将降临</span>
               </>
             )}
           </div>
