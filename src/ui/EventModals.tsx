@@ -34,6 +34,38 @@ export function EventModals({ event, onNext }: { event: GameEvent | null; onNext
   if (event.type === 'hatch') {
     return <HatchCard record={event.record} onNext={onNext} />
   }
+  if (event.type === 'residentGrow') {
+    const from = TRAIT_MAP[event.fromId]
+    const to = TRAIT_MAP[event.toId]
+    const rec = event.record
+    return (
+      <div className="overlay" role="dialog" aria-modal="true">
+        <div className="modal-card">
+          <div className="eyebrow">驻场成长 · {SLOT_NAMES[event.slot]}</div>
+          <Creature
+            traits={rec.traits}
+            theme={rec.theme}
+            aberrations={rec.aberrations}
+            mutation={rec.mutation}
+            seed={rec.seed}
+            size={150}
+          />
+          <h3>{to.name}</h3>
+          <span className={`rarity-chip rarity-${to.rarity}`}>{RARITY_NAMES[to.rarity]}</span>
+          <p className="flavor">
+            {rec.nickname ?? rec.name} 看着你把事情做完，忽然开窍了——
+            {SLOT_NAMES[event.slot]}由「{from.name}」长成了「{to.name}」。
+            <br />
+            {to.flavor}
+          </p>
+          <button className="primary" onClick={onNext} autoFocus>
+            好耶
+          </button>
+          <div className="reveal-count">成长 {rec.growths} / 3</div>
+        </div>
+      </div>
+    )
+  }
   return null
 }
 

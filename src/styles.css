@@ -1133,6 +1133,10 @@ select:focus-visible {
   color: #8a6100;
   border-color: #b98a1f;
 }
+.oc-pill.grow {
+  color: #2a6b85;
+  border-color: #2a6b85;
+}
 button.oc-pill.res {
   background: none;
   cursor: pointer;

@@ -71,7 +71,7 @@ export default function App() {
       setState(s)
       const modal: GameEvent[] = []
       for (const e of events) {
-        if (e.type === 'reveal' || e.type === 'hatch') modal.push(e)
+        if (e.type === 'reveal' || e.type === 'hatch' || e.type === 'residentGrow') modal.push(e)
         else if (e.type === 'eggArrived') pushToast(`一枚${THEMES[e.theme].name}降临了`)
         else if (e.type === 'autoFail')
           pushToast(`「${e.todoTitle}」逾期满 7 天，已判定失败（风险 +12%）`)

@@ -178,6 +178,8 @@ export interface CreatureRecord {
   fedTodos: FedTodoSnapshot[]
   /** 休眠强制孵化时为 true（未揭露槽位静默补全） */
   forced: boolean
+  /** 驻场成长次数（完成待办时概率升品特征，上限 3） */
+  growths: number
 }
 
 export interface GameState {
@@ -214,3 +216,4 @@ export type GameEvent =
   | { type: 'noEgg' }
   | { type: 'streakOn'; count: number }
   | { type: 'streakBreak' }
+  | { type: 'residentGrow'; record: CreatureRecord; slot: SlotId; fromId: string; toId: string }

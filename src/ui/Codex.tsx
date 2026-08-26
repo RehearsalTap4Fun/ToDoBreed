@@ -137,6 +137,11 @@ function CreatureCard({
           {r.outcome === 'aberrant' ? '畸变' : '正常'}
         </span>
         {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
+        {r.growths > 0 && (
+          <span className="oc-pill grow" title="驻场期间完成待办触发的特征升品">
+            ↑成长×{r.growths}
+          </span>
+        )}
         {r.forced && <span className="oc-pill ab">自行破壳</span>}
         {isResident ? (
           <button

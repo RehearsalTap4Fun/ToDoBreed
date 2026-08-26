@@ -36,6 +36,7 @@ function migrate(s: GameState): GameState {
   s.shed?.forEach(fixEgg)
   s.codex?.forEach((c) => {
     if (c.mutation === undefined) c.mutation = null
+    if (c.growths === undefined) c.growths = 0
   })
   return s
 }

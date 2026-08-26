@@ -286,6 +286,52 @@ describe('驻场生物', () => {
   })
 })
 
+describe('驻场成长', () => {
+  it('概率升品：稀有度只升不降、尊重互斥、上限 3 次', () => {
+    let s = fresh(FRI)
+    s.saveSalt = 12345 // 固定盐保证确定性
+    // 孵出一只并指定驻场
+    s = addTodo(s, { title: '开荒', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s = completeTodo(s, 'todo-1', FRI).state
+    s = setResident(s, 'GSI-001')
+    const original = { ...s.codex[0].traits }
+    const order = { N: 0, R: 1, L: 2 } as const
+
+    let growEvents = 0
+    for (let i = 0; i < 60; i++) {
+      s = addTodo(s, { title: `硬仗${i}`, difficulty: 'epic', due: null }, FRI)
+      const r = completeTodo(s, `todo-${s.todos.length}`, FRI)
+      growEvents += r.events.filter((e) => e.type === 'residentGrow').length
+      s = r.state
+    }
+    const rec = s.codex.find((c) => c.id === 'GSI-001')!
+    expect(rec.growths).toBeGreaterThanOrEqual(1) // 14%×60 次，未命中概率 ~0.01%
+    expect(rec.growths).toBeLessThanOrEqual(3)
+    expect(growEvents).toBe(rec.growths)
+    let strictlyHigher = 0
+    for (const slot of SLOT_ORDER) {
+      const before = TRAIT_MAP[original[slot]]
+      const after = TRAIT_MAP[rec.traits[slot]]
+      expect(after.slot).toBe(slot)
+      expect(order[after.rarity]).toBeGreaterThanOrEqual(order[before.rarity])
+      if (order[after.rarity] > order[before.rarity]) strictlyHigher++
+    }
+    expect(strictlyHigher).toBeGreaterThanOrEqual(1)
+    // 互斥双向校验
+    for (const slot of SLOT_ORDER) {
+      const t = TRAIT_MAP[rec.traits[slot]]
+      for (const other of SLOT_ORDER) {
+        if (other === slot) continue
+        const o = TRAIT_MAP[rec.traits[other]]
+        expect(t.excludes ?? []).not.toContain(o.id)
+        expect(o.excludes ?? []).not.toContain(t.id)
+      }
+    }
+  })
+})
+
 describe('常用模版', () => {
   it('期限规则换算与归纳（FRI=周五）', () => {
     expect(resolveDueRule('today', FRI)).toBe(FRI)

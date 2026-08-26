@@ -1,8 +1,9 @@
-import { hashStr, mulberry32, weightedPick } from './rng'
+import { hashStr, mulberry32, pick, weightedPick } from './rng'
 import { addDays, daysBetween, isMonday, mondayOf } from './time'
 import { gsiId, makeName } from './naming'
 import { rollDestiny, rollTraitForSlot } from './draw'
 import { THEMES, THEME_IDS } from '../data/themes'
+import { TRAIT_MAP, TRAITS } from '../data/traits'
 import {
   DIFFICULTY_META,
   SLOT_ORDER,
@@ -115,6 +116,7 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
     riskAtHatch: Math.round(egg.risk),
     fedTodos,
     forced,
+    growths: 0,
   }
   s.gsiCounter += 1
   s.codex.push(record)
@@ -284,6 +286,8 @@ export function completeTodo(state: GameState, todoId: string, today: string): T
     return { state: s, events }
   }
   egg.fedBy.push(todo.id)
+  // 成长判定在孵化结算前——开窍的是一路看着你工作的那只，而非本次孵出的新生儿
+  tryResidentGrow(s, todo, events)
   feedPoints(s, DIFFICULTY_META[todo.difficulty].points, today, events)
   return { state: s, events }
 }
@@ -461,6 +465,76 @@ export function dismissInbox(state: GameState, hash: string): GameState {
   const s = clone(state)
   s.inbox = s.inbox.filter((i) => i.hash !== hash)
   return s
+}
+
+/* ── 驻场成长（完成待办时概率升品特征） ─────────── */
+
+/** 成长概率按难度：攻坚更容易让驻场的小家伙开窍；每只上限 3 次 */
+export const GROW = {
+  chance: { easy: 0.02, normal: 0.04, hard: 0.08, epic: 0.14 } as Record<Difficulty, number>,
+  cap: 3,
+}
+
+const RARITY_ORDER = { N: 0, R: 1, L: 2 } as const
+
+/** 候选特征与生物现有其他特征是否互斥（双向检查） */
+function conflictsWith(candidateId: string, traits: Record<SlotId, string>, exceptSlot: SlotId): boolean {
+  const cand = TRAIT_MAP[candidateId]
+  for (const slot of SLOT_ORDER) {
+    if (slot === exceptSlot) continue
+    const other = TRAIT_MAP[traits[slot]]
+    if (cand.excludes?.includes(other.id)) return true
+    if (other.excludes?.includes(cand.id)) return true
+  }
+  return false
+}
+
+/**
+ * 驻场成长判定：种子来自存档盐+待办 id，掷出即入档（刷新无法重掷）。
+ * 命中时随机一个可升品槽位，换成同槽更高稀有度的特征（升一档为主，小概率跳档）。
+ */
+function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
+  const rec = residentOf(s)
+  if (!rec || rec.growths >= GROW.cap) return
+  const rng = mulberry32(hashStr(`${s.saveSalt}|grow|${todo.id}`))
+  if (rng() >= GROW.chance[todo.difficulty]) return
+
+  const upgradables = SLOT_ORDER.filter((slot) => {
+    const cur = TRAIT_MAP[rec.traits[slot]]
+    return TRAITS.some(
+      (t) =>
+        t.slot === slot &&
+        RARITY_ORDER[t.rarity] > RARITY_ORDER[cur.rarity] &&
+        !conflictsWith(t.id, rec.traits, slot),
+    )
+  })
+  if (upgradables.length === 0) return
+
+  const slot = pick(rng, upgradables)
+  const cur = TRAIT_MAP[rec.traits[slot]]
+  const candidates = TRAITS.filter(
+    (t) =>
+      t.slot === slot &&
+      RARITY_ORDER[t.rarity] > RARITY_ORDER[cur.rarity] &&
+      !conflictsWith(t.id, rec.traits, slot),
+  )
+  const picked = weightedPick(
+    rng,
+    candidates.map((t) => ({
+      item: t,
+      w: RARITY_ORDER[t.rarity] === RARITY_ORDER[cur.rarity] + 1 ? 70 : 30,
+    })),
+  )
+  const fromId = rec.traits[slot]
+  rec.traits[slot] = picked.id
+  rec.growths += 1
+  events.push({
+    type: 'residentGrow',
+    record: structuredClone(rec),
+    slot,
+    fromId,
+    toId: picked.id,
+  })
 }
 
 /** 当前驻场生物：显式指定优先，否则跟随最新孵化；指定失效（导档等）时回退最新 */
