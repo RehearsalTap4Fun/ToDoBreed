@@ -147,13 +147,86 @@ function sanitize(items, maxItems) {
     if (!title) continue
     const source = String(raw?.source ?? '外部').trim().slice(0, 16) || '外部'
     const difficulty = diffs.has(raw?.difficulty) ? raw.difficulty : 'normal'
-    const hash = hashOf(title, source)
+    // 允许数据源自带哈希（如 Jira 掺 ISO 周实现"未完成每周重提"）
+    const hash = typeof raw?.hash === 'string' && raw.hash ? raw.hash : hashOf(title, source)
     if (seen.has(hash)) continue
     seen.add(hash)
-    out.push({ hash, title, source, difficulty })
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(raw?.due ?? '') ? raw.due : null
+    out.push(due ? { hash, title, source, difficulty, due } : { hash, title, source, difficulty })
     if (out.length >= maxItems) break
   }
   return out
+}
+
+/** 本周周一日戳，作为 Jira 建议哈希的周期盐 */
+function isoWeekTag() {
+  const d = new Date()
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1
+  const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow)
+  return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(m.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Jira（自建 Server/DC，Bearer PAT）：按 JQL 拉取当前用户未完成 issue。
+ * 结构化数据不经 LLM；哈希掺 ISO 周——忽略过的 issue 若仍未完成，下周会重新送达。
+ * 凭证：环境变量 JIRA_API_TOKEN（PAT，推荐）或 JIRA_USER + JIRA_PASSWORD（Basic 兜底）。
+ */
+async function collectJira(cfg) {
+  const jc = cfg.jira
+  if (!jc?.baseUrl) return []
+  const token = process.env.JIRA_API_TOKEN
+  const user = process.env.JIRA_USER
+  const pass = process.env.JIRA_PASSWORD
+  const auth = token
+    ? `Bearer ${token}`
+    : user && pass
+      ? `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`
+      : null
+  if (!auth) {
+    console.warn('[collect] 未设置 JIRA_API_TOKEN（或 JIRA_USER/JIRA_PASSWORD），跳过 Jira')
+    return []
+  }
+  const jql =
+    jc.jql || 'assignee = currentUser() AND statusCategory != Done ORDER BY priority DESC, duedate ASC'
+  const url =
+    `${jc.baseUrl.replace(/\/$/, '')}/rest/api/2/search` +
+    `?jql=${encodeURIComponent(jql)}&maxResults=${jc.maxIssues ?? 10}&fields=summary,priority,duedate,project`
+  try {
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), 15000)
+    const res = await fetch(url, {
+      headers: { Authorization: auth, Accept: 'application/json' },
+      signal: ctl.signal,
+    })
+    clearTimeout(timer)
+    if (!res.ok) {
+      console.warn(`[collect] Jira 请求失败 HTTP ${res.status}（token 过期或 JQL 有误？），跳过`)
+      return []
+    }
+    const data = await res.json()
+    const week = isoWeekTag()
+    return (data.issues ?? []).map((iss) => {
+      const f = iss.fields ?? {}
+      const pri = String(f.priority?.name ?? '').toLowerCase()
+      const difficulty = /highest|blocker|critical|urgent|紧急|最高|阻塞/.test(pri)
+        ? 'hard'
+        : /high|高/.test(pri)
+          ? 'hard'
+          : /low|低/.test(pri)
+            ? 'easy'
+            : 'normal'
+      return {
+        title: `[${iss.key}] ${f.summary ?? ''}`,
+        source: `jira:${f.project?.key ?? iss.key.split('-')[0]}`,
+        difficulty,
+        due: f.duedate ?? null,
+        hash: hashOf(`${iss.key}|${week}`, 'jira'),
+      }
+    })
+  } catch (e) {
+    console.warn(`[collect] Jira 拉取异常（${e?.name ?? e}），跳过`)
+    return []
+  }
 }
 
 /** 智能提炼：claude -p 无头模式 */
@@ -223,7 +296,7 @@ const material = [
 let items
 if (!material.trim()) {
   items = []
-  console.log('[collect] 近期无可分析材料')
+  console.log('[collect] 近期无 git/会话 材料')
 } else if (cfg.useClaude) {
   const smart = extractWithClaude(material, cfg.maxItems)
   items = smart !== null ? smart : extractHeuristic(cfg)
@@ -231,7 +304,11 @@ if (!material.trim()) {
   items = extractHeuristic(cfg)
 }
 
-const clean = sanitize(items, cfg.maxItems)
+// Jira 结构化线索（独立配额，不占 LLM 提取名额）
+const jiraItems = await collectJira(cfg)
+if (jiraItems.length > 0) console.log(`[collect] Jira：${jiraItems.length} 条未完成 issue`)
+
+const clean = sanitize([...jiraItems, ...items], cfg.maxItems + jiraItems.length)
 const payload = JSON.stringify({ generatedAt: new Date().toISOString(), items: clean }, null, 2)
 const outDir = join(ROOT, 'public')
 mkdirSync(outDir, { recursive: true })

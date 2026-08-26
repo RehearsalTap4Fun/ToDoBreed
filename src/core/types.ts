@@ -150,9 +150,11 @@ export interface InboxItem {
   /** 采集器生成的去重哈希 */
   hash: string
   title: string
-  /** 来源简述，如 "git:incubator" / "claude会话" */
+  /** 来源简述，如 "git:incubator" / "claude会话" / "jira:PROJ" */
   source: string
   difficulty: Difficulty
+  /** 建议截止日（如 Jira duedate 透传），采纳时预填可改 */
+  due?: string | null
 }
 
 export interface FedTodoSnapshot {

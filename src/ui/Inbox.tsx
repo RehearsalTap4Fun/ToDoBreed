@@ -56,11 +56,12 @@ function InboxRow({
   onDismiss(hash: string): void
 }) {
   const [difficulty, setDifficulty] = useState<Difficulty>(item.difficulty)
-  const [due, setDue] = useState('')
+  const [due, setDue] = useState(item.due ?? '')
   return (
     <div className="inbox-row">
       <div className="ir-main">
         <div className="ir-title">{item.title}</div>
+        {item.due && <span className="ir-source">截止 {item.due}</span>}
         <span className="ir-source">{item.source}</span>
       </div>
       <div className="ir-controls">

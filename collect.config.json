@@ -1,8 +1,15 @@
 {
-  "repos": ["."],
+  "repos": [
+    "."
+  ],
   "claudeProjectsDir": "~/.claude/projects",
   "codexSessionsDir": "~/.codex/sessions",
   "sinceHours": 24,
   "maxItems": 8,
-  "useClaude": true
+  "useClaude": true,
+  "jira": {
+    "baseUrl": "https://jira.tap4fun.com",
+    "jql": "assignee = currentUser() AND statusCategory != Done ORDER BY priority DESC, duedate ASC",
+    "maxIssues": 10
+  }
 }

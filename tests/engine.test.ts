@@ -337,6 +337,20 @@ describe('线索信箱', () => {
     expect(r.added).toBe(1)
     expect(r.state.inbox[0].difficulty).toBe('normal')
   })
+
+  it('建议截止日透传（Jira duedate），非法日期置空', () => {
+    const s = fresh(FRI)
+    const r = importSuggestions(s, [
+      { hash: 'j1', title: '[K1-88] 修复副本掉线', source: 'jira:K1', difficulty: 'hard', due: '2026-08-28' },
+      { hash: 'j2', title: '[K1-89] 无期限', source: 'jira:K1', due: 'not-a-date' },
+    ])
+    expect(r.added).toBe(2)
+    expect(r.state.inbox[0].due).toBe('2026-08-28')
+    expect(r.state.inbox[1].due).toBeNull()
+    // 采纳时沿用建议截止日
+    const s2 = adoptInbox(r.state, 'j1', 'hard', r.state.inbox[0].due!, FRI)
+    expect(s2.todos.find((t) => t.title.includes('K1-88'))!.due).toBe('2026-08-28')
+  })
 })
 
 describe('周循环与休眠', () => {

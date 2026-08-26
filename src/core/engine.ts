@@ -393,6 +393,7 @@ export interface SuggestionInput {
   title?: string
   source?: string
   difficulty?: string
+  due?: string | null
 }
 
 /** 导入采集器产出的建议：按哈希去重（含历史采纳/忽略），只进信箱不上黑板 */
@@ -407,6 +408,7 @@ export function importSuggestions(
     const hash = (raw.hash ?? '').trim()
     if (!title || !hash || seen.has(hash)) continue
     seen.add(hash)
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(raw.due ?? '') ? (raw.due as string) : null
     fresh.push({
       hash,
       title,
@@ -414,6 +416,7 @@ export function importSuggestions(
       difficulty: DIFFICULTIES.includes(raw.difficulty as Difficulty)
         ? (raw.difficulty as Difficulty)
         : 'normal',
+      due,
     })
     if (state.inbox.length + fresh.length >= INBOX_CAP) break
   }
