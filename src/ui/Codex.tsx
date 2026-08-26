@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { GROW } from '../core/engine'
 import { SLOT_ORDER, type CreatureRecord, type ThemeId } from '../core/types'
 import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
 import { THEMES, THEME_IDS } from '../data/themes'
@@ -24,6 +25,7 @@ export function Codex({
   const seenTraits = new Set(codex.flatMap((r) => Object.values(r.traits)))
   const aberrantCount = codex.filter((r) => r.outcome === 'aberrant').length
   const mutatedCount = codex.filter((r) => r.mutation).length
+  const maxedCount = codex.filter((r) => r.growths >= GROW.cap).length
 
   const shown = codex
     .filter((r) => {
@@ -48,6 +50,9 @@ export function Codex({
             </span>
             <span>
               变异 <b>{mutatedCount}</b>
+            </span>
+            <span>
+              圆满 <b>{maxedCount}</b>
             </span>
             <span>
               标本室 <b>{aberrantCount}</b>
@@ -137,11 +142,15 @@ function CreatureCard({
           {r.outcome === 'aberrant' ? '畸变' : '正常'}
         </span>
         {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
-        {r.growths > 0 && (
-          <span className="oc-pill grow" title="驻场期间完成待办触发的特征升品">
-            ↑成长×{r.growths}
+        {r.growths >= GROW.cap ? (
+          <span className="oc-pill grown" title={`成长已圆满（${GROW.cap}/${GROW.cap}），驻场不会再升品——换一只小家伙上岗吧`}>
+            ✧ 圆满
           </span>
-        )}
+        ) : r.growths > 0 ? (
+          <span className="oc-pill grow" title={`驻场期间完成待办触发的特征升品，还可成长 ${GROW.cap - r.growths} 次`}>
+            ↑成长 {r.growths}/{GROW.cap}
+          </span>
+        ) : null}
         {r.forced && <span className="oc-pill ab">自行破壳</span>}
         {isResident ? (
           <button

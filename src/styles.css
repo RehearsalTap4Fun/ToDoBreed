@@ -1137,6 +1137,12 @@ select:focus-visible {
   color: #2a6b85;
   border-color: #2a6b85;
 }
+.oc-pill.grown {
+  color: #8a6100;
+  border-color: #b98a1f;
+  background: linear-gradient(120deg, #b98a1f2e, #f2d98a3d, #b98a1f2e);
+  box-shadow: 0 0 6px #b98a1f44;
+}
 button.oc-pill.res {
   background: none;
   cursor: pointer;
