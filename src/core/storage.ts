@@ -12,6 +12,7 @@ function migrate(s: GameState): GameState {
   if (s.inbox === undefined) s.inbox = []
   if (s.seenSuggestions === undefined) s.seenSuggestions = []
   if (s.templates === undefined) s.templates = [...DEFAULT_TEMPLATES]
+  if (s.residentId === undefined) s.residentId = null
   const fixEgg = (egg: Egg | null) => {
     if (!egg) return
     if (egg.destiny.mutationRoll === undefined) {

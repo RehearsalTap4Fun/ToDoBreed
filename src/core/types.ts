@@ -198,6 +198,8 @@ export interface GameState {
   codex: CreatureRecord[]
   /** 按时连击：连续按时完成的待办数，≥3 时揭露稀有度加成（§05.3） */
   streak: number
+  /** 指定驻场生物的档案 id；null = 跟随最新孵化 */
+  residentId: string | null
   /** 上次结算到的自然日 */
   lastDay: string
   firstDay: string

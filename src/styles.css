@@ -1133,6 +1133,21 @@ select:focus-visible {
   color: #8a6100;
   border-color: #b98a1f;
 }
+button.oc-pill.res {
+  background: none;
+  cursor: pointer;
+  color: var(--paper-muted);
+  border-color: #b9ac90;
+}
+button.oc-pill.res:hover {
+  color: #3f7247;
+  border-color: #3f7247;
+}
+button.oc-pill.res.on {
+  color: #fff;
+  background: #5d7c4a;
+  border-color: #5d7c4a;
+}
 .cc-traits span.abt {
   color: #a5402a;
   background: #a5402a12;

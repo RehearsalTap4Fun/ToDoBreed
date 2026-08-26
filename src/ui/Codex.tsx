@@ -8,12 +8,16 @@ type Tab = 'all' | ThemeId | 'aberrant'
 
 export function Codex({
   codex,
+  residentId,
   onClose,
   onRename,
+  onSetResident,
 }: {
   codex: CreatureRecord[]
+  residentId: string | null
   onClose: () => void
   onRename: (rid: string, nick: string) => void
+  onSetResident: (rid: string | null) => void
 }) {
   const [tab, setTab] = useState<Tab>('all')
 
@@ -78,7 +82,13 @@ export function Codex({
         ) : (
           <div className="codex-grid">
             {shown.map((r) => (
-              <CreatureCard key={r.id} record={r} onRename={onRename} />
+              <CreatureCard
+                key={r.id}
+                record={r}
+                isResident={residentId === r.id}
+                onRename={onRename}
+                onSetResident={onSetResident}
+              />
             ))}
           </div>
         )}
@@ -89,10 +99,14 @@ export function Codex({
 
 function CreatureCard({
   record: r,
+  isResident,
   onRename,
+  onSetResident,
 }: {
   record: CreatureRecord
+  isResident: boolean
   onRename: (rid: string, nick: string) => void
+  onSetResident: (rid: string | null) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [nick, setNick] = useState(r.nickname ?? '')
@@ -124,6 +138,19 @@ function CreatureCard({
         </span>
         {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
         {r.forced && <span className="oc-pill ab">自行破壳</span>}
+        {isResident ? (
+          <button
+            className="oc-pill res on"
+            title="取消指定，恢复跟随最新孵化"
+            onClick={() => onSetResident(null)}
+          >
+            ★ 驻场中
+          </button>
+        ) : (
+          <button className="oc-pill res" title="让它到工作间驻场" onClick={() => onSetResident(r.id)}>
+            驻场
+          </button>
+        )}
         {!editing ? (
           <button className="cc-edit" onClick={() => setEditing(true)} title="起昵称">
             ✎

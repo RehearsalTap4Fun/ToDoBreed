@@ -14,6 +14,7 @@ import {
   processTime,
   removeTemplate,
   renameCreature,
+  setResident,
   swapEgg,
 } from './core/engine'
 import { dayStamp } from './core/time'
@@ -198,6 +199,7 @@ export default function App() {
     },
     swap: (i: number) => absorb(swapEgg(state, i), []),
     rename: (rid: string, nick: string) => absorb(renameCreature(state, rid, nick), []),
+    setResident: (rid: string | null) => absorb(setResident(state, rid), []),
   }
 
   const inboxHandlers = {
@@ -247,7 +249,13 @@ export default function App() {
       />
 
       {showCodex && (
-        <Codex codex={state.codex} onClose={() => setShowCodex(false)} onRename={actions.rename} />
+        <Codex
+          codex={state.codex}
+          residentId={state.residentId}
+          onClose={() => setShowCodex(false)}
+          onRename={actions.rename}
+          onSetResident={actions.setResident}
+        />
       )}
 
       {showInbox && (

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HATCH_POINTS, revealCount } from '../core/engine'
+import { HATCH_POINTS, residentOf, revealCount } from '../core/engine'
 import {
   SLOT_NAMES,
   SLOT_ORDER,
@@ -25,6 +25,7 @@ export interface Actions {
   abandon(id: string): void
   swap(i: number): void
   rename(rid: string, nick: string): void
+  setResident(rid: string | null): void
 }
 
 export interface WorkshopProps {
@@ -222,15 +223,14 @@ export function Workshop({
 
       {/* 地板与驻场生物 */}
       <div className="floor-area">
-        <Resident codex={state.codex} />
+        <Resident rec={residentOf(state)} pinned={!!state.residentId} />
       </div>
     </main>
   )
 }
 
-/** 驻场生物：最近孵化的一只在工作间闲逛，按性格播放行为（§03） */
-function Resident({ codex }: { codex: CreatureRecord[] }) {
-  const rec = codex[codex.length - 1]
+/** 驻场生物：默认最新孵化，可在图鉴指定；按性格播放行为（§03） */
+function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean }) {
   if (!rec) {
     return <span className="resident-name">还没有孵化的生物驻场</span>
   }
@@ -292,7 +292,7 @@ function Resident({ codex }: { codex: CreatureRecord[] }) {
         {bubble && <span className="bubble">{bubble}</span>}
       </div>
       <span className="resident-name">
-        驻场 · {rec.nickname ?? rec.name}（{rec.id}）
+        驻场{pinned ? '·指定' : ''} · {rec.nickname ?? rec.name}（{rec.id}）
       </span>
     </>
   )

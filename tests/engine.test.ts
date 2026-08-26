@@ -15,8 +15,10 @@ import {
   initState,
   processTime,
   removeTemplate,
+  residentOf,
   resolveDueRule,
   revealCount,
+  setResident,
   swapEgg,
 } from '../src/core/engine'
 import { SLOT_ORDER, type SlotId, type GameState } from '../src/core/types'
@@ -258,6 +260,29 @@ describe('逾期风险', () => {
     const s2 = abandonTodo(s, 'todo-1')
     expect(s2.todos[0].state).toBe('abandoned')
     expect(s2.currentEgg!.risk).toBe(before + 6)
+  })
+})
+
+describe('驻场生物', () => {
+  it('默认跟随最新孵化；指定后固定；取消/失效回退最新', () => {
+    let s = fresh(FRI)
+    // 孵出两只
+    for (const n of [1, 2]) {
+      s = addTodo(s, { title: `任务${n}`, difficulty: 'normal', due: null }, FRI)
+      s.currentEgg!.points = 90
+      s.currentEgg!.destiny.judgmentRoll = 99
+      s = completeTodo(s, `todo-${n}`, FRI).state
+    }
+    expect(s.codex).toHaveLength(2)
+    expect(residentOf(s)!.id).toBe('GSI-002') // 默认最新
+    s = setResident(s, 'GSI-001')
+    expect(residentOf(s)!.id).toBe('GSI-001') // 指定固定
+    s = setResident(s, null)
+    expect(residentOf(s)!.id).toBe('GSI-002') // 取消回默认
+    s = setResident(s, 'GSI-001')
+    s.codex = s.codex.filter((c) => c.id !== 'GSI-001') // 模拟指定失效
+    expect(residentOf(s)!.id).toBe('GSI-002')
+    expect(setResident(s, 'GSI-999')).toBe(s) // 不存在的 id 拒绝
   })
 })
 

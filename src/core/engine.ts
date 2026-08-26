@@ -188,6 +188,7 @@ export function initState(today: string): TickResult {
     seenSuggestions: [],
     codex: [],
     streak: 0,
+    residentId: null,
     lastDay: today,
     firstDay: today,
   }
@@ -459,6 +460,24 @@ export function dismissInbox(state: GameState, hash: string): GameState {
   if (!state.inbox.some((i) => i.hash === hash)) return state
   const s = clone(state)
   s.inbox = s.inbox.filter((i) => i.hash !== hash)
+  return s
+}
+
+/** 当前驻场生物：显式指定优先，否则跟随最新孵化；指定失效（导档等）时回退最新 */
+export function residentOf(state: GameState): CreatureRecord | null {
+  if (state.residentId) {
+    const chosen = state.codex.find((c) => c.id === state.residentId)
+    if (chosen) return chosen
+  }
+  return state.codex[state.codex.length - 1] ?? null
+}
+
+/** 指定/取消指定驻场生物（null = 恢复跟随最新孵化） */
+export function setResident(state: GameState, recordId: string | null): GameState {
+  if (recordId !== null && !state.codex.some((c) => c.id === recordId)) return state
+  if (state.residentId === recordId) return state
+  const s = clone(state)
+  s.residentId = recordId
   return s
 }
 
