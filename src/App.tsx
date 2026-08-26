@@ -31,7 +31,7 @@ import type { Difficulty, GameEvent, GameState } from './core/types'
 import { THEMES } from './data/themes'
 import { Workshop } from './ui/Workshop'
 import { Codex } from './ui/Codex'
-import { Inbox } from './ui/Inbox'
+import { Inbox, type InboxFeed } from './ui/Inbox'
 import { EventModals } from './ui/EventModals'
 import { DevPanel } from './ui/DevPanel'
 
@@ -48,6 +48,7 @@ export default function App() {
   const [showCodex, setShowCodex] = useState(false)
   const [showInbox, setShowInbox] = useState(false)
   const [devOffset, setDevOffsetState] = useState(getDevOffset)
+  const [feed, setFeed] = useState<InboxFeed>({ status: 'unknown', generatedAt: null })
   const toastId = useRef(1)
   const stateRef = useRef<GameState | null>(null)
   const didInit = useRef(false)
@@ -110,18 +111,20 @@ export default function App() {
   }, [])
 
   // 线索信箱：拉取采集器产出的建议。http 下 fetch gsi-inbox.json；
-  // file://（纯单机单文件形态）下 fetch 被浏览器禁用，改为注入 gsi-inbox.js 读全局变量
+  // file://（纯单机单文件形态）下 fetch 被浏览器禁用，改为注入 gsi-inbox.js 读全局变量。
+  // feed 记录采集产出是否存在——不存在时信箱显示配置引导（AI agent 提示词）。
   useEffect(() => {
-    const loadViaScript = (): Promise<unknown[] | null> =>
+    type Payload = { items?: unknown[]; generatedAt?: string }
+    const loadViaScript = (): Promise<Payload | null> =>
       new Promise((resolve) => {
-        const w = window as unknown as { __GSI_INBOX__?: { items?: unknown[] } }
+        const w = window as unknown as { __GSI_INBOX__?: Payload }
         if (w.__GSI_INBOX__) {
-          resolve(w.__GSI_INBOX__.items ?? [])
+          resolve(w.__GSI_INBOX__)
           return
         }
         const el = document.createElement('script')
         el.src = 'gsi-inbox.js'
-        el.onload = () => resolve(w.__GSI_INBOX__?.items ?? [])
+        el.onload = () => resolve(w.__GSI_INBOX__ ?? null)
         el.onerror = () => {
           el.remove()
           resolve(null)
@@ -130,21 +133,24 @@ export default function App() {
       })
 
     const pull = async () => {
-      let items: unknown[] | null = null
+      let payload: Payload | null = null
       if (location.protocol === 'file:') {
-        items = await loadViaScript()
+        payload = await loadViaScript()
       } else {
         try {
           const res = await fetch('/gsi-inbox.json', { cache: 'no-store' })
-          if (res.ok) {
-            const data = await res.json()
-            items = Array.isArray(data?.items) ? data.items : []
-          }
+          if (res.ok) payload = (await res.json()) as Payload
         } catch {
-          // 无采集文件或离线，静默
+          payload = null
         }
       }
-      if (!items || items.length === 0) return
+      if (!payload) {
+        setFeed({ status: 'missing', generatedAt: null })
+        return
+      }
+      setFeed({ status: 'ok', generatedAt: payload.generatedAt ?? null })
+      const items = Array.isArray(payload.items) ? payload.items : []
+      if (items.length === 0) return
       const cur = stateRef.current
       if (!cur) return
       const r = importSuggestions(cur, items as Parameters<typeof importSuggestions>[1])
@@ -261,6 +267,7 @@ export default function App() {
       {showInbox && (
         <Inbox
           items={state.inbox}
+          feed={feed}
           today={today}
           onAdopt={inboxHandlers.adopt}
           onDismiss={inboxHandlers.dismiss}
