@@ -8,7 +8,8 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "collect": "node scripts/collect-todos.mjs"
+    "collect": "node scripts/collect-todos.mjs",
+    "release": "npm run build && mkdir -p release && cp dist/index.html \"release/怪奇生物孵化器.html\" && cp public/gsi-inbox.js release/gsi-inbox.js 2>/dev/null; echo \"单机版: release/怪奇生物孵化器.html\""
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -20,6 +21,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.6",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^2.1.1"
   }
 }

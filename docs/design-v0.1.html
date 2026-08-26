@@ -761,7 +761,7 @@ footer.doc{
   <h2>技术方案与数据结构</h2>
   <h3><span class="h3no">13.1</span>技术栈</h3>
   <ul>
-    <li><strong>纯前端 SPA：</strong>Vite + React + TypeScript。无后端，localStorage 持久化，提供 JSON 存档导出/导入（防丢档、防换机）。</li>
+    <li><strong>纯前端 SPA，纯单机形态：</strong>Vite + React + TypeScript，无后端。<code>npm run release</code> 产出单文件 <code>release/怪奇生物孵化器.html</code>（JS/CSS 全内联），双击 file:// 直接运行，无需任何服务器；localStorage 持久化 + JSON 存档导出/导入（注意 file:// 与 localhost 存档按浏览器源隔离，迁移走导出/导入）。字体经 Google Fonts 加载，离线时优雅降级到系统字体。</li>
     <li><strong>生物渲染：SVG 分层部件拼装。</strong>每条特征对应一组可换色矢量部件；生物 = 特征 ID 列表 + 主题色板，渲染是纯函数，完全可复现。图层顺序：躯干 → 表皮效果 → 纹样 → 附肢 → 头部 → 口器 → 特效层（变异、异能微粒）。部件绘制走 Figma/Illustrator 导出 SVG 的管线，代码侧只做组装与换色。</li>
     <li><strong>时间处理：</strong>逾期判定用本地自然日；每周刷新锚定 ISO 周（周一 00:00 本地时间）。打开应用时补结算离线期间的风险与周事件。</li>
     <li><strong>随机性：</strong>所有抽取用带种子的 PRNG。孵化判定骰、畸变预案、变异骰在蛋生成时注定；特征在揭露瞬间掷定（由蛋种子 + 槽位 + 连击状态决定）并立即存档——两者都无法靠刷新重掷，"命运感"与连击激励并存（见 §05.3 实现决议）。</li>

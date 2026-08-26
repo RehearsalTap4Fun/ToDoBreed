@@ -108,25 +108,49 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 线索信箱：拉取采集器产出的建议文件（public/gsi-inbox.json），哈希去重后入箱
+  // 线索信箱：拉取采集器产出的建议。http 下 fetch gsi-inbox.json；
+  // file://（纯单机单文件形态）下 fetch 被浏览器禁用，改为注入 gsi-inbox.js 读全局变量
   useEffect(() => {
-    const pull = async () => {
-      try {
-        const res = await fetch('/gsi-inbox.json', { cache: 'no-store' })
-        if (!res.ok) return
-        const data = await res.json()
-        const items = Array.isArray(data?.items) ? data.items : []
-        if (items.length === 0) return
-        const cur = stateRef.current
-        if (!cur) return
-        const r = importSuggestions(cur, items)
-        if (r.added > 0) {
-          saveState(r.state)
-          setState(r.state)
-          pushToast(`信箱收到 ${r.added} 条新线索`)
+    const loadViaScript = (): Promise<unknown[] | null> =>
+      new Promise((resolve) => {
+        const w = window as unknown as { __GSI_INBOX__?: { items?: unknown[] } }
+        if (w.__GSI_INBOX__) {
+          resolve(w.__GSI_INBOX__.items ?? [])
+          return
         }
-      } catch {
-        // 无采集文件或离线，静默
+        const el = document.createElement('script')
+        el.src = 'gsi-inbox.js'
+        el.onload = () => resolve(w.__GSI_INBOX__?.items ?? [])
+        el.onerror = () => {
+          el.remove()
+          resolve(null)
+        }
+        document.head.appendChild(el)
+      })
+
+    const pull = async () => {
+      let items: unknown[] | null = null
+      if (location.protocol === 'file:') {
+        items = await loadViaScript()
+      } else {
+        try {
+          const res = await fetch('/gsi-inbox.json', { cache: 'no-store' })
+          if (res.ok) {
+            const data = await res.json()
+            items = Array.isArray(data?.items) ? data.items : []
+          }
+        } catch {
+          // 无采集文件或离线，静默
+        }
+      }
+      if (!items || items.length === 0) return
+      const cur = stateRef.current
+      if (!cur) return
+      const r = importSuggestions(cur, items as Parameters<typeof importSuggestions>[1])
+      if (r.added > 0) {
+        saveState(r.state)
+        setState(r.state)
+        pushToast(`信箱收到 ${r.added} 条新线索`)
       }
     }
     const first = setTimeout(pull, 2500)

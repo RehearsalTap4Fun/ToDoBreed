@@ -232,11 +232,14 @@ if (!material.trim()) {
 }
 
 const clean = sanitize(items, cfg.maxItems)
+const payload = JSON.stringify({ generatedAt: new Date().toISOString(), items: clean }, null, 2)
 const outDir = join(ROOT, 'public')
 mkdirSync(outDir, { recursive: true })
-writeFileSync(
-  join(outDir, 'gsi-inbox.json'),
-  JSON.stringify({ generatedAt: new Date().toISOString(), items: clean }, null, 2),
-)
-console.log(`[collect] 写入 public/gsi-inbox.json：${clean.length} 条线索`)
+writeFileSync(join(outDir, 'gsi-inbox.json'), payload)
+// file:// 单机形态无法 fetch，同步产出 JS 注入版；release/ 存在则一并更新
+const jsPayload = `window.__GSI_INBOX__ = ${payload};\n`
+writeFileSync(join(outDir, 'gsi-inbox.js'), jsPayload)
+const releaseDir = join(ROOT, 'release')
+if (existsSync(releaseDir)) writeFileSync(join(releaseDir, 'gsi-inbox.js'), jsPayload)
+console.log(`[collect] 写入 public/gsi-inbox.json(.js)：${clean.length} 条线索`)
 for (const it of clean) console.log(`  - [${it.source}] ${it.title}（${it.difficulty}）`)
