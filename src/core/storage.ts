@@ -1,6 +1,6 @@
 import { SLOT_ORDER, type Egg, type GameState, type SlotId } from './types'
 import { mulberry32 } from './rng'
-import { revealCount } from './engine'
+import { DEFAULT_TEMPLATES, revealCount } from './engine'
 import { MUTATIONS } from '../data/traits'
 
 const KEY = 'gsi-save-v1'
@@ -11,6 +11,7 @@ function migrate(s: GameState): GameState {
   if (s.streak === undefined) s.streak = 0
   if (s.inbox === undefined) s.inbox = []
   if (s.seenSuggestions === undefined) s.seenSuggestions = []
+  if (s.templates === undefined) s.templates = [...DEFAULT_TEMPLATES]
   const fixEgg = (egg: Egg | null) => {
     if (!egg) return
     if (egg.destiny.mutationRoll === undefined) {

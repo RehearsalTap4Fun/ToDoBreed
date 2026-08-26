@@ -1,17 +1,25 @@
 import { useState } from 'react'
 import { daysBetween } from '../core/time'
-import { DIFFICULTY_META, type Difficulty, type Todo } from '../core/types'
+import {
+  DIFFICULTY_META,
+  DUE_RULE_NAMES,
+  type Difficulty,
+  type Todo,
+  type TodoTemplate,
+} from '../core/types'
 import type { Actions } from './Workshop'
 
-/** 黑板：便签纸列表 + 粉笔连击 + 空白便签（写新待办） */
+/** 黑板：便签纸列表 + 粉笔连击 + 空白便签（写新待办 / 模版快捷添加） */
 export function TodoBoard({
   todos,
+  templates,
   today,
   actions,
   hasEgg,
   streak,
 }: {
   todos: Todo[]
+  templates: TodoTemplate[]
   today: string
   actions: Actions
   hasEgg: boolean
@@ -117,10 +125,13 @@ export function TodoBoard({
       {showForm && (
         <NoteForm
           today={today}
-          onAdd={(input) => {
-            actions.addTodo(input)
+          templates={templates}
+          onAdd={(input, saveAsTemplate) => {
+            actions.addTodo(input, saveAsTemplate)
             setShowForm(false)
           }}
+          onApplyTemplate={(id) => actions.applyTemplate(id)}
+          onRemoveTemplate={(id) => actions.removeTemplate(id)}
           onClose={() => setShowForm(false)}
         />
       )}
@@ -128,29 +139,67 @@ export function TodoBoard({
   )
 }
 
-/** 写便签：一张放大的便签纸 */
+/** 写便签：一张放大的便签纸，顶部一排常用模版可一键钉上 */
 function NoteForm({
   today,
+  templates,
   onAdd,
+  onApplyTemplate,
+  onRemoveTemplate,
   onClose,
 }: {
   today: string
-  onAdd(input: { title: string; difficulty: Difficulty; due: string | null }): void
+  templates: TodoTemplate[]
+  onAdd(input: { title: string; difficulty: Difficulty; due: string | null }, saveAsTemplate: boolean): void
+  onApplyTemplate(id: string): void
+  onRemoveTemplate(id: string): void
   onClose(): void
 }) {
   const [title, setTitle] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty>('normal')
   const [due, setDue] = useState('')
+  const [saveTpl, setSaveTpl] = useState(false)
+  const [applied, setApplied] = useState<string | null>(null)
 
   const submit = () => {
     const v = title.trim()
     if (!v) return
-    onAdd({ title: v, difficulty, due: due || null })
+    onAdd({ title: v, difficulty, due: due || null }, saveTpl)
+  }
+
+  const apply = (id: string) => {
+    onApplyTemplate(id)
+    setApplied(id)
+    setTimeout(() => setApplied((cur) => (cur === id ? null : cur)), 1200)
   }
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="note-modal" onClick={(e) => e.stopPropagation()}>
+        {templates.length > 0 && (
+          <div className="tpl-section">
+            <span className="tpl-label">常用模版 · 点一下直接钉上</span>
+            <div className="tpl-chips">
+              {templates.map((t) => (
+                <span key={t.id} className={`tpl-chip${applied === t.id ? ' applied' : ''}`}>
+                  <button
+                    className="tpl-main"
+                    onClick={() => apply(t.id)}
+                    title={`${DIFFICULTY_META[t.difficulty].name} +${DIFFICULTY_META[t.difficulty].points} · ${DUE_RULE_NAMES[t.dueRule]}`}
+                  >
+                    {applied === t.id ? '✓ 已钉上' : t.title}
+                    <em>
+                      {DIFFICULTY_META[t.difficulty].name}·{DUE_RULE_NAMES[t.dueRule]}
+                    </em>
+                  </button>
+                  <button className="tpl-del" title="删除模版" onClick={() => onRemoveTemplate(t.id)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <input
           type="text"
           placeholder="要做什么？（真实的事）"
@@ -176,6 +225,10 @@ function NoteForm({
             title="截止日（可选）"
           />
         </div>
+        <label className="tpl-save-row">
+          <input type="checkbox" checked={saveTpl} onChange={(e) => setSaveTpl(e.target.checked)} />
+          同时存为常用模版（期限规则按所填截止日归纳）
+        </label>
         <div className="note-actions">
           <button className="pin-btn" onClick={submit}>
             钉上黑板

@@ -4,13 +4,18 @@ import { rollDestiny, rollTraitForSlot } from '../src/core/draw'
 import { makeName } from '../src/core/naming'
 import {
   abandonTodo,
+  addTemplate,
   addTodo,
   adoptInbox,
+  applyTemplate,
   completeTodo,
   dismissInbox,
   importSuggestions,
+  inferDueRule,
   initState,
   processTime,
+  removeTemplate,
+  resolveDueRule,
   revealCount,
   swapEgg,
 } from '../src/core/engine'
@@ -253,6 +258,42 @@ describe('逾期风险', () => {
     const s2 = abandonTodo(s, 'todo-1')
     expect(s2.todos[0].state).toBe('abandoned')
     expect(s2.currentEgg!.risk).toBe(before + 6)
+  })
+})
+
+describe('常用模版', () => {
+  it('期限规则换算与归纳（FRI=周五）', () => {
+    expect(resolveDueRule('today', FRI)).toBe(FRI)
+    expect(resolveDueRule('tomorrow', FRI)).toBe('2026-08-22')
+    expect(resolveDueRule('this-week', FRI)).toBe('2026-08-23') // 本周日
+    expect(resolveDueRule('none', FRI)).toBeNull()
+    expect(inferDueRule(FRI, FRI)).toBe('today')
+    expect(inferDueRule('2026-08-22', FRI)).toBe('tomorrow')
+    expect(inferDueRule('2026-08-23', FRI)).toBe('this-week')
+    expect(inferDueRule(null, FRI)).toBe('none')
+    expect(inferDueRule('2026-09-10', FRI)).toBe('none')
+  })
+
+  it('预置模版存在，一键钉上生成正确待办', () => {
+    const s = fresh(FRI)
+    expect(s.templates.map((t) => t.title)).toContain('写日报')
+    const s2 = applyTemplate(s, 'tpl-outdoor', FRI)
+    const todo = s2.todos.find((t) => t.title === '户外活动')!
+    expect(todo.due).toBe('2026-08-23') // 本周日
+    expect(todo.difficulty).toBe('normal')
+  })
+
+  it('存为模版：同名覆盖、可删除', () => {
+    let s = fresh(FRI)
+    const before = s.templates.length
+    s = addTemplate(s, { title: '给猫铲屎', difficulty: 'easy', dueRule: 'today' })
+    expect(s.templates.length).toBe(before + 1)
+    s = addTemplate(s, { title: '给猫铲屎', difficulty: 'hard', dueRule: 'none' })
+    expect(s.templates.length).toBe(before + 1) // 同名覆盖
+    const tpl = s.templates.find((t) => t.title === '给猫铲屎')!
+    expect(tpl.difficulty).toBe('hard')
+    s = removeTemplate(s, tpl.id)
+    expect(s.templates.some((t) => t.title === '给猫铲屎')).toBe(false)
   })
 })
 

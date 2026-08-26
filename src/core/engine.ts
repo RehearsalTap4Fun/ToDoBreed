@@ -1,5 +1,5 @@
 import { hashStr, mulberry32, weightedPick } from './rng'
-import { addDays, daysBetween, isMonday } from './time'
+import { addDays, daysBetween, isMonday, mondayOf } from './time'
 import { gsiId, makeName } from './naming'
 import { rollDestiny, rollTraitForSlot } from './draw'
 import { THEMES, THEME_IDS } from '../data/themes'
@@ -10,10 +10,12 @@ import {
   type Difficulty,
   type Egg,
   type GameEvent,
+  type DueRule,
   type GameState,
   type InboxItem,
   type SlotId,
   type Todo,
+  type TodoTemplate,
 } from './types'
 
 export const HATCH_POINTS = 100
@@ -181,6 +183,7 @@ export function initState(today: string): TickResult {
     currentEgg: null,
     shed: [],
     todos: [],
+    templates: [...DEFAULT_TEMPLATES],
     inbox: [],
     seenSuggestions: [],
     codex: [],
@@ -306,6 +309,76 @@ export function swapEgg(state: GameState, shedIndex: number): GameState {
     s.shed.splice(shedIndex, 1)
   }
   s.currentEgg = shedEgg
+  return s
+}
+
+/* ── 常用模版（重复性事务一键便签，§05） ─────────── */
+
+export const TEMPLATE_CAP = 12
+
+/** 首发预置模版：日常型今天截止，习惯型本周内（周日）截止 */
+export const DEFAULT_TEMPLATES: TodoTemplate[] = [
+  { id: 'tpl-daily-report', title: '写日报', difficulty: 'easy', dueRule: 'today' },
+  { id: 'tpl-knowledge', title: '整理个人知识库', difficulty: 'normal', dueRule: 'today' },
+  { id: 'tpl-workout', title: '运动健身', difficulty: 'normal', dueRule: 'today' },
+  { id: 'tpl-outdoor', title: '户外活动', difficulty: 'normal', dueRule: 'this-week' },
+  { id: 'tpl-reading', title: '阅读', difficulty: 'easy', dueRule: 'this-week' },
+  { id: 'tpl-inbox-zero', title: '清理邮件', difficulty: 'easy', dueRule: 'this-week' },
+]
+
+/** 期限规则 → 实际截止日（this-week = 本周日） */
+export function resolveDueRule(rule: DueRule, today: string): string | null {
+  switch (rule) {
+    case 'today':
+      return today
+    case 'tomorrow':
+      return addDays(today, 1)
+    case 'this-week':
+      return addDays(mondayOf(today), 6)
+    default:
+      return null
+  }
+}
+
+/** 从实际截止日归纳期限规则（存为模版时用） */
+export function inferDueRule(due: string | null, today: string): DueRule {
+  if (!due) return 'none'
+  if (due === today) return 'today'
+  if (due === addDays(today, 1)) return 'tomorrow'
+  if (due > today && due <= addDays(mondayOf(today), 6)) return 'this-week'
+  return 'none'
+}
+
+/** 一键钉上：按模版规则生成待办 */
+export function applyTemplate(state: GameState, templateId: string, today: string): GameState {
+  const tpl = state.templates.find((t) => t.id === templateId)
+  if (!tpl) return state
+  return addTodo(state, { title: tpl.title, difficulty: tpl.difficulty, due: resolveDueRule(tpl.dueRule, today) }, today)
+}
+
+/** 存为模版（同名覆盖，上限 12 条） */
+export function addTemplate(
+  state: GameState,
+  input: { title: string; difficulty: Difficulty; dueRule: DueRule },
+): GameState {
+  const title = input.title.trim().slice(0, 30)
+  if (!title) return state
+  const s = clone(state)
+  s.templates = s.templates.filter((t) => t.title !== title)
+  if (s.templates.length >= TEMPLATE_CAP) s.templates.shift()
+  s.templates.push({
+    id: `tpl-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+    difficulty: input.difficulty,
+    dueRule: input.dueRule,
+  })
+  return s
+}
+
+export function removeTemplate(state: GameState, templateId: string): GameState {
+  if (!state.templates.some((t) => t.id === templateId)) return state
+  const s = clone(state)
+  s.templates = s.templates.filter((t) => t.id !== templateId)
   return s
 }
 

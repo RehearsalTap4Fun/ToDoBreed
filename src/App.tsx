@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   abandonTodo,
+  addTemplate,
   addTodo,
   adoptInbox,
+  applyTemplate,
   completeTodo,
   devFeed,
   dismissInbox,
   importSuggestions,
+  inferDueRule,
   initState,
   processTime,
+  removeTemplate,
   renameCreature,
   swapEgg,
 } from './core/engine'
@@ -139,8 +143,27 @@ export default function App() {
   const dow = WEEKDAYS[new Date(`${today}T12:00:00`).getDay()]
 
   const actions = {
-    addTodo: (input: { title: string; difficulty: Difficulty; due: string | null }) =>
-      absorb(addTodo(state, input, today), []),
+    addTodo: (
+      input: { title: string; difficulty: Difficulty; due: string | null },
+      saveAsTemplate?: boolean,
+    ) => {
+      let s = addTodo(state, input, today)
+      if (saveAsTemplate) {
+        s = addTemplate(s, {
+          title: input.title,
+          difficulty: input.difficulty,
+          dueRule: inferDueRule(input.due, today),
+        })
+        pushToast('已钉上黑板，并存为常用模版')
+      }
+      absorb(s, [])
+    },
+    applyTemplate: (id: string) => {
+      const tpl = state.templates.find((t) => t.id === id)
+      absorb(applyTemplate(state, id, today), [])
+      if (tpl) pushToast(`「${tpl.title}」已钉上黑板`)
+    },
+    removeTemplate: (id: string) => absorb(removeTemplate(state, id), []),
     complete: (id: string) => {
       const r = completeTodo(state, id, today)
       absorb(r.state, r.events)

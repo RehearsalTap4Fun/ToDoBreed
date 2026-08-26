@@ -127,6 +127,24 @@ export interface Todo {
 
 export type Outcome = 'normal' | 'aberrant'
 
+/** 模版期限规则：钉上时换算为实际截止日 */
+export type DueRule = 'none' | 'today' | 'tomorrow' | 'this-week'
+
+export const DUE_RULE_NAMES: Record<DueRule, string> = {
+  none: '无期限',
+  today: '今天',
+  tomorrow: '明天',
+  'this-week': '本周内',
+}
+
+/** 常用模版：重复性事务的一键便签（§05） */
+export interface TodoTemplate {
+  id: string
+  title: string
+  difficulty: Difficulty
+  dueRule: DueRule
+}
+
 /** 线索信箱条目：采集脚本从 git/AI 会话中提炼的待办建议，需人工采纳才上黑板 */
 export interface InboxItem {
   /** 采集器生成的去重哈希 */
@@ -169,6 +187,8 @@ export interface GameState {
   currentEgg: Egg | null
   shed: Egg[]
   todos: Todo[]
+  /** 常用模版 */
+  templates: TodoTemplate[]
   /** 线索信箱（待审阅的待办建议） */
   inbox: InboxItem[]
   /** 已见过的建议哈希（去重，含已采纳/已忽略），保留最近 500 条 */

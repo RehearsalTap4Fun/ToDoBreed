@@ -15,7 +15,12 @@ import { TodoBoard } from './TodoBoard'
 import { Shed } from './Shed'
 
 export interface Actions {
-  addTodo(input: { title: string; difficulty: Difficulty; due: string | null }): void
+  addTodo(
+    input: { title: string; difficulty: Difficulty; due: string | null },
+    saveAsTemplate?: boolean,
+  ): void
+  applyTemplate(id: string): void
+  removeTemplate(id: string): void
   complete(id: string): void
   abandon(id: string): void
   swap(i: number): void
@@ -89,6 +94,7 @@ export function Workshop({
       <div className="board-wrap">
         <TodoBoard
           todos={state.todos}
+          templates={state.templates}
           today={today}
           actions={actions}
           hasEgg={!!egg}

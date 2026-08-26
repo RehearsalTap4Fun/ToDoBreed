@@ -1808,6 +1808,87 @@ select:focus-visible {
   background: radial-gradient(circle at 35% 32%, #ec7a68, #9c2e1d);
   box-shadow: 0 2px 4px #000a;
 }
+.tpl-section {
+  border-bottom: 1px dashed #c9b878;
+  padding-bottom: 0.7rem;
+}
+.tpl-label {
+  font-size: 0.7rem;
+  color: var(--paper-muted);
+  display: block;
+  margin-bottom: 0.45rem;
+}
+.tpl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.tpl-chip {
+  position: relative;
+  display: inline-flex;
+}
+.tpl-main {
+  background: #ffffff8a;
+  border: 1px solid #c9b878;
+  border-radius: 5px;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--paper-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+.tpl-main em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.62rem;
+  color: var(--paper-muted);
+  font-family: var(--mono);
+}
+.tpl-main:hover {
+  background: #ffffffc9;
+  border-color: #a3311f;
+}
+.tpl-chip.applied .tpl-main {
+  background: #5d7c4a;
+  border-color: #5d7c4a;
+  color: #f2f0e4;
+}
+.tpl-chip.applied .tpl-main em {
+  color: #e0e8d4;
+}
+.tpl-del {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: #b9ac90;
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 16px;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tpl-chip:hover .tpl-del {
+  opacity: 1;
+}
+.tpl-del:hover {
+  background: #a3311f;
+}
+.tpl-save-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: var(--paper-muted);
+  cursor: pointer;
+}
 .note-modal input[type='text'] {
   background: transparent;
   border: none;
