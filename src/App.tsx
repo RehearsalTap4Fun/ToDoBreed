@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   abandonTodo,
   addTemplate,
+  setEggIdentity,
+  setRecordSpec,
   addTodo,
   adoptInbox,
   applyTemplate,
@@ -29,6 +31,8 @@ import {
 } from './core/storage'
 import type { Difficulty, GameEvent, GameState } from './core/types'
 import { THEMES } from './data/themes'
+import { qmonsterAvailable } from './qmonster/catalog'
+import { resolveEggIdentity, resolveRecord } from './qmonster/orchestrator'
 import { Workshop } from './ui/Workshop'
 import { Codex } from './ui/Codex'
 import { Inbox, type InboxFeed } from './ui/Inbox'
@@ -79,8 +83,8 @@ export default function App() {
           pushToast(`${e.record.name} 在休眠棚里自行破壳了，档案已入册`)
         else if (e.type === 'noEgg') pushToast('孵化台空着——这次完成没有喂到任何蛋')
         else if (e.type === 'streakOn')
-          pushToast(`按时连击 ×${e.count}！接下来揭露的稀有度提升（稀有×1.5 / 传说×2）`)
-        else if (e.type === 'streakBreak') pushToast('连击中断了……稀有度加成失效')
+          pushToast(`按时连击 ×${e.count}！孵化变异率 +2%（旧蛋另享揭露稀有度加成）`)
+        else if (e.type === 'streakBreak') pushToast('连击中断了……加成失效')
       }
       if (modal.length > 0) setQueue((q) => [...q, ...modal])
     },
@@ -109,6 +113,40 @@ export default function App() {
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // gen2 编排：扫描未解析的蛋身份 / 待渲染档案，异步解析后回写存档
+  const inflight = useRef(new Set<string>())
+  useEffect(() => {
+    if (!state || !qmonsterAvailable()) return
+    const eggs = [state.currentEgg, ...state.shed].filter(
+      (e): e is NonNullable<typeof e> => !!e && !!e.qseed && !e.qidentity,
+    )
+    for (const egg of eggs) {
+      const key = `egg:${egg.id}`
+      if (inflight.current.has(key)) continue
+      inflight.current.add(key)
+      resolveEggIdentity(egg)
+        .then((identity) => {
+          const cur = stateRef.current
+          if (cur) absorb(setEggIdentity(cur, egg.id, identity), [])
+        })
+        .catch((e) => console.warn('[gen2] 蛋身份解析失败', e))
+        .finally(() => inflight.current.delete(key))
+    }
+    for (const rec of state.codex) {
+      if (rec.kind !== 'qmonster' || rec.qstatus !== 'pending') continue
+      const key = `rec:${rec.id}`
+      if (inflight.current.has(key)) continue
+      inflight.current.add(key)
+      resolveRecord(rec)
+        .then((patch) => {
+          const cur = stateRef.current
+          if (cur) absorb(setRecordSpec(cur, rec.id, patch), [])
+        })
+        .catch((e) => console.warn('[gen2] 档案解析失败', e))
+        .finally(() => inflight.current.delete(key))
+    }
+  }, [state, absorb])
 
   // 线索信箱：拉取采集器产出的建议。http 下 fetch gsi-inbox.json；
   // file://（纯单机单文件形态）下 fetch 被浏览器禁用，改为注入 gsi-inbox.js 读全局变量。
@@ -275,7 +313,11 @@ export default function App() {
         />
       )}
 
-      <EventModals event={queue[0] ?? null} onNext={() => setQueue((q) => q.slice(1))} />
+      <EventModals
+        event={queue[0] ?? null}
+        liveRecord={(id) => state.codex.find((c) => c.id === id)}
+        onNext={() => setQueue((q) => q.slice(1))}
+      />
 
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (

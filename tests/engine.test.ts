@@ -5,6 +5,8 @@ import { makeName } from '../src/core/naming'
 import {
   abandonTodo,
   addTemplate,
+  setEggIdentity,
+  setRecordSpec,
   addTodo,
   adoptInbox,
   applyTemplate,
@@ -21,7 +23,7 @@ import {
   setResident,
   swapEgg,
 } from '../src/core/engine'
-import { SLOT_ORDER, type SlotId, type GameState } from '../src/core/types'
+import { Q_SLOT_ORDER, SLOT_ORDER, type SlotId, type GameState } from '../src/core/types'
 import { THEMES, THEME_IDS } from '../src/data/themes'
 import { TRAIT_MAP } from '../src/data/traits'
 
@@ -31,6 +33,12 @@ const TUE = '2026-08-18'
 
 function fresh(day: string): GameState {
   return initState(day).state
+}
+
+/** 把当前蛋降级为 legacy（模拟换轨前的旧蛋，仍走 77 特征库管线） */
+function legacy(s: GameState): GameState {
+  delete s.currentEgg!.qseed
+  return s
 }
 
 /** 按槽位顺序掷满 8 特征（模拟完整揭露） */
@@ -109,8 +117,8 @@ describe('naming', () => {
 })
 
 describe('孵化点与揭露', () => {
-  it('完成待办按难度给点、按阈值揭露并即时入档', () => {
-    let s = fresh(FRI)
+  it('完成待办按难度给点、按阈值揭露并即时入档（legacy 蛋）', () => {
+    let s = legacy(fresh(FRI))
     s = addTodo(s, { title: '写周报', difficulty: 'hard', due: null }, FRI)
     const r = completeTodo(s, 'todo-1', FRI)
     expect(r.state.currentEgg!.points).toBe(20)
@@ -165,9 +173,103 @@ describe('按时连击', () => {
   })
 })
 
-describe('孵化判定', () => {
-  it('判定骰 ≥ 风险 → 正常；< 风险 → 畸变；档案 8 槽齐全', () => {
+describe('gen2 换轨（QMonster）', () => {
+  it('新蛋携带 qseed；揭露不掷旧特征、事件带 qtraitId', () => {
     let s = fresh(FRI)
+    expect(s.currentEgg!.qseed).toMatch(/^q/)
+    s = addTodo(s, { title: '写周报', difficulty: 'hard', due: null }, FRI)
+    const r = completeTodo(s, 'todo-1', FRI)
+    const reveals = r.events.filter((e) => e.type === 'reveal')
+    expect(reveals).toHaveLength(1)
+    expect(reveals[0].type === 'reveal' && reveals[0].qtraitId).toBe('') // 身份未解析 → 空卡
+    expect(Object.keys(r.state.currentEgg!.revealed)).toHaveLength(0) // 不走旧特征库
+  })
+
+  it('身份回写后揭露事件携带语义特征 id', () => {
+    let s = fresh(FRI)
+    const eggId = s.currentEgg!.id
+    const slots = Object.fromEntries(Q_SLOT_ORDER.map((q) => [q, `sem_${q}`])) as Record<
+      (typeof Q_SLOT_ORDER)[number],
+      string
+    >
+    s = setEggIdentity(s, eggId, { resolvedSeed: 'q-x#2', slots })
+    expect(s.currentEgg!.qidentity!.resolvedSeed).toBe('q-x#2')
+    s = addTodo(s, { title: '任务', difficulty: 'hard', due: null }, FRI)
+    const r = completeTodo(s, 'todo-1', FRI)
+    const reveal = r.events.find((e) => e.type === 'reveal')
+    expect(reveal && reveal.type === 'reveal' && reveal.qtraitId).toBe('sem_frame')
+  })
+
+  it('孵化判定映射 qmode：畸变→aberration，变异→mutation，档案待渲染', () => {
+    // 畸变
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.risk = 60
+    s.currentEgg!.destiny.judgmentRoll = 5
+    let rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
+    expect(rec.kind).toBe('qmonster')
+    expect(rec.qmode).toBe('aberration')
+    expect(rec.outcome).toBe('aberrant')
+    expect(rec.qstatus).toBe('pending')
+    expect(rec.traits).toBeUndefined()
+    // 变异
+    s = fresh(FRI)
+    s = addTodo(s, { title: 'b', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s.currentEgg!.destiny.mutationRoll = 0.04
+    rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
+    expect(rec.qmode).toBe('mutation')
+    expect(rec.outcome).toBe('normal')
+    // 正常
+    s = fresh(FRI)
+    s = addTodo(s, { title: 'c', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s.currentEgg!.destiny.mutationRoll = 0.9
+    rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
+    expect(rec.qmode).toBe('normal')
+  })
+
+  it('连击 ≥3 时孵化变异率 +2%', () => {
+    const run = (streak: number) => {
+      let s = fresh(FRI)
+      s.streak = streak
+      s = addTodo(s, { title: 'x', difficulty: 'normal', due: null }, FRI)
+      s.currentEgg!.points = 90
+      s.currentEgg!.destiny.judgmentRoll = 99
+      s.currentEgg!.destiny.mutationRoll = 0.06 // 基础 5% 落空，+2% 后命中
+      return completeTodo(s, 'todo-1', FRI).state.codex[0].qmode
+    }
+    expect(run(0)).toBe('normal')
+    expect(run(3)).toBe('mutation')
+  })
+
+  it('setRecordSpec 回写权威 spec 并置 ready，昵称不被覆盖', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s = completeTodo(s, 'todo-1', FRI).state
+    const id = s.codex[0].id
+    const semantic = Object.fromEntries(Q_SLOT_ORDER.map((q) => [q, `sem_${q}`]))
+    s = setRecordSpec(s, id, {
+      qspec: { seed: 'q-1#3' },
+      qsemantic: semantic,
+      qimageKey: 'qm:test',
+      name: '汐圆',
+    })
+    const rec = s.codex[0]
+    expect(rec.qstatus).toBe('ready')
+    expect(rec.qimageKey).toBe('qm:test')
+    expect(rec.name).toBe('汐圆')
+  })
+})
+
+describe('孵化判定', () => {
+  it('判定骰 ≥ 风险 → 正常；< 风险 → 畸变；档案 8 槽齐全（legacy 蛋）', () => {
+    let s = legacy(fresh(FRI))
     s = addTodo(s, { title: '大扫除', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.risk = 10
@@ -176,11 +278,11 @@ describe('孵化判定', () => {
     let hatch = r.events.find((e) => e.type === 'hatch')
     expect(hatch && hatch.type === 'hatch' && hatch.record.outcome).toBe('normal')
     expect(r.state.codex).toHaveLength(1)
-    expect(Object.keys(r.state.codex[0].traits)).toHaveLength(8)
+    expect(Object.keys(r.state.codex[0].traits!)).toHaveLength(8)
     expect(r.state.codex[0].aberrations).toEqual([])
     expect(r.state.codex[0].fedTodos.map((t) => t.title)).toEqual(['大扫除'])
 
-    s = fresh(FRI)
+    s = legacy(fresh(FRI))
     s = addTodo(s, { title: '大扫除', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.risk = 60
@@ -194,7 +296,7 @@ describe('孵化判定', () => {
 
 describe('变异判定', () => {
   function hatchWith(mutationRoll: number, judgmentRoll: number, risk: number) {
-    let s = fresh(FRI)
+    let s = legacy(fresh(FRI))
     s = addTodo(s, { title: '收尾', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.risk = risk
@@ -215,7 +317,7 @@ describe('变异判定', () => {
   })
 
   it('困难待办提升变异率（5% + 每条 1%）', () => {
-    let s = fresh(FRI)
+    let s = legacy(fresh(FRI))
     for (let i = 0; i < 5; i++) {
       s = addTodo(s, { title: `硬仗${i + 1}`, difficulty: 'hard', due: null }, FRI)
     }
@@ -287,8 +389,8 @@ describe('驻场生物', () => {
 })
 
 describe('驻场成长', () => {
-  it('概率升品：稀有度只升不降、尊重互斥、上限 3 次', () => {
-    let s = fresh(FRI)
+  it('概率升品：稀有度只升不降、尊重互斥、上限 3 次（legacy 生物）', () => {
+    let s = legacy(fresh(FRI))
     s.saveSalt = 12345 // 固定盐保证确定性
     // 孵出一只并指定驻场
     s = addTodo(s, { title: '开荒', difficulty: 'normal', due: null }, FRI)
@@ -296,7 +398,7 @@ describe('驻场成长', () => {
     s.currentEgg!.destiny.judgmentRoll = 99
     s = completeTodo(s, 'todo-1', FRI).state
     s = setResident(s, 'GSI-001')
-    const original = { ...s.codex[0].traits }
+    const original = { ...s.codex[0].traits! }
     const order = { N: 0, R: 1, L: 2 } as const
 
     let growEvents = 0
@@ -308,12 +410,13 @@ describe('驻场成长', () => {
     }
     const rec = s.codex.find((c) => c.id === 'GSI-001')!
     expect(rec.growths).toBeGreaterThanOrEqual(1) // 14%×60 次，未命中概率 ~0.01%
+    const traits = rec.traits!
     expect(rec.growths).toBeLessThanOrEqual(3)
     expect(growEvents).toBe(rec.growths)
     let strictlyHigher = 0
     for (const slot of SLOT_ORDER) {
       const before = TRAIT_MAP[original[slot]]
-      const after = TRAIT_MAP[rec.traits[slot]]
+      const after = TRAIT_MAP[traits[slot]]
       expect(after.slot).toBe(slot)
       expect(order[after.rarity]).toBeGreaterThanOrEqual(order[before.rarity])
       if (order[after.rarity] > order[before.rarity]) strictlyHigher++
@@ -321,10 +424,10 @@ describe('驻场成长', () => {
     expect(strictlyHigher).toBeGreaterThanOrEqual(1)
     // 互斥双向校验
     for (const slot of SLOT_ORDER) {
-      const t = TRAIT_MAP[rec.traits[slot]]
+      const t = TRAIT_MAP[traits[slot]]
       for (const other of SLOT_ORDER) {
         if (other === slot) continue
-        const o = TRAIT_MAP[rec.traits[other]]
+        const o = TRAIT_MAP[traits[other]]
         expect(t.excludes ?? []).not.toContain(o.id)
         expect(o.excludes ?? []).not.toContain(t.id)
       }
@@ -438,13 +541,14 @@ describe('周循环与休眠', () => {
     expect(r.events.some((e) => e.type === 'eggArrived')).toBe(true)
   })
 
-  it('休眠满 3 周强制孵化入册（8 槽补齐）', () => {
+  it('休眠满 3 周强制孵化入册（gen2 → 待渲染档案）', () => {
     const s = fresh(TUE)
     const eggId = s.currentEgg!.id
     const r = processTime(s, '2026-09-14')
     expect(r.state.codex).toHaveLength(1)
     expect(r.state.codex[0].forced).toBe(true)
-    expect(Object.keys(r.state.codex[0].traits)).toHaveLength(8)
+    expect(r.state.codex[0].kind).toBe('qmonster')
+    expect(r.state.codex[0].qstatus).toBe('pending')
     expect(r.events.some((e) => e.type === 'forcedHatch')).toBe(true)
     expect(r.state.shed.every((e) => e.id !== eggId)).toBe(true)
   })

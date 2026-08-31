@@ -8,6 +8,9 @@ import { renderMonster } from '@qmonster/renderer-canvas'
 import { qmonsterResolver } from './image-resolver'
 
 export type QMode = 'normal' | 'mutation' | 'aberration'
+
+/** 统一渲染尺寸：身份质检与最终立绘同尺寸，保证重试序列一致 */
+export const QMONSTER_RENDERER_SIZE = 1024
 export type QTheme = 'deep-sea' | 'fungal' | 'shadow'
 
 /** 孵化器主题 → QMonster 主题 */

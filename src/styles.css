@@ -2363,6 +2363,13 @@ button.oc-pill.res.on {
   bottom: 8px;
 }
 
+/* gen2 立绘占位 */
+.qimg-pending {
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #e2a65733, #e2a65708 70%, transparent);
+  animation: veinp 1.6s ease-in-out infinite;
+}
+
 /* ── QMonster 试验场 ─────────────────────── */
 .qlab {
   max-width: 1180px;

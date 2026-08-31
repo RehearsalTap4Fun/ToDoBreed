@@ -140,7 +140,7 @@ footer.doc{margin-top:2rem;padding-top:1.5rem;border-top:2px solid var(--ink);fo
     <thead><tr><th>选型</th><th>方案</th><th>理由</th></tr></thead>
     <tbody>
       <tr><td class="tname">框架</td><td>Vite + React 18 + TypeScript（strict）</td><td>轻、快、类型兜底；单人 side project 迭代效率优先</td></tr>
-      <tr><td class="tname">形态</td><td>纯单机单文件：<code>npm run release</code> → <code>release/怪奇生物孵化器.html</code>（vite-plugin-singlefile 全内联），file:// 双击运行</td><td>日常使用零依赖零服务器；file:// 下信箱走 gsi-inbox.js 全局注入（fetch 被禁）；存档按源隔离，迁移用导出/导入</td></tr>
+      <tr><td class="tname">形态</td><td><b>单机 v2（Phase 2）</b>：双击 <code>启动孵化器.command</code>（自动构建+同步素材+起 <code>scripts/serve.mjs</code> :5123 +开浏览器），或 <code>npm run play</code>；单文件 <code>release/怪奇生物孵化器.html</code>（file://）保留为古典轨兜底</td><td>QMonster 位图渲染需 HTTP 源（fetch+getImageData），181MB 素材无法内联；file:// 下 gen2 立绘降级占位、信箱走 gsi-inbox.js 全局注入；存档按源隔离，迁移用导出/导入</td></tr>
       <tr><td class="tname">持久化</td><td>localStorage + JSON 导出/导入</td><td>MVP 不做账号与同步；导出档防丢、防换机</td></tr>
       <tr><td class="tname">渲染</td><td>参数化 SVG 分层部件</td><td>生物 = 特征 ID 列表的纯函数渲染，完全可复现；画风做在滤镜层，特征零重画切换</td></tr>
       <tr><td class="tname">随机</td><td>mulberry32 带种子 PRNG</td><td>蛋生成瞬间命运固定，刷新不可重掷（命运感 + 防刷）</td></tr>
@@ -233,6 +233,17 @@ frame → limbs → head → mouth → surface → pattern → temperament → q
 
   <h3><span class="h3no">5.4</span>周与日的边界处理</h3>
   <p>日戳统一 <code>YYYY-MM-DD</code> 字符串（本地日期生成、UTC 解释运算，避开 DST）；周以"该周周一的日戳"为标识。App 每 60 秒调一次 <code>processTime</code>，跨零点与跨周一在应用常开时也能触发。</p>
+
+  <h3><span class="h3no">5.5</span>gen2 换轨：QMonster 语义特征（Phase 2）</h3>
+  <p>新蛋在 <code>spawnEgg</code> 时注定 <code>qseed</code>（<code>q{saveSalt}-{seedTick}</code>），走 QMonster 8 语义槽 × 61 特征（目录 v0.3.0）；不带 qseed 的旧蛋与既有 SVG 生物保留古典轨，双轨并存。</p>
+  <ul>
+    <li><strong>引擎保持同步纯函数：</strong>异步的生成与渲染放在编排层 <code>qmonster/orchestrator.ts</code>——App 监听存档扫描待解析项（幂等，inflight 去重），结果经 <code>setEggIdentity</code> / <code>setRecordSpec</code> 纯函数回写。</li>
+    <li><strong>身份 vs 最终形态：</strong>揭露展示 normal 模式身份；孵化时按判定（正常/变异/畸变）以同 qseed 重新生成最终 spec——出生一刻的反转。变异率承接连击：判定时连击 ≥3 额外 +2%（古典轨连击仍加揭露稀有度）。</li>
+    <li><strong>确定性重试：</strong>任意 seed 可能撞渲染质检（SPEC_SOCKET_MISSING / 脸部越界等 error 诊断），按 <code>seed → seed#1 → …</code> 派生序列重试至通过（实测 ≤5 次收敛），同 baseSeed 永远同一只，防刷新重掷成立。</li>
+    <li><strong>立绘缓存：</strong>1024px 渲染 → WebP（PNG 兜底）入 IndexedDB（<code>gsi-qmonster</code>），键含目录/渲染器版本与 spec 的 canonical-JSON SHA-256；缓存丢失按存档里的权威 spec 重绘。</li>
+    <li><strong>命名：</strong>词根 + 最高稀有度语义特征展示名首字（撞字顺延次字）。</li>
+    <li><strong>暂缓项（Phase 3）：</strong>gen2 驻场成长（改用 QMonster <code>rerollSlot</code> 同槽重掷）；收集统计与目录的深度联动。</li>
+  </ul>
 </section>
 
 <!-- ═══════════════ §06 ═══════════════ -->
@@ -264,7 +275,10 @@ frame → limbs → head → mouth → surface → pattern → temperament → q
   <div class="note"><b>滤镜层经验：</b>光照/乘算类滤镜会洗淡颜色，尾部需补饱和（plush 补了 saturate 1.28）；发光大色块（异能微光）必须放在描边滤镜组之外，否则半透明 alpha 会被膨胀出脏环；「双目下垂」类表情用闭眼「˘˘」曲线才治愈，半睁眼读作不耐烦。</div>
 
   <h3><span class="h3no">6.3</span>蛋渲染器（Egg.tsx）</h3>
-  <p>主题化外观（深海气泡/菌沼活蘑菇/幽影眨眼暗涡）+ 状态可视化：微光强度 ∝ 孵化点，裂纹分档出现于风险 &gt;15/30/50/70%，≥60 点透出内部剪影。<em>蛋的可爱化改造尚未做</em>（见路线图）。</p>
+  <p>主题化外观（深海气泡/菌沼活蘑菇/幽影眨眼暗涡）+ 状态可视化：微光强度 ∝ 孵化点，裂纹分档出现于风险 &gt;15/30/50/70%，≥60 点透出内部剪影。</p>
+
+  <h3><span class="h3no">6.4</span>QMonster 位图管线（gen2 · Phase 2）</h3>
+  <p>gen2 生物立绘由 <code>@qmonster/generator-core</code>（生成 spec）+ <code>@qmonster/renderer-canvas</code>（canvas 合成，调色板蒙版走 getImageData）渲染，素材经 <code>scripts/sync-qmonster.mjs</code> 从 <code>../RandomPet</code> 同步到 <code>qmonster-assets/</code>（gitignore）。运行时依赖以 vite alias 指向 RandomPet 源码；类型检查用本地最小 .d.ts 镜像解耦（<code>src/qmonster/types/</code>）。UI 侧 <code>QCreatureImg</code> 从 IndexedDB 取 Blob 建 objectURL，pending 态呼吸占位；本章 §6.1–§6.2 的 SVG 管线自此专属古典轨（StyleLab 保留为古典画风实验室）。</p>
 </section>
 
 <!-- ═══════════════ §07 ═══════════════ -->
@@ -326,7 +340,9 @@ CreatureRecord { id "GSI-001", name, nickname?, traits×8,
       <tr><td class="tname">v0.1.x</td><td>造型可爱治愈化 + 5 画风实验室</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.2a</td><td>传说级特征 18 条（共 77）+ 变异表 8 条（变异率 = 5% + 困难待办 ×1%，上限 15%，判定骰预掷于命运）；蛋的可爱化（粉彩壳 + 呆毛 + 贴纸描边）；图鉴变异统计与金边徽章；旧档自动迁移</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">v0.2b</td><td>破壳演出完整版（蓄力抖动→白光迸发→登场，可跳过、尊重减动效）；按时连击（连续 3 条按时 → 揭露 R×1.5/L×2，特征改为揭露时懒掷，无截止日中性，放弃/自动失败清零）；旧档迁移；蛋获取事件化（孵化完成/入棚休眠即领新蛋，移除顺延队列与周一空等）；线索信箱（git+AI 会话采集 → 审阅采纳）；常用模版一键便签（期限规则 today/tomorrow/this-week，预置 6 条，可存可删）；纯单机单文件发布；Jira 接入（jira.tap4fun.com）；驻场生物可指定+驻场成长（完成待办概率升品，难度 2/4/8/14%，上限3次）；信箱空态 AI agent 配置引导</td><td><span class="chip done">已完成</span></td></tr>
-      <tr><td class="tname">v0.2c</td><td>主画风定稿（sticker / plush / 场景组合，待用户拍板）</td><td><span class="chip next">待拍板</span></td></tr>
+      <tr><td class="tname">Phase 2<br>(v0.1.9)</td><td>QMonster 换轨：新蛋 gen2（8 语义槽 ×61 特征，目录 v0.3.0）+ 旧生物双轨；异步编排层（身份/最终形态解析、确定性 seed 重试、IndexedDB 立绘缓存）；破壳/揭露/图鉴/驻场全 UI 双轨；连击承接为变异率 +2%；单机形态 v2（启动器 + 本地静态服务 :5123，file:// 降级古典轨）</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">Phase 3</td><td>gen2 驻场成长（rerollSlot 同槽重掷）；收集统计与目录深度联动；古典画风实验室（StyleLab）去留评估</td><td><span class="chip next">规划中</span></td></tr>
+      <tr><td class="tname">v0.2c</td><td>主画风定稿（gen2 位图为主，sticker / plush 古典轨去留，待用户拍板）</td><td><span class="chip next">待拍板</span></td></tr>
       <tr><td class="tname">v0.2.x</td><td>剩余 7 主题逐批放出（每主题=色板+偏向池+词根+蛋装饰，纯内容扩充）；驻场生物动画补全 R 级性格</td><td><span class="chip later">规划中</span></td></tr>
       <tr><td class="tname">v0.3+</td><td>分享卡导出、周挑战蛋、生态羁绊、双驻场、年度报告、音景；多端同步与外部待办源接入再评估</td><td><span class="chip later">远期</span></td></tr>
     </tbody>

@@ -6,6 +6,7 @@ import { THEMES, THEME_IDS } from '../data/themes'
 import { TRAIT_MAP, TRAITS } from '../data/traits'
 import {
   DIFFICULTY_META,
+  Q_SLOT_ORDER,
   SLOT_ORDER,
   type CreatureRecord,
   type Difficulty,
@@ -14,6 +15,7 @@ import {
   type DueRule,
   type GameState,
   type InboxItem,
+  type QIdentity,
   type SlotId,
   type Todo,
   type TodoTemplate,
@@ -70,6 +72,8 @@ function spawnEgg(s: GameState, day: string, events: GameEvent[]): void {
     risk: RISK.base,
     destiny: rollDestiny(THEMES[theme], seed),
     revealed: {},
+    // gen2（QMonster 换轨）：新蛋一律携带 QMonster 基础种子，形象与语义特征由生成器提供
+    qseed: `q${s.saveSalt.toString(36)}-${s.seedTick}`,
     dormantWeeks: 0,
     fedBy: [],
   }
@@ -91,32 +95,56 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
     .map((id) => s.todos.find((t) => t.id === id))
     .filter((t): t is Todo => !!t)
     .map((t) => ({ title: t.title, difficulty: t.difficulty }))
-  // 变异只属于正常孵化：畸变由拖延推高，变异由攻坚推高（§06.3）
+  // 变异只属于正常孵化：畸变由拖延推高，变异由攻坚推高（§06.3）；
+  // 按时连击 ≥3 额外 +2%（gen2 起连击的稀有度加成由此承接）
   const hardFed = fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
-  const mutationRate = Math.min(MUTATION.cap, MUTATION.base + MUTATION.perHard * hardFed)
-  const mutation = !aberrant && egg.destiny.mutationRoll < mutationRate ? egg.destiny.mutationPick : null
-  // 未揭露的槽位静默补掷（不吃连击加成，§06.4）
-  SLOT_ORDER.forEach((slot, i) => {
-    if (!egg.revealed[slot]) {
-      egg.revealed[slot] = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, false)
-    }
-  })
-  const traits = egg.revealed as Record<SlotId, string>
-  const record: CreatureRecord = {
+  const streakBonus = s.streak >= STREAK_ACTIVATE ? 0.02 : 0
+  const mutationRate =
+    Math.min(MUTATION.cap, MUTATION.base + MUTATION.perHard * hardFed) + streakBonus
+  const mutated = !aberrant && egg.destiny.mutationRoll < mutationRate
+
+  const base = {
     id: gsiId(s.gsiCounter),
-    name: makeName(THEMES[egg.theme], egg.destiny.rootChar, traits, egg.seed),
     nickname: null,
     theme: egg.theme,
     seed: egg.seed,
-    traits,
-    aberrations: aberrant ? egg.destiny.aberrations : [],
-    outcome: aberrant ? 'aberrant' : 'normal',
-    mutation,
+    outcome: (aberrant ? 'aberrant' : 'normal') as CreatureRecord['outcome'],
     hatchedDay: day,
     riskAtHatch: Math.round(egg.risk),
     fedTodos,
     forced,
     growths: 0,
+  }
+
+  let record: CreatureRecord
+  if (egg.qseed) {
+    // gen2：形象与语义特征由 QMonster 决定；权威 spec 由编排层异步解析后回写
+    record = {
+      ...base,
+      name: `${egg.destiny.rootChar}·未名`,
+      kind: 'qmonster',
+      qseed: egg.qseed,
+      qmode: aberrant ? 'aberration' : mutated ? 'mutation' : 'normal',
+      qsemantic: egg.qidentity?.slots,
+      qstatus: 'pending',
+      aberrations: [],
+      mutation: null,
+    }
+  } else {
+    // legacy：未揭露的槽位静默补掷（不吃连击加成，§06.4）
+    SLOT_ORDER.forEach((slot, i) => {
+      if (!egg.revealed[slot]) {
+        egg.revealed[slot] = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, false)
+      }
+    })
+    const traits = egg.revealed as Record<SlotId, string>
+    record = {
+      ...base,
+      name: makeName(THEMES[egg.theme], egg.destiny.rootChar, traits, egg.seed),
+      traits,
+      aberrations: aberrant ? egg.destiny.aberrations : [],
+      mutation: mutated ? egg.destiny.mutationPick : null,
+    }
   }
   s.gsiCounter += 1
   s.codex.push(record)
@@ -244,9 +272,15 @@ function feedPoints(s: GameState, points: number, today: string, events: GameEve
   const boost = s.streak >= STREAK_ACTIVATE
   for (let i = before; i < after; i++) {
     const slot = SLOT_ORDER[i]
-    const traitId = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, boost)
-    egg.revealed[slot] = traitId
-    events.push({ type: 'reveal', slot, traitId, index: i })
+    if (egg.qseed) {
+      // gen2：揭露 QMonster 语义槽（身份未解析时先出空卡，UI 显示"凝聚中"）
+      const qtraitId = egg.qidentity?.slots[Q_SLOT_ORDER[i]] ?? ''
+      events.push({ type: 'reveal', slot, traitId: '', index: i, qtraitId })
+    } else {
+      const traitId = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, boost)
+      egg.revealed[slot] = traitId
+      events.push({ type: 'reveal', slot, traitId, index: i })
+    }
   }
   if (egg.points >= HATCH_POINTS) {
     const record = hatchEgg(s, egg, today, false)
@@ -495,28 +529,30 @@ function conflictsWith(candidateId: string, traits: Record<SlotId, string>, exce
  */
 function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
   const rec = residentOf(s)
-  if (!rec || rec.growths >= GROW.cap) return
+  // gen2 生物的成长将在 Phase 3 对接 QMonster rerollSlot；本期仅 legacy 生物可成长
+  if (!rec || rec.kind === 'qmonster' || !rec.traits || rec.growths >= GROW.cap) return
   const rng = mulberry32(hashStr(`${s.saveSalt}|grow|${todo.id}`))
   if (rng() >= GROW.chance[todo.difficulty]) return
 
+  const traits = rec.traits
   const upgradables = SLOT_ORDER.filter((slot) => {
-    const cur = TRAIT_MAP[rec.traits[slot]]
+    const cur = TRAIT_MAP[traits[slot]]
     return TRAITS.some(
       (t) =>
         t.slot === slot &&
         RARITY_ORDER[t.rarity] > RARITY_ORDER[cur.rarity] &&
-        !conflictsWith(t.id, rec.traits, slot),
+        !conflictsWith(t.id, traits, slot),
     )
   })
   if (upgradables.length === 0) return
 
   const slot = pick(rng, upgradables)
-  const cur = TRAIT_MAP[rec.traits[slot]]
+  const cur = TRAIT_MAP[traits[slot]]
   const candidates = TRAITS.filter(
     (t) =>
       t.slot === slot &&
       RARITY_ORDER[t.rarity] > RARITY_ORDER[cur.rarity] &&
-      !conflictsWith(t.id, rec.traits, slot),
+      !conflictsWith(t.id, traits, slot),
   )
   const picked = weightedPick(
     rng,
@@ -525,8 +561,8 @@ function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
       w: RARITY_ORDER[t.rarity] === RARITY_ORDER[cur.rarity] + 1 ? 70 : 30,
     })),
   )
-  const fromId = rec.traits[slot]
-  rec.traits[slot] = picked.id
+  const fromId = traits[slot]
+  traits[slot] = picked.id
   rec.growths += 1
   events.push({
     type: 'residentGrow',
@@ -535,6 +571,40 @@ function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
     fromId,
     toId: picked.id,
   })
+}
+
+/** 回写蛋的 QMonster 身份（编排层异步解析后调用） */
+export function setEggIdentity(state: GameState, eggId: string, identity: QIdentity): GameState {
+  const find = (st: GameState) =>
+    st.currentEgg?.id === eggId ? st.currentEgg : st.shed.find((e) => e.id === eggId)
+  const target = find(state)
+  if (!target || !target.qseed || target.qidentity) return state
+  const s = clone(state)
+  find(s)!.qidentity = identity
+  return s
+}
+
+/** 回写档案的权威 MonsterSpec 与最终信息（编排层解析+渲染完成后调用） */
+export function setRecordSpec(
+  state: GameState,
+  recordId: string,
+  patch: {
+    qspec: unknown
+    qsemantic: Record<string, string>
+    qimageKey: string
+    name?: string
+  },
+): GameState {
+  const rec = state.codex.find((c) => c.id === recordId)
+  if (!rec || rec.kind !== 'qmonster') return state
+  const s = clone(state)
+  const target = s.codex.find((c) => c.id === recordId)!
+  target.qspec = patch.qspec
+  target.qsemantic = patch.qsemantic as CreatureRecord['qsemantic']
+  target.qimageKey = patch.qimageKey
+  target.qstatus = 'ready'
+  if (patch.name && target.nickname === null) target.name = patch.name
+  return s
 }
 
 /** 当前驻场生物：显式指定优先，否则跟随最新孵化；指定失效（导档等）时回退最新 */

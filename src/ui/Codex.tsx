@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { GROW } from '../core/engine'
-import { SLOT_ORDER, type CreatureRecord, type ThemeId } from '../core/types'
+import { Q_SLOT_NAMES, Q_SLOT_ORDER, SLOT_ORDER, type CreatureRecord, type ThemeId } from '../core/types'
 import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
 import { THEMES, THEME_IDS } from '../data/themes'
 import { Creature } from '../render/Creature'
+import { QCreatureImg } from './QCreatureImg'
+import { useTraitIndex, type QTraitInfo } from '../qmonster/semantics'
 
 type Tab = 'all' | ThemeId | 'aberrant'
 
@@ -22,7 +24,11 @@ export function Codex({
 }) {
   const [tab, setTab] = useState<Tab>('all')
 
-  const seenTraits = new Set(codex.flatMap((r) => Object.values(r.traits)))
+  const seenTraits = new Set(codex.flatMap((r) => (r.traits ? Object.values(r.traits) : [])))
+  const seenQTraits = new Set(
+    codex.flatMap((r) => (r.qsemantic ? Object.values(r.qsemantic) : [])).filter(Boolean),
+  )
+  const traitIndex = useTraitIndex()
   const aberrantCount = codex.filter((r) => r.outcome === 'aberrant').length
   const mutatedCount = codex.filter((r) => r.mutation).length
   const maxedCount = codex.filter((r) => r.growths >= GROW.cap).length
@@ -46,7 +52,10 @@ export function Codex({
               入册 <b>{codex.length}</b>
             </span>
             <span>
-              特征收集 <b>{seenTraits.size}</b>/{TRAITS.length}
+              古典特征 <b>{seenTraits.size}</b>/{TRAITS.length}
+            </span>
+            <span>
+              语义特征 <b>{seenQTraits.size}</b>/{traitIndex?.size ?? 61}
             </span>
             <span>
               变异 <b>{mutatedCount}</b>
@@ -90,6 +99,7 @@ export function Codex({
               <CreatureCard
                 key={r.id}
                 record={r}
+                traitIndex={traitIndex}
                 isResident={residentId === r.id}
                 onRename={onRename}
                 onSetResident={onSetResident}
@@ -104,11 +114,13 @@ export function Codex({
 
 function CreatureCard({
   record: r,
+  traitIndex,
   isResident,
   onRename,
   onSetResident,
 }: {
   record: CreatureRecord
+  traitIndex: Map<string, QTraitInfo> | null
   isResident: boolean
   onRename: (rid: string, nick: string) => void
   onSetResident: (rid: string | null) => void
@@ -121,15 +133,19 @@ function CreatureCard({
     <div className={`creature-card${r.outcome === 'aberrant' ? ' aberrant' : ''}`}>
       <span className="cc-id">{r.id}</span>
       <div className="cc-fig">
-        <Creature
-          traits={r.traits}
-          theme={r.theme}
-          aberrations={r.aberrations}
-          mutation={r.mutation}
-          seed={r.seed}
-          size={150}
-          idle={false}
-        />
+        {r.kind === 'qmonster' ? (
+          <QCreatureImg record={r} size={150} />
+        ) : (
+          <Creature
+            traits={r.traits!}
+            theme={r.theme}
+            aberrations={r.aberrations}
+            mutation={r.mutation}
+            seed={r.seed}
+            size={150}
+            idle={false}
+          />
+        )}
       </div>
       <h4>
         {r.nickname ?? r.name}
@@ -142,6 +158,9 @@ function CreatureCard({
           {r.outcome === 'aberrant' ? '畸变' : '正常'}
         </span>
         {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
+        {r.kind === 'qmonster' && r.qmode === 'mutation' && (
+          <span className="oc-pill mut">✦ 变异</span>
+        )}
         {r.growths >= GROW.cap ? (
           <span className="oc-pill grown" title={`成长已圆满（${GROW.cap}/${GROW.cap}），驻场不会再升品——换一只小家伙上岗吧`}>
             ✧ 圆满
@@ -191,16 +210,25 @@ function CreatureCard({
         </div>
       )}
       <div className="cc-traits">
-        {SLOT_ORDER.map((slot) => {
-          const t = TRAIT_MAP[r.traits[slot]]
-          const ab = r.aberrations.find((a) => a.slot === slot)
-          return (
-            <span key={slot} className={ab ? 'abt' : t.rarity === 'L' ? 'hl' : t.rarity === 'R' ? 'hr' : ''}>
-              {t.name}
-              {ab ? `·${ABERRATION_MAP[ab.ab].name}` : ''}
-            </span>
-          )
-        })}
+        {r.kind === 'qmonster'
+          ? Q_SLOT_ORDER.map((slot) => {
+              const info = r.qsemantic ? traitIndex?.get(r.qsemantic[slot]) : undefined
+              return (
+                <span key={slot} className={info?.rarity === 'L' ? 'hl' : info?.rarity === 'R' ? 'hr' : ''}>
+                  {info?.displayName ?? Q_SLOT_NAMES[slot]}
+                </span>
+              )
+            })
+          : SLOT_ORDER.map((slot) => {
+              const t = TRAIT_MAP[r.traits![slot]]
+              const ab = r.aberrations.find((a) => a.slot === slot)
+              return (
+                <span key={slot} className={ab ? 'abt' : t.rarity === 'L' ? 'hl' : t.rarity === 'R' ? 'hr' : ''}>
+                  {t.name}
+                  {ab ? `·${ABERRATION_MAP[ab.ab].name}` : ''}
+                </span>
+              )
+            })}
       </div>
       <div className="cc-fed">
         由 {r.fedTodos.length} 条待办喂大{hardFed > 0 && `，其中 ${hardFed} 条是硬仗`}。

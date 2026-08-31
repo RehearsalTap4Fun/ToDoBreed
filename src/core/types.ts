@@ -33,6 +33,42 @@ export const SLOT_NAMES: Record<SlotId, string> = {
 
 export type Rarity = 'N' | 'R' | 'L'
 
+/* ── QMonster 换轨（Phase 2）：新蛋的形象与语义特征由 QMonster 生成器提供 ── */
+
+/** QMonster 语义槽（8 个，与本作 8 槽语义一一对应），揭露顺序沿用"先形体后灵魂" */
+export const Q_SLOT_ORDER = [
+  'frame',
+  'appendage',
+  'headAndEyes',
+  'mouth',
+  'surface',
+  'pattern',
+  'personality',
+  'quirk',
+] as const
+export type QSlotId = (typeof Q_SLOT_ORDER)[number]
+
+export const Q_SLOT_NAMES: Record<QSlotId, string> = {
+  frame: '体型骨架',
+  appendage: '附肢',
+  headAndEyes: '头部与眼',
+  mouth: '口器',
+  surface: '表皮材质',
+  pattern: '纹样',
+  personality: '性格气质',
+  quirk: '异能怪癖',
+}
+
+export type QMode = 'normal' | 'mutation' | 'aberration'
+
+/** 蛋的 QMonster 身份（异步解析：确定性重试收敛后回写） */
+export interface QIdentity {
+  /** 重试收敛后的实际 seed（qseed 或 qseed#N） */
+  resolvedSeed: string
+  /** 语义槽 → 语义特征 id（揭露与观察卡由此取名） */
+  slots: Record<QSlotId, string>
+}
+
 export const RARITY_NAMES: Record<Rarity, string> = { N: '普通', R: '稀有', L: '传说' }
 
 export interface TraitDef {
@@ -103,8 +139,12 @@ export interface Egg {
   /** 畸变风险，百分数 3–85 */
   risk: number
   destiny: Destiny
-  /** 已揭露的特征（揭露瞬间掷定并立即存档） */
+  /** 已揭露的特征（legacy 蛋：揭露瞬间掷定并立即存档） */
   revealed: Partial<Record<SlotId, string>>
+  /** QMonster 基础种子（有此字段 = gen2 蛋，形象与特征由 QMonster 提供） */
+  qseed?: string
+  /** QMonster 身份（正常形态），由编排层异步解析后回写 */
+  qidentity?: QIdentity
   dormantWeeks: number
   /** 喂养此蛋的待办 id */
   fedBy: string[]
@@ -168,7 +208,22 @@ export interface CreatureRecord {
   nickname: string | null
   theme: ThemeId
   seed: number
-  traits: Record<SlotId, string>
+  /** legacy（SVG 参数化）生物的 8 槽特征；gen2 生物无此字段 */
+  traits?: Record<SlotId, string>
+  /** 'qmonster' = gen2 生物（形象为 QMonster 位图立绘）；缺省 = legacy SVG */
+  kind?: 'qmonster'
+  /** gen2：QMonster 基础种子 */
+  qseed?: string
+  /** gen2：生成模式（由孵化判定映射：畸变→aberration，变异→mutation） */
+  qmode?: QMode
+  /** gen2：语义槽 → 语义特征 id */
+  qsemantic?: Record<QSlotId, string>
+  /** gen2：权威 MonsterSpec（JSON），解析完成后回写 */
+  qspec?: unknown
+  /** gen2：形象解析状态 */
+  qstatus?: 'pending' | 'ready'
+  /** gen2：IndexedDB 图像缓存键 */
+  qimageKey?: string
   aberrations: { slot: SlotId; ab: string }[]
   outcome: Outcome
   /** 变异 id；正常孵化才可能非 null（§06.3） */
@@ -208,7 +263,7 @@ export interface GameState {
 }
 
 export type GameEvent =
-  | { type: 'reveal'; slot: SlotId; traitId: string; index: number }
+  | { type: 'reveal'; slot: SlotId; traitId: string; index: number; qtraitId?: string }
   | { type: 'hatch'; record: CreatureRecord }
   | { type: 'eggArrived'; theme: ThemeId }
   | { type: 'autoFail'; todoTitle: string }

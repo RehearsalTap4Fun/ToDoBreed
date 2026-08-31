@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { HATCH_POINTS, residentOf, revealCount } from '../core/engine'
 import {
+  Q_SLOT_NAMES,
+  Q_SLOT_ORDER,
   SLOT_NAMES,
   SLOT_ORDER,
   type CreatureRecord,
@@ -11,6 +13,8 @@ import { THEMES } from '../data/themes'
 import { TRAIT_MAP } from '../data/traits'
 import { EggView } from '../render/Egg'
 import { Creature } from '../render/Creature'
+import { QCreatureImg } from './QCreatureImg'
+import { useTraitIndex } from '../qmonster/semantics'
 import { TodoBoard } from './TodoBoard'
 import { Shed } from './Shed'
 
@@ -103,23 +107,8 @@ export function Workshop({
         />
       </div>
 
-      {/* 墙上的 8 张观察卡：已揭露特征 */}
-      <div className="trait-wall">
-        {SLOT_ORDER.map((slot) => {
-          const id = egg?.revealed[slot]
-          const t = id ? TRAIT_MAP[id] : null
-          return (
-            <div
-              key={slot}
-              className={`wallcard${t ? '' : ' unknown'}${t?.rarity === 'L' ? ' l' : t?.rarity === 'R' ? ' r' : ''}`}
-              title={t ? t.flavor : '尚未揭露'}
-            >
-              <span className="wc-slot">{SLOT_NAMES[slot]}</span>
-              <span className="wc-name">{t ? t.name : '？'}</span>
-            </div>
-          )
-        })}
-      </div>
+      {/* 墙上的 8 张观察卡：已揭露特征（gen2 读语义槽，legacy 读旧特征库） */}
+      <TraitWall egg={egg} />
 
       {/* 墙上的休眠棚搁板 */}
       <Shed shed={state.shed} onSwap={actions.swap} hasEgg={!!egg} />
@@ -235,11 +224,11 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
     return <span className="resident-name">还没有孵化的生物驻场</span>
   }
   const silent = rec.aberrations.some((a) => a.ab === 'ab_silent')
-  const temp = rec.traits.temperament
+  const temp = rec.traits?.temperament ?? ''
   const hour = new Date().getHours()
   const night = hour >= 20 || hour < 6
 
-  let wrapCls = ''
+  let wrapCls = rec.kind === 'qmonster' ? 'res-walk-mid' : ''
   let bubble: string | null = null
   if (!silent) {
     switch (temp) {
@@ -280,20 +269,69 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
   return (
     <>
       <div className={`resident ${wrapCls}`}>
-        <Creature
-          traits={rec.traits}
-          theme={rec.theme}
-          aberrations={rec.aberrations}
-          mutation={rec.mutation}
-          seed={rec.seed}
-          size={104}
-          idle={!silent}
-        />
+        {rec.kind === 'qmonster' ? (
+          <QCreatureImg record={rec} size={112} className={silent ? undefined : 'creature-idle'} />
+        ) : (
+          <Creature
+            traits={rec.traits!}
+            theme={rec.theme}
+            aberrations={rec.aberrations}
+            mutation={rec.mutation}
+            seed={rec.seed}
+            size={104}
+            idle={!silent}
+          />
+        )}
         {bubble && <span className="bubble">{bubble}</span>}
       </div>
       <span className="resident-name">
         驻场{pinned ? '·指定' : ''} · {rec.nickname ?? rec.name}（{rec.id}）
       </span>
     </>
+  )
+}
+
+
+/** 观察卡墙：gen2 蛋读 QMonster 语义槽（身份解析前显示凝聚中），legacy 蛋读旧特征库 */
+function TraitWall({ egg }: { egg: GameState['currentEgg'] }) {
+  const traitIndex = useTraitIndex()
+  const revealed = egg ? revealCount(egg.points) : 0
+  return (
+    <div className="trait-wall">
+      {SLOT_ORDER.map((slot, i) => {
+        let name: string | null = null
+        let flavor = '尚未揭露'
+        let rarity: 'N' | 'R' | 'L' | null = null
+        let slotName: string = SLOT_NAMES[slot]
+        if (egg?.qseed) {
+          slotName = Q_SLOT_NAMES[Q_SLOT_ORDER[i]]
+          if (i < revealed) {
+            const qid = egg.qidentity?.slots[Q_SLOT_ORDER[i]]
+            const info = qid ? traitIndex?.get(qid) : undefined
+            name = info?.displayName ?? '凝聚中'
+            flavor = info?.flavorText ?? '身份尚在凝聚'
+            rarity = info?.rarity ?? null
+          }
+        } else if (egg && i < revealed) {
+          const id = egg.revealed[slot]
+          const t = id ? TRAIT_MAP[id] : null
+          if (t) {
+            name = t.name
+            flavor = t.flavor
+            rarity = t.rarity
+          }
+        }
+        return (
+          <div
+            key={slot}
+            className={`wallcard${name ? '' : ' unknown'}${rarity === 'L' ? ' l' : rarity === 'R' ? ' r' : ''}`}
+            title={flavor}
+          >
+            <span className="wc-slot">{slotName}</span>
+            <span className="wc-name">{name ?? '？'}</span>
+          </div>
+        )
+      })}
+    </div>
   )
 }
