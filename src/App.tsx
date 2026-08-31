@@ -63,6 +63,20 @@ export default function App() {
     stateRef.current = state
   }, [state])
 
+  // 同源多标签防互踩：别的标签页写了存档，本页立即以之为准（storage 事件不会由本页写入触发）
+  useEffect(() => {
+    const onStorage = (ev: StorageEvent) => {
+      if (ev.key !== 'gsi-save-v1' || ev.newValue === null) return
+      const s = loadState()
+      if (s) {
+        stateRef.current = s
+        setState(s)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   const pushToast = useCallback((msg: string) => {
     const id = toastId.current++
     setToasts((t) => [...t, { id, msg }])
@@ -71,6 +85,7 @@ export default function App() {
 
   const absorb = useCallback(
     (s: GameState, events: GameEvent[]) => {
+      stateRef.current = s
       saveState(s)
       setState(s)
       const modal: GameEvent[] = []
