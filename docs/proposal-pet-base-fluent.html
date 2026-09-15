@@ -1,0 +1,418 @@
+<title>Fluent 混合试验</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--paper:#F2F4EE;--card:#E9EDE2;--card2:#E1E6D9;--ink:#222E27;--muted:#5C6B60;--faint:#8C978B;--line:#D4DACA;--line-strong:#B7C0AC;--accent:#A2650F;--accent-soft:#F1E3C8;--rare:#2A6B85;--keep:#3F7247;--keep-bg:#DCE8D8;--no:#A5402A;--no-bg:#F0DCD6;
+--serif:'Noto Serif SC','Songti SC','SimSun',serif;--sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;--mono:'IBM Plex Mono','SF Mono','Menlo',monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#161B17;--card:#1E2620;--card2:#26312A;--ink:#E2E8DD;--muted:#9BA89B;--faint:#6E7B6F;--line:#2D382F;--line-strong:#41503F;--accent:#DFA24B;--accent-soft:#3A3020;--rare:#72ACC7;--keep:#8CBB8E;--keep-bg:#22352A;--no:#D97F63;--no-bg:#3A2622}}
+:root[data-theme="dark"]{--paper:#161B17;--card:#1E2620;--card2:#26312A;--ink:#E2E8DD;--muted:#9BA89B;--faint:#6E7B6F;--line:#2D382F;--line-strong:#41503F;--accent:#DFA24B;--accent-soft:#3A3020;--rare:#72ACC7;--keep:#8CBB8E;--keep-bg:#22352A;--no:#D97F63;--no-bg:#3A2622}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:52px 32px 96px}
+.prose{max-width:720px}
+h1,h2{font-family:var(--serif);text-wrap:balance;margin:0}
+h1{font-size:48px;font-weight:900;line-height:1.1;letter-spacing:.02em}
+h2{font-size:24px;font-weight:700}
+p{margin:0 0 14px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+header{padding-bottom:24px;border-bottom:1px solid var(--line-strong);margin-bottom:36px}
+.dek{font-size:18px;color:var(--muted);margin-top:14px;max-width:700px;line-height:1.6}
+.dek b{color:var(--ink);font-weight:500}
+section{margin-top:44px}
+.rowhead{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.rowhead .sp{font-family:var(--serif);font-size:22px;font-weight:700}
+.rowhead .sub{color:var(--muted);font-size:14px}
+.cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.lab{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);padding:0 4px 6px}
+.mocks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.mocks,.cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.mocks,.cols{grid-template-columns:1fr}}
+.mock{background:var(--card);padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mock svg{width:100%;height:auto;display:block;overflow:visible}
+.mock .note{font-size:13px;color:var(--muted);line-height:1.5}
+.tbl{overflow-x:auto;margin:16px 0 8px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.55}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:8px 12px 8px 0;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+td{padding:10px 14px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td.k{font-weight:700;white-space:nowrap}
+.tag{font-family:var(--mono);font-size:11px;padding:2px 6px;border-radius:2px;white-space:nowrap}
+.tag.y{background:var(--keep-bg);color:var(--keep)}.tag.n{background:var(--no-bg);color:var(--no)}
+ul{margin:0 0 12px;padding-left:1.3em}li{margin-bottom:6px}li::marker{color:var(--faint)}
+.verdict{border-top:3px solid var(--accent);background:var(--card);padding:18px 22px 6px;margin-top:22px}
+.verdict .lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--accent);margin-bottom:8px;padding:0}
+footer{margin-top:64px;padding-top:16px;border-top:1px solid var(--line-strong);font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.06em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow"><span>怪奇生物孵化器 · 曲线来源试验</span><span>2026-09-03</span><span>Fluent Emoji · MIT</span></div>
+  <h1 style="margin-top:16px">Fluent 混合试验</h1>
+  <p class="dek">把 Microsoft Fluent Emoji（MIT）的猫、狗、兔 Flat 版拆成路径、按角色换成我们的基因色，套到同一个坐姿身体上。<b>四列并排：v2 母版、Fluent 原脸、Fluent 头壳加我们的六层眼、v2 头壳加 Fluent 五官。</b>看哪一部分值得借。</p>
+</header>
+
+<section>
+  <div class="cols"><div class="lab">A · v2 母版</div><div class="lab">B · Fluent 原脸换色</div><div class="lab">C · Fluent 头壳 + 六层眼 + 明暗</div><div class="lab">D · v2 头壳 + Fluent 鼻嘴</div></div>
+  <div class="rowhead"><span class="sp">猫</span><span class="sub">Fluent 猫脸：圆角方头、尖角耳、张口笑</span></div>
+  <div class="mocks" id="cat"></div>
+</section>
+<section>
+  <div class="rowhead"><span class="sp">狗</span><span class="sub">Fluent 狗脸：方头、三角垂耳、大块浅色吻、吐舌</span></div>
+  <div class="mocks" id="dog"></div>
+</section>
+<section>
+  <div class="rowhead"><span class="sp">兔</span><span class="sub">Fluent 兔脸：圆头、长耳、倒三角鼻、裂唇门牙、胡须</span></div>
+  <div class="mocks" id="rabbit"></div>
+</section>
+
+<section>
+<div class="prose">
+<h2>逐件判断</h2>
+<p>借的是曲线和结构，不是整张脸。下表按部件判断，绿色进母版，红色不进。</p>
+</div>
+<div class="tbl"><table>
+  <thead><tr><th>部件</th><th>来源</th><th>判断</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td class="k">猫头壳</td><td>Fluent cat_face</td><td><span class="tag n">不进</span></td><td>圆角方头是 emoji 语法，把整只猫拉向表情符号。v2 的圆头带腮更接近目标画风</td></tr>
+    <tr><td class="k">猫张口笑</td><td>Fluent cat_face</td><td><span class="tag y">进表情库</span></td><td>下唇弧线和口腔色块干净有力，作为「阔阔笑口」的嘴型直接可用（D 列）</td></tr>
+    <tr><td class="k">狗头壳与垂耳</td><td>Fluent dog_face</td><td><span class="tag n">不进</span></td><td>方头加三角耳，狗味足但方；耳朵的下垂曲线可作 v2 垂耳的修正参考</td></tr>
+    <tr><td class="k">狗鼻嘴舌</td><td>Fluent dog_face</td><td><span class="tag y">进</span></td><td>鼻头形、人中线、吐舌三件成组，比 v2 的椭圆鼻更像狗（D 列）</td></tr>
+    <tr><td class="k">兔鼻裂唇门牙</td><td>Fluent rabbit_face</td><td><span class="tag y">进</span></td><td>倒三角鼻加裂唇加两颗门牙是兔子的标志组合，v2 的版本弱于它（D 列）</td></tr>
+    <tr><td class="k">兔胡须</td><td>Fluent rabbit_face</td><td><span class="tag y">进</span></td><td>两侧各两根短须，兔和猫都可以用</td></tr>
+    <tr><td class="k">六层眼</td><td>v2 母版</td><td><span class="tag y">保留</span></td><td>Fluent 的豆豆眼没有表情容量，C 列换上六层眼后立刻有神</td></tr>
+    <tr><td class="k">Color 版明暗</td><td>Fluent Color</td><td><span class="tag y">参考</span></td><td>径向渐变加底部压暗的思路与 v2 三层明暗一致，可借其边缘柔化程度</td></tr>
+  </tbody>
+</table></div>
+<div class="prose">
+<div class="verdict">
+  <div class="lab">结论</div>
+  <ul>
+    <li><strong>D 列是要的答案。</strong>头壳和身体留 v2，鼻嘴从 Fluent 借。三种底型里兔和狗提升最明显，猫多了一种笑口。</li>
+    <li><strong>整脸移植不划算。</strong>Fluent 是 emoji 语法，方头豆豆眼一上身就不像卡通宠物。C 列证明换上我们的眼睛能救回来，但头形仍然偏方。</li>
+    <li><strong>许可干净。</strong>MIT，改造与商用皆可，署名 Microsoft Fluent Emoji 即可。</li>
+  </ul>
+</div>
+</div>
+</section>
+<footer><span>GSI · 曲线来源试验 · 源素材 © Microsoft Corporation，Fluent Emoji，MIT License</span><span>2026-09-03</span></footer>
+</div>
+<script>(function(){
+  var DARK='#3b3232', TONGUE='#f29aa6', GLOW='#f6d365';
+  function h2r(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  function r2h(r){return '#'+r.map(function(v){v=Math.max(0,Math.min(255,Math.round(v)));return (v<16?'0':'')+v.toString(16);}).join('');}
+  function mix(a,b,t){var A=h2r(a),B=h2r(b);return r2h([A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t]);}
+  function darken(h,t){return mix(h,'#2a2030',t);}
+  function tint(h,t){return mix(h,'#ffffff',t);}
+  var PAL={
+    peach:{n:'桃橘',c1:'#f6c6a8',c2:'#e39468',c3:'#fcefe3',c4:'#e78c98',eye:'#4f9a6f'},
+    cream:{n:'奶油',c1:'#f3e4c4',c2:'#b98a5a',c3:'#fbf6ea',c4:'#d98c8c',eye:'#5a86c9'},
+    greyblue:{n:'灰蓝',c1:'#b6c6d6',c2:'#7d92a8',c3:'#edf2f6',c4:'#f0a3ad',eye:'#d29a3a'},
+    deepsea:{n:'深海',c1:'#8fcfd0',c2:'#3f8fb0',c3:'#e6f5f4',c4:'#f6d365',eye:'#23557a',dark:'#1e4d6e'},
+    fungal:{n:'菌沼',c1:'#cfd99c',c2:'#8ea25c',c3:'#f1f4dc',c4:'#f4a261',eye:'#5f6f2a',dark:'#556325'},
+    shadow:{n:'幽影',c1:'#b9afe4',c2:'#8377d1',c3:'#ece8f8',c4:'#f9c74f',eye:'#3f3577',dark:'#463c78'},
+    mint:{n:'薄荷',c1:'#bfe5cf',c2:'#79b592',c3:'#eef8f2',c4:'#f4a9b8',eye:'#5a8dd6'},
+    lavender:{n:'薰衣草',c1:'#d3c2f2',c2:'#a58ad9',c3:'#f2ecfb',c4:'#f7b1c6',eye:'#46b39d'},
+    coral:{n:'珊瑚',c1:'#f2a99a',c2:'#c96c7a',c3:'#fbe4dd',c4:'#f6d365',eye:'#4aa3a0'},
+    cocoa:{n:'可可',c1:'#c9a88f',c2:'#8a6248',c3:'#f3e8dd',c4:'#e8a0a0',eye:'#6fa8dc'}
+  };
+  var uid=0; window.__v1={};
+  function el(t,a){var s='<'+t;for(var k in a){s+=' '+k+'="'+a[k]+'"';}return s+'/>';}
+  function E(cx,cy,rx,ry,f,extra){return el('ellipse',Object.assign({cx:cx,cy:cy,rx:rx,ry:ry,fill:f},extra||{}));}
+  function C(cx,cy,r,f,extra){return el('circle',Object.assign({cx:cx,cy:cy,r:r,fill:f},extra||{}));}
+  function P(d,f,extra){return el('path',Object.assign({d:d,fill:f},extra||{}));}
+  function tri(pts,f,w){return P('M'+pts[0]+' L'+pts[1]+' L'+pts[2]+' Z',f,{stroke:f,'stroke-width':w,'stroke-linejoin':'round'});}
+  function tube(d,w,c){return P(d,'none',{stroke:c,'stroke-width':w,'stroke-linecap':'round'});}
+  function halo(x,y){return C(x,y,12,GLOW,{opacity:.28})+C(x,y,6,GLOW);}
+  var TORSO='M100,96 C126,96 142,118 147,148 C151,168 137,183 100,183 C63,183 49,168 53,148 C58,118 74,96 100,96 Z';
+  function bodyShapes(){return P(TORSO,'')+E(64,158,20,22,'')+E(136,158,20,22,'');}
+  function headShape(){return C(100,70,36,'');}
+
+  function eye(x,y,type,ec,side){
+    var o='';
+    if(type==='sleepy'){ o+=E(x,y,9,10,ec)+E(x+1,y+2,4.5,5.5,DARK)+E(x,y-6,11,8.5,'HEAD')+tube('M'+(x-9)+','+(y-1)+' Q'+x+','+(y+4)+' '+(x+9)+','+(y-1),2.2,DARK); return o; }
+    if(type==='almond'){ o+=P('M'+(x-10)+','+y+' Q'+x+','+(y-12)+' '+(x+10)+','+y+' Q'+x+','+(y+9)+' '+(x-10)+','+y+' Z',ec)+E(x+(side||0)*2,y+1,4,5,DARK)+C(x-3,y-3,2.2,'#fff'); return o; }
+    if(type==='wide'){ o+=E(x,y,10.5,12,ec)+E(x,y+1.5,3.6,4.6,DARK)+C(x-3.5,y-4.5,2.8,'#fff')+C(x+3,y+3,1.4,'#fff'); return o; }
+    if(type==='googly'){ var big=side<0; o+=E(x,y,big?10:7.5,big?11:8.5,ec)+E(x+(big?3:-2),y+(big?-3:2),big?4.5:3.5,big?5.5:4.5,DARK)+C(x-3,y-4,2.2,'#fff'); return o; }
+    if(type==='serious'){ o+=E(x,y+1,9,8.5,ec)+E(x+1,y+2,4.2,5,DARK)+C(x-3,y-2,2,'#fff')+el('rect',{x:x-9.5,y:y-15,width:19,height:4.2,rx:2,fill:DARK}); return o; }
+    if(type==='thicc'){ o+=E(x,y,9,10,ec)+E(x+1,y+1,4.5,6,DARK)+C(x-3,y-4,2.4,'#fff')+el('rect',{x:x-11,y:y-20,width:22,height:6.5,rx:3,fill:DARK,transform:'rotate('+((side||1)*-6)+' '+x+' '+(y-17)+')'}); return o; }
+    o+=E(x,y,9,10,ec)+E(x+1,y+1,4.5,6,DARK)+C(x-3,y-4,2.6,'#fff')+C(x+3,y+3,1.3,'#fff',{opacity:.8}); return o;
+  }
+  function mouth(type,c4){
+    var o='';
+    if(type==='w') return tube('M92,90 q4,5 8,0 q4,5 8,0',2.4,DARK);
+    if(type==='smile') return tube('M91,91 q9,8 18,0',2.4,DARK);
+    if(type==='tongue') return tube('M91,90 q9,8 18,0',2.4,DARK)+P('M95,92 h10 v6.5 a5,5 0 0 1 -10,0 Z',TONGUE);
+    if(type==='pout') return C(100,93,3,DARK);
+    if(type==='teeth') return tube('M92,90 q8,4 16,0',2.4,DARK)+el('rect',{x:95.7,y:90.5,width:4.2,height:6.5,rx:1,fill:'#fff'})+el('rect',{x:100.3,y:90.5,width:4.2,height:6.5,rx:1,fill:'#fff'});
+    if(type==='fang') return tube('M91,91 q9,8 18,0',2.4,DARK)+P('M104,93 l5,0 l-2.5,5 Z','#fff');
+    if(type==='serious') return tube('M93,93 h14',2.6,DARK);
+    if(type==='open') return P('M91,90 q9,12 18,0 Z',DARK)+P('M95,92 q5,7 10,0 Z',TONGUE);
+    return o;
+  }
+
+  function pet(o){
+    var g=PAL[o.pal], c1=g.c1,c2=g.c2,c3=g.c3,c4=g.c4,ec=g.eye, sh=darken(c1,.16), lg=tint(c1,.10), dk=g.dark||darken(c1,.45);
+    var sp=o.species, W=o.wild||[], K=o.weak||[]; function has(k){return W.indexOf(k)>=0||K.indexOf(k)>=0;}
+    var id='f'+(++uid), out='';
+    out+=E(100,190,52,6,'#000',{opacity:.10});
+    // behind
+    var tail=has('fishtail')?'fish':has('shroomtail')?'shroom':sp;
+    if(has('wings')){ out+=P('M64,132 C30,124 20,88 46,80 C62,76 70,102 70,130 Z',c3)+P('M136,132 C170,124 180,88 154,80 C138,76 130,102 130,130 Z',c3)+tube('M60,120 C44,110 40,96 48,88',2,c2)+tube('M140,120 C156,110 160,96 152,88',2,c2); }
+    if(has('tentacles')){ out+=tube('M60,152 C38,152 28,130 42,110',7,c2)+tube('M140,152 C162,154 174,134 162,112',7,c2)+tube('M150,168 C178,172 190,150 180,130',7,c2); }
+    if(tail==='cat') out+=tube('M146,162 C170,158 180,130 166,110',12,c1)+C(166,110,6.5,c3);
+    if(tail==='dog') out+=tube('M146,160 C162,156 168,140 158,128',11,c1)+C(158,128,5.5,c3);
+    if(tail==='rabbit') out+=C(154,160,11,c3);
+    if(tail==='fish') out+=P('M140,162 L174,136 Q182,162 174,188 Z',c2)+tube('M150,162 L170,146 M150,162 L170,178',2,sh,{opacity:.6});
+    // body
+    out+=E(64,158,20,22,c1)+E(136,158,20,22,c1)+P(TORSO,c1);
+    out+='<clipPath id="'+id+'b">'+bodyShapes().replace(/fill=""/g,'')+'</clipPath><g clip-path="url(#'+id+'b)">';
+    out+=E(100,148,24,30,c3);                       // belly
+    out+=E(100,192,74,26,sh);                        // bottom shade
+    out+=E(100,102,30,9,sh,{opacity:.7});            // neck shade
+    if(has('spots')) out+=E(76,144,8,6,c2)+E(124,150,10,7,c2)+E(60,166,6,5,c2);
+    if(has('stripes')) out+=tube('M56,146 q10,-8 22,2',6,c2)+tube('M144,146 q-10,-8 -22,2',6,c2)+tube('M60,162 q10,-6 18,2',6,c2);
+    if(has('patch')) out+=E(128,152,10,8,c2);
+    if(has('calico')) out+=E(126,150,16,12,c2)+E(84,168,12,8,sh);
+    if(has('cow')) out+=E(74,150,14,12,c2)+E(122,168,12,8,c2);
+    if(has('rings')) [[74,146,9],[126,152,10],[100,170,7]].forEach(function(r){ out+=C(r[0],r[1],r[2],'none',{stroke:c2,'stroke-width':2.5})+C(r[0],r[1],r[2]*0.42,'none',{stroke:c2,'stroke-width':2}); });
+    if(has('stars')) [[72,142,5],[110,132,4],[128,156,6],[92,162,4],[118,172,3]].forEach(function(s){ var x=s[0],y=s[1],r=s[2],a=r*.32; out+=P('M'+x+','+(y-r)+' L'+(x+a)+','+(y-a)+' L'+(x+r)+','+y+' L'+(x+a)+','+(y+a)+' L'+x+','+(y+r)+' L'+(x-a)+','+(y+a)+' L'+(x-r)+','+y+' L'+(x-a)+','+(y-a)+' Z',c4); });
+    if(has('gel')) out+=E(78,132,9,16,'#fff',{opacity:.35,transform:'rotate(-18 78 132)'})+C(126,128,4,'#fff',{opacity:.6})+C(134,144,2.6,'#fff',{opacity:.6})+C(70,170,3.2,'#fff',{opacity:.6});
+    out+='</g>';
+    if(has('fins')){ out+=tri(['58,128','34,118','40,152'],c2,6)+tri(['142,128','166,118','160,152'],c2,6)+tube('M52,130 L40,124 M52,138 L42,146',1.6,sh,{opacity:.6})+tube('M148,130 L160,124 M148,138 L158,146',1.6,sh,{opacity:.6}); }
+    // legs
+    var pawc=has('socks')?c3:lg;
+    out+=E(60,181,11,6,lg)+E(140,181,11,6,lg);
+    out+=el('rect',{x:83,y:126,width:14,height:54,rx:7,fill:lg})+el('rect',{x:103,y:126,width:14,height:54,rx:7,fill:lg});
+    out+=E(90,181,9.5,6,pawc)+E(110,181,9.5,6,pawc);
+    // head
+    out+=C(100,70,36,c1);
+    if(has('hood')) out+=P('M62,74 C58,16 142,16 138,74 Q100,54 62,74 Z',dk);
+    if(sp==='cat'){ out+=tri(['60,62','88,34','58,22'],c1,10)+tri(['140,62','112,34','142,22'],c1,10)+tri(['66,56','82,42','64,32'],c4,4)+tri(['134,56','118,42','136,32'],c4,4); }
+    if(sp==='dog'){ out+=E(62,80,13,26,c2,{transform:'rotate(12 62 80)'})+E(138,80,13,26,c2,{transform:'rotate(-12 138 80)'}); }
+    if(sp==='rabbit'){ out+=E(84,28,10,30,c1,{transform:'rotate(-6 84 28)'})+E(116,28,10,30,c1,{transform:'rotate(6 116 28)'})+E(84,30,5,22,c4,{transform:'rotate(-6 84 30)'})+E(116,30,5,22,c4,{transform:'rotate(6 116 30)'}); }
+    // head pattern (clipped to head)
+    out+='<clipPath id="'+id+'h">'+headShape().replace(/fill=""/g,'')+'</clipPath><g clip-path="url(#'+id+'h)">';
+    if(has('tabby')) out+=tube('M88,52 l4,-12 M100,50 l0,-14 M112,52 l-4,-12',4,c2);
+    if(has('patch')) out+=C(116,70,15,c2);
+    if(has('calico')) out+=E(72,56,16,14,c2);
+    if(has('cow')) out+=E(120,54,14,11,c2);
+    if(has('spots')) out+=E(80,50,7,5,c2);
+    if(has('blaze')) out+=E(100,68,7,22,c3);
+    out+='</g>';
+    if(has('cap')) out+='<g transform="rotate(-6 108 36)">'+E(108,36,33,13,'#f4a261')+E(108,40,33,6,darken('#f4a261',.25),{opacity:.5})+C(96,32,4,'#fff',{opacity:.85})+C(114,29,3,'#fff',{opacity:.85})+C(126,36,2.5,'#fff',{opacity:.85})+'</g>';
+    if(has('nubs')) out+=C(90,38,5.5,c4)+C(110,38,5.5,c4);
+    if(has('antennae')) out+=tube('M90,38 C84,26 80,16 76,8',4,c1)+tube('M110,38 C116,26 120,16 124,8',4,c1)+halo(76,8)+halo(124,8);
+    if(has('lantern')) out+=tube('M106,36 C110,22 116,14 124,6',5,c1)+halo(124,6);
+    // face
+    if(sp==='cat') out+=E(92,86,10,7,c3)+E(108,86,10,7,c3);
+    if(sp==='dog') out+=E(100,88,20,14,c3);
+    if(sp==='rabbit') out+=E(100,87,12,8,c3);
+    var et=o.eyes||'round'; var eyeStr=eye(85,72,et,ec,-1)+eye(115,72,et,ec,1); out+=eyeStr.replace(/HEAD/g,c1);
+    if(has('eye3')) out+=eye(100,50,'round',ec,0).replace(/HEAD/g,c1).replace(/r="2.6"/,'r="2"');
+    if(sp==='cat') out+=tri(['96,82','104,82','100,87'],c4,2);
+    if(sp==='dog') out+=E(100,84,7.5,5.5,DARK)+C(97,82,1.6,'#fff',{opacity:.7});
+    if(sp==='rabbit') out+=tri(['96.5,82','103.5,82','100,86'],c4,1.5)+tube('M100,86 l0,4',2,DARK);
+    out+=mouth(o.mouth||'smile',c4);
+    out+=E(70,86,6,3.5,c4,{opacity:.45})+E(130,86,6,3.5,c4,{opacity:.45});
+    if(tail==='shroom') [[156,150,10,6],[170,164,9,5.5],[160,178,8,5]].forEach(function(m){ out+=el('rect',{x:m[0]-3.5,y:m[1]-2,width:7,height:8,rx:3,fill:c3})+E(m[0],m[1],m[2],m[3],'#f4a261')+C(m[0]-m[2]*.4,m[1]-1,1.8,'#fff',{opacity:.85}); });
+    if(has('orbs')) [[28,104],[172,96],[24,160],[178,170]].forEach(function(q){ out+=C(q[0],q[1],9,GLOW,{opacity:.28})+C(q[0],q[1],4,GLOW); });
+    return '<svg viewBox="-6 -10 212 216" role="img" aria-label="'+(o.name||'')+'" shape-rendering="geometricPrecision">'+out+'</svg>';
+  }
+  function chips(list,cls){return (list||[]).map(function(t){return '<span class="chip '+cls+'">'+t+'</span>';}).join('');}
+  function card(o){
+    var g=PAL[o.pal];
+    var genes='<span class="genes" title="基因色"><i style="background:'+g.c1+'"></i><i style="background:'+g.c2+'"></i><i style="background:'+g.c3+'"></i><i style="background:'+g.c4+'"></i><i style="background:'+g.eye+';border-radius:50%"></i></span>';
+    return '<div class="mock'+(o.over?' over':'')+'">'+pet(o)+'<div class="nm"><span>'+o.name+'</span><small>'+(o.tag||g.n)+'</small></div>'+(o.note?'<div class="note">'+o.note+'</div>':'')+'<div class="chips">'+chips(o.keep,'k')+chips(o.alien,'a')+chips(o.weak2,'w')+chips(o.overc,'o')+'</div></div>';
+  }
+  function fill(id,list){var e=document.getElementById(id); if(e) e.innerHTML=list.map(card).join('');}
+
+  fill('cats',[
+    {species:'cat',pal:'peach',eyes:'round',mouth:'w',weak:['tabby'],name:'桃橘猫',tag:'特异 0',note:'纯宠物。四个锚点齐全，只有先天虎斑。',keep:['耳','脸','尾','坐姿'],weak2:['虎斑']},
+    {species:'cat',pal:'deepsea',eyes:'almond',mouth:'smile',wild:['fishtail'],weak:['spots'],name:'汐喵',tag:'深海 · 特异 1',note:'尾巴换成鱼尾。仍是一眼可辨的猫。',keep:['耳','脸','坐姿'],alien:['鱼尾'],weak2:['软斑纹']},
+    {species:'cat',pal:'fungal',eyes:'sleepy',mouth:'pout',wild:['cap','shroomtail'],weak:['rings'],name:'菌喵',tag:'菌沼 · 特异 2',note:'戴菌帽、拖菌簇尾，困困眼。怪得成立。',keep:['耳','脸','坐姿'],alien:['菌伞','菌簇尾'],weak2:['孢环纹','困困眼']},
+    {species:'cat',pal:'shadow',eyes:'wide',mouth:'open',wild:['hood','eye3','wings','tentacles','gel'],weak:['stars'],over:true,name:'幽喵 · 超阀',tag:'幽影 · 特异 5',note:'兜帽、三眼、翅、软带、凝胶皮全上。只剩姿势在撑。',keep:['坐姿'],overc:['幽帽','三珠眼','圆蛾翅','软带附肢','凝胶皮'],weak2:['星点纹']}
+  ]);
+  fill('dogs',[
+    {species:'dog',pal:'cream',eyes:'round',mouth:'tongue',weak:['patch'],name:'奶油狗',tag:'特异 0',note:'纯宠物。单眼补丁是先天纹样。',keep:['垂耳','吻与鼻','吐舌','短尾'],weak2:['单眼补丁']},
+    {species:'dog',pal:'fungal',eyes:'thicc',mouth:'smile',wild:['cap'],weak:['spots'],name:'菌汪',tag:'菌沼 · 特异 1',note:'菌帽扣在垂耳上，粗眉认真。',keep:['垂耳','吻与鼻','短尾'],alien:['菌伞'],weak2:['软斑纹']},
+    {species:'dog',pal:'deepsea',eyes:'googly',mouth:'tongue',wild:['fins','lantern'],weak:['orbs'],name:'汐汪',tag:'深海 · 特异 2',note:'侧鳍加潮灯，一大一小眼。还是那只傻狗。',keep:['垂耳','吻与鼻','吐舌','短尾'],alien:['侧鳍','潮灯'],weak2:['发光珠','一大一小眼']},
+    {species:'dog',pal:'shadow',eyes:'serious',mouth:'fang',wild:['hood','eye3','tentacles','gel','antennae'],weak:['stars'],over:true,name:'幽汪 · 超阀',tag:'幽影 · 特异 5',note:'垂耳被兜帽吞掉，吻部还在，但没人先看见狗。',keep:['吻与鼻','坐姿'],overc:['幽帽','三珠眼','软带附肢','凝胶皮','灯泡触角'],weak2:['星点纹']}
+  ]);
+  fill('rabbits',[
+    {species:'rabbit',pal:'greyblue',eyes:'round',mouth:'teeth',weak:['blaze','socks'],name:'灰兔',tag:'特异 0',note:'纯宠物。面部白纹和白袜是先天纹样。',keep:['长耳','门牙','绒球尾','坐姿'],weak2:['面纹','白袜']},
+    {species:'rabbit',pal:'shadow',eyes:'almond',mouth:'teeth',wild:['eye3'],weak:['stars'],name:'幽兔',tag:'幽影 · 特异 1',note:'额上多一只眼。长耳门牙都在。',keep:['长耳','门牙','绒球尾','坐姿'],alien:['三珠眼'],weak2:['星点纹']},
+    {species:'rabbit',pal:'deepsea',eyes:'wide',mouth:'pout',wild:['fishtail','fins'],weak:['orbs'],name:'汐兔',tag:'深海 · 特异 2',note:'绒球尾换成鱼尾，加侧鳍。惊讶的兔。',keep:['长耳','门牙','坐姿'],alien:['鱼尾','侧鳍'],weak2:['发光珠']},
+    {species:'rabbit',pal:'fungal',eyes:'sleepy',mouth:'open',wild:['cap','shroomtail','antennae','wings','nubs'],weak:['rings'],over:true,name:'菌兔 · 超阀',tag:'菌沼 · 特异 5',note:'长耳还在，但帽子、触角、角芽把头顶挤满了。',keep:['长耳','门牙','坐姿'],overc:['菌伞','菌簇尾','灯泡触角','圆蛾翅','软角芽'],weak2:['孢环纹']}
+  ]);
+  fill('faces',[
+    {species:'cat',pal:'peach',eyes:'round',mouth:'smile',weak:['tabby'],name:'软心慢慢',tag:'圆眼·微笑'},
+    {species:'cat',pal:'peach',eyes:'wide',mouth:'open',weak:['tabby'],name:'亮眼好奇',tag:'大眼·张嘴'},
+    {species:'cat',pal:'peach',eyes:'thicc',mouth:'serious',weak:['tabby'],name:'软胆勇士',tag:'粗眉·直嘴'},
+    {species:'cat',pal:'peach',eyes:'sleepy',mouth:'pout',weak:['tabby'],name:'走神云朵',tag:'困眼·嘟嘴'},
+    {species:'cat',pal:'peach',eyes:'googly',mouth:'tongue',weak:['tabby'],name:'淘气弹簧',tag:'歪眼·吐舌'},
+    {species:'cat',pal:'peach',eyes:'almond',mouth:'w',weak:['tabby'],name:'藏光腼腆',tag:'杏眼·w嘴'}
+  ]);
+  fill('colors',['peach','mint','lavender','coral','cocoa','greyblue'].map(function(p){return {species:'cat',pal:p,eyes:'round',mouth:'w',weak:['tabby'],name:PAL[p].n+'猫'};}));
+  window.__v1.pet=pet; window.__v1.PAL=PAL;
+})();</script>
+<script>// v2 母版：手调路径 + 多层明暗 + 升级脸 + 微细节。o.stage 1..4 控制层级（1 轮廓 2 明暗 3 脸 4 细节）
+(function(){
+  var DARK='#3b3232', TONGUE='#f29aa6';
+  function h2r(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  function r2h(r){return '#'+r.map(function(v){v=Math.max(0,Math.min(255,Math.round(v)));return (v<16?'0':'')+v.toString(16);}).join('');}
+  function mix(a,b,t){var A=h2r(a),B=h2r(b);return r2h([A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t]);}
+  function darken(h,t){return mix(h,'#2a2030',t);}
+  function tint(h,t){return mix(h,'#ffffff',t);}
+  var uid=0;
+  function el(t,a){var s='<'+t;for(var k in a){s+=' '+k+'="'+a[k]+'"';}return s+'/>';}
+  function E(cx,cy,rx,ry,f,x){return el('ellipse',Object.assign({cx:cx,cy:cy,rx:rx,ry:ry,fill:f},x||{}));}
+  function C(cx,cy,r,f,x){return el('circle',Object.assign({cx:cx,cy:cy,r:r,fill:f},x||{}));}
+  function P(d,f,x){return el('path',Object.assign({d:d,fill:f},x||{}));}
+  function tri(pts,f,w){return P('M'+pts[0]+' L'+pts[1]+' L'+pts[2]+' Z',f,{stroke:f,'stroke-width':w,'stroke-linejoin':'round'});}
+  function ln(d,w,c,x){return P(d,'none',Object.assign({stroke:c,'stroke-width':w,'stroke-linecap':'round','stroke-linejoin':'round'},x||{}));}
+
+  var BODY='M78,100 C60,106 45,128 44,154 C43,176 56,187 76,187 L124,187 C144,187 157,176 156,154 C155,128 140,106 122,100 Z';
+  var HEAD='M100,32 C125,32 141,47 141,67 C141,86 128,102 100,103 C72,102 59,86 59,67 C59,47 75,32 100,32 Z';
+  var TAIL='M146,172 C174,170 190,142 176,108 C173,101 164,101 162,108 C172,138 160,158 144,160 Z';
+  var TAIL_DOG='M146,168 C166,164 176,144 162,128 C158,124 151,127 153,134 C162,146 156,156 144,158 Z';
+
+  function eyeLayer(x,y,ec,st){
+    if(st<3) return E(x,y,10,11.5,ec)+E(x+.4,y+1.5,4.8,6.6,DARK)+C(x-3.4,y-3.6,2.8,'#fff');
+    var s='';
+    s+=E(x,y-1.2,11,12.8,DARK);
+    s+=E(x,y+.4,10.4,11.6,mix(ec,'#000',.25));
+    s+=E(x,y+1.6,8.6,9.6,ec);
+    s+=E(x,y-2.2,6.4,4,tint(ec,.3),{opacity:.5});
+    s+=E(x+.4,y+2,4.8,6.6,DARK);
+    s+=C(x-3.6,y-3.8,3.2,'#fff')+C(x+3.6,y+4.2,1.6,'#fff',{opacity:.9});
+    return s;
+  }
+
+  function pet2(g,o){
+    o=o||{}; var sp=o.species||'cat', st=o.stage||4, pat=!o.noPattern&&st>=4;
+    var c1=g.c1,c2=g.c2,c3=g.c3,c4=g.c4,ec=g.eye;
+    var sh=darken(c1,.18), hi=tint(c1,.14), lg=tint(c1,.08);
+    var id='m'+(++uid), out='';
+    out+=E(100,189,56,6,'#000',{opacity:.10});
+    // 尾
+    if(sp==='cat'){
+      out+=P(TAIL,c1);
+      if(st>=2){ out+='<clipPath id="'+id+'t">'+P(TAIL,'')+'</clipPath><g clip-path="url(#'+id+'t)">'+P('M150,178 C176,176 190,150 178,116 C176,112 174,112 172,116 C182,148 168,166 148,168 Z',sh,{opacity:.45}); if(pat) out+=ln('M164,128 l14,-4 M168,116 l12,-3 M170,140 l12,-6',4,c2,{opacity:.85}); out+='</g>'; }
+      if(st>=4) out+=C(168,107,6.5,c3);
+    } else if(sp==='dog'){ out+=P(TAIL_DOG,c1); if(st>=4) out+=C(157,130,5.5,c3); }
+    else { out+=C(156,158,12,c3); if(st>=2) out+=E(154,164,9,5,mix(c3,sh,.35),{opacity:.5}); }
+    // 身体
+    out+=P(BODY,c1);
+    out+='<clipPath id="'+id+'b">'+P(BODY,'')+'</clipPath><g clip-path="url(#'+id+'b)">';
+    out+=P('M100,116 C120,116 130,138 130,160 C130,180 118,190 100,190 C82,190 70,180 70,160 C70,138 80,116 100,116 Z',c3);
+    if(st>=4) out+=tri(['92,120','100,112','108,120'],c3,3);
+    if(st>=2){
+      out+=E(100,198,72,20,sh);
+      out+=P('M44,154 C43,176 56,187 76,187 C60,182 50,170 48,150 Z',sh,{opacity:.55})+P('M156,154 C157,176 144,187 124,187 C140,182 150,170 152,150 Z',sh,{opacity:.55});
+      out+=E(160,150,14,46,sh,{opacity:.22})+E(100,103,22,7,sh,{opacity:.5});
+    }
+    if(pat&&sp==='cat') out+=ln('M48,148 q10,-10 22,-4 M46,164 q10,-8 20,-2 M152,148 q-10,-10 -22,-4 M154,164 q-10,-8 -20,-2',4.5,c2,{opacity:.85});
+    if(pat&&sp==='dog') out+=E(128,152,12,9,c2)+E(52,166,7,6,c2);
+    out+='</g>';
+    // 后脚
+    var pc=(sp==='rabbit'&&pat)?c3:lg;
+    if(st>=4) out+=E(58,183,10,5,lg)+C(52,184,3,lg)+C(58,183.5,3,lg)+C(64,184,3,lg)+E(142,183,10,5,lg)+C(136,184,3,lg)+C(142,183.5,3,lg)+C(148,184,3,lg);
+    else out+=E(58,183,10,5,lg)+E(142,183,10,5,lg);
+    // 前腿 + 爪
+    out+=P('M76,130 Q84,124 92,130 L91,178 Q84,182 78,178 Z',lg)+P('M108,130 Q116,124 124,130 L122,178 Q116,182 109,178 Z',lg);
+    if(st>=2) out+=ln('M77,134 L79,176',1.6,sh,{opacity:.45})+ln('M123,134 L121,176',1.6,sh,{opacity:.45})+ln('M91,134 L90,176',1.6,sh,{opacity:.3})+ln('M109,134 L110,176',1.6,sh,{opacity:.3});
+    function paw(x){ return st>=4 ? E(x,181,11,6,mix(pc,sh,.4))+C(x-7,182,4.2,pc)+C(x,180.5,4.4,pc)+C(x+7,182,4.2,pc) : E(x,181,11,6,pc); }
+    out+=paw(84)+paw(116);
+    if(!o.noHead){
+    // 头
+    out+=P(HEAD,c1);
+    if(sp==='cat'&&st>=4) out+=tri(['61,71','53,76','61,82'],c1,2.5)+tri(['139,71','147,76','139,82'],c1,2.5);
+    out+='<clipPath id="'+id+'h">'+P(HEAD,'')+'</clipPath><g clip-path="url(#'+id+'h)">';
+    if(st>=2) out+=E(86,46,20,12,hi,{opacity:.55})+E(100,105,30,10,sh,{opacity:.55});
+    if(pat&&sp==='cat') out+=ln('M86,48 q1,-9 4,-14 M100,46 l0,-16 M114,48 q-1,-9 -4,-14',4.2,c2,{opacity:.9});
+    if(pat&&sp==='dog') out+=C(119,66,19,c2);
+    if(pat&&sp==='rabbit') out+=E(100,64,7,24,c3);
+    out+='</g>';
+    // 耳
+    if(sp==='cat'){
+      out+=tri(['66,52','92,33','64,15'],c1,7)+tri(['134,52','108,33','136,15'],c1,7);
+      if(st>=3) out+=tri(['72,48','86,38','68,25'],c4,3.5)+tri(['128,48','114,38','132,25'],c4,3.5);
+    } else if(sp==='dog'){
+      out+=P('M66,56 C50,58 44,84 52,104 C56,112 68,110 70,100 C74,86 76,66 66,56 Z',c2)+P('M134,56 C150,58 156,84 148,104 C144,112 132,110 130,100 C126,86 124,66 134,56 Z',c2);
+      if(st>=2) out+=P('M66,56 C58,60 54,72 56,84 C60,74 66,66 66,56 Z',sh,{opacity:.3})+P('M134,56 C142,60 146,72 144,84 C140,74 134,66 134,56 Z',sh,{opacity:.3});
+    } else {
+      out+=P('M82,42 C70,26 74,0 86,-2 C96,-4 100,22 94,40 Z',c1)+P('M118,42 C130,26 126,0 114,-2 C104,-4 100,22 106,40 Z',c1);
+      if(st>=3) out+=P('M84,38 C76,26 78,6 86,4 C92,4 95,22 91,38 Z',c4)+P('M116,38 C124,26 122,6 114,4 C108,4 105,22 109,38 Z',c4);
+    }
+    // 口鼻底
+    if(st>=3){
+      if(sp==='cat'){ out+=P('M78,85 C78,76 96,74 100,81 C104,74 122,76 122,85 C122,93 110,97 100,95 C90,97 78,93 78,85 Z',c3)+E(100,98,7,4,c3); if(st>=4) [[88,85],[85,89],[90,91],[112,85],[115,89],[110,91]].forEach(function(p){ out+=C(p[0],p[1],.9,sh,{opacity:.55}); }); }
+      else if(sp==='dog') out+=P('M76,86 C76,72 124,72 124,86 C124,99 108,105 100,103 C92,105 76,99 76,86 Z',c3);
+      else out+=E(100,88,13,8,c3)+E(100,97,6,3.5,c3);
+    }
+    // 眼
+    function eye(x,y){ return eyeLayer(x,y,ec,st); }
+    out+=eye(83,70)+eye(117,70);
+    // 鼻 嘴
+    if(!o.noMouth){
+    if(sp==='cat'){ out+=tri(['95,79','105,79','100,85'],c4,2.5); if(st>=3) out+=C(98,80,1,'#fff',{opacity:.8}); out+=ln('M100,85 q-3,6 -8,3 M100,85 q3,6 8,3',2.2,DARK); }
+    else if(sp==='dog'){ out+=E(100,83,8,6,DARK); if(st>=3) out+=C(97,81,1.8,'#fff',{opacity:.7}); out+=ln('M100,89 q-4,7 -10,3 M100,89 q4,7 10,3',2.2,DARK)+P('M95,93 h10 v6.5 a5,5 0 0 1 -10,0 Z',TONGUE); }
+    else { out+=tri(['96.5,83','103.5,83','100,87'],c4,1.5)+ln('M100,87 l0,4',2,DARK)+ln('M92,91 q8,4 16,0',2.2,DARK)+el('rect',{x:95.7,y:91.5,width:4.2,height:6.5,rx:1,fill:'#fff'})+el('rect',{x:100.3,y:91.5,width:4.2,height:6.5,rx:1,fill:'#fff'}); }
+    }
+    if(st>=3) out+=E(70,86,6.5,3.6,c4,{opacity:.4})+E(130,86,6.5,3.6,c4,{opacity:.4});
+    }
+    return '<svg viewBox="-6 -10 212 216" role="img" shape-rendering="geometricPrecision">'+out+'</svg>';
+  }
+  window.pet2=pet2; window.cat2=pet2; window.pet2Eye=eyeLayer; window.pet2Helpers={E:E,C:C,P:P,mix:mix,tint:tint,darken:darken,DARK:DARK};
+})();
+</script>
+<script>window.FLUENT={"cat": [{"d": "M4 25.942C4 28.1739 5.76327 30 7.91837 30H24.0816C26.2367 30 28 28.0725 28 25.8406V6.4297C28 5.1297 26.4099 4.5297 25.5155 5.4297L20.9736 10H11.1617L6.5 5.4297C5.6 4.5297 4 5.1297 4 6.4297V25.942Z", "role": "head"}, {"d": "M9.00005 10.9265L6.20005 13.5265C5.70005 14.0265 4.80005 13.6265 4.80005 12.9265V7.72648C4.80005 7.12648 5.70005 6.72648 6.20005 7.22648L9.00005 9.82648C9.30005 10.1265 9.30005 10.6265 9.00005 10.9265Z", "role": "inner"}, {"d": "M23.05 10.9265L25.85 13.5265C26.35 14.0265 27.25 13.6265 27.25 12.9265V7.72648C27.25 7.12648 26.35 6.72648 25.85 7.22648L23.05 9.82648C22.75 10.1265 22.75 10.6265 23.05 10.9265Z", "role": "inner"}, {"d": "M17.0429 20H14.9571C14.5117 20 14.2886 20.5386 14.6036 20.8536L15.6465 21.8964C15.8417 22.0917 16.1583 22.0917 16.3536 21.8964L17.3965 20.8536C17.7114 20.5386 17.4884 20 17.0429 20Z", "role": "nose"}, {"d": "M2.72372 20.0528C2.47673 19.9293 2.17639 20.0294 2.0529 20.2764C1.9294 20.5234 2.02951 20.8237 2.2765 20.9472L6.2765 22.9472C6.52349 23.0707 6.82383 22.9706 6.94732 22.7236C7.07082 22.4766 6.97071 22.1763 6.72372 22.0528L2.72372 20.0528Z", "role": "whisker"}, {"d": "M2.72372 26.9472C2.47673 27.0707 2.17639 26.9706 2.0529 26.7236C1.9294 26.4766 2.02951 26.1763 2.2765 26.0528L6.2765 24.0528C6.52349 23.9293 6.82383 24.0294 6.94732 24.2764C7.07082 24.5234 6.97071 24.8237 6.72372 24.9472L2.72372 26.9472Z", "role": "whisker"}, {"d": "M29.9473 20.2764C29.8238 20.0294 29.5235 19.9293 29.2765 20.0528L25.2765 22.0528C25.0295 22.1763 24.9294 22.4766 25.0529 22.7236C25.1764 22.9706 25.4767 23.0707 25.7237 22.9472L29.7237 20.9472C29.9707 20.8237 30.0708 20.5234 29.9473 20.2764Z", "role": "whisker"}, {"d": "M29.2765 26.9472C29.5235 27.0707 29.8238 26.9706 29.9473 26.7236C30.0708 26.4766 29.9707 26.1763 29.7237 26.0528L25.7237 24.0528C25.4767 23.9293 25.1764 24.0294 25.0529 24.2764C24.9294 24.5234 25.0295 24.8237 25.2765 24.9472L29.2765 26.9472Z", "role": "whisker"}, {"d": "M12 17C11.4477 17 11 17.4477 11 18V19C11 19.5523 11.4477 20 12 20C12.5523 20 13 19.5523 13 19V18C13 17.4477 12.5523 17 12 17Z", "role": "eye"}, {"d": "M20 17C19.4477 17 19 17.4477 19 18V19C19 19.5523 19.4477 20 20 20C20.5523 20 21 19.5523 21 19V18C21 17.4477 20.5523 17 20 17Z", "role": "eye"}, {"d": "M15.9999 23.106C15.4625 23.6449 14.5434 24 13.4999 24C12.4681 24 11.5579 23.6527 11.0181 23.1239C11.1384 23.8481 11.9461 27.5 15.9999 27.5C20.0538 27.5 20.8615 23.8481 20.9818 23.1239C20.4419 23.6527 19.5317 24 18.4999 24C17.4564 24 16.5374 23.6449 15.9999 23.106Z", "role": "mouthIn"}], "dog": [{"d": "M4 9C4 6.79086 5.79086 5 8 5H24C26.2091 5 28 6.79086 28 9V23C28 25.2091 26.2091 27 24 27H8C5.79086 27 4 25.2091 4 23V9Z", "role": "head"}, {"d": "M24.0625 21.8438C24.0625 17.3688 19.75 15.9688 16.0625 15.9688C11.9375 15.9688 8 17.5312 8 21.8438C8 25.7937 12.3125 29.1875 16.0625 29.1875C20.5625 29.1875 24.0625 24.5312 24.0625 21.8438Z", "role": "muzzle"}, {"d": "M12.9922 24.6562L16 22.4062L19.0078 24.6562V27C19.0078 28.6569 17.6569 30 16 30C14.3431 30 12.9922 28.6569 12.9922 27V24.6562Z", "role": "tongue"}, {"d": "M11.7259 6.06679L4.42592 16.3617C3.72124 17.3555 2.15625 16.8569 2.15625 15.6387V8.59375C2.15625 6.10847 4.17097 4.09375 6.65625 4.09375H10.7063C11.721 4.09375 12.3129 5.23902 11.7259 6.06679Z", "role": "ear"}, {"d": "M20.2428 6.06679L27.5428 16.3617C28.2475 17.3555 29.8125 16.8569 29.8125 15.6387V8.59375C29.8125 6.10847 27.7978 4.09375 25.3125 4.09375H21.2625C20.2477 4.09375 19.6559 5.23902 20.2428 6.06679Z", "role": "ear"}, {"d": "M12 13C12 12.4477 12.4477 12 13 12C13.5523 12 14 12.4477 14 13V14C14 14.5523 13.5523 15 13 15C12.4477 15 12 14.5523 12 14V13Z", "role": "eye"}, {"d": "M18 13C18 12.4477 18.4477 12 19 12C19.5523 12 20 12.4477 20 13V14C20 14.5523 19.5523 15 19 15C18.4477 15 18 14.5523 18 14V13Z", "role": "eye"}, {"d": "M17.1446 17H14.8277C14.2439 17 13.7008 17.816 14.19 18.4728C14.5223 18.9188 15.3557 19.8109 16.031 19.8109C16.7064 19.8109 17.4978 18.9188 17.8092 18.4728C18.348 17.6286 17.6236 17.012 17.1446 17Z", "role": "dark"}, {"d": "M16.5 20.5156C16.5 20.2395 16.2761 20.0156 16 20.0156L15.9943 20.0157L15.9886 20.0156C15.7124 20.0156 15.4886 20.2395 15.4886 20.5156C15.4886 20.5981 15.4903 20.6795 15.4937 20.7596C15.3779 22.9801 13.6875 23.9844 12.5312 23.9844C12.2551 23.9844 12.0312 24.2082 12.0312 24.4844C12.0312 24.7605 12.2551 24.9844 12.5312 24.9844C13.7421 24.9844 15.2302 24.2385 15.9943 22.7417C16.7584 24.2385 18.2465 24.9844 19.4573 24.9844C19.7335 24.9844 19.9573 24.7605 19.9573 24.4844C19.9573 24.2082 19.7335 23.9844 19.4573 23.9844C18.3011 23.9844 16.6107 22.9801 16.4949 20.7596C16.4983 20.6795 16.5 20.5981 16.5 20.5156Z", "role": "dark"}], "rabbit": [{"d": "M27.4502 21.89C27.4502 21.44 27.4102 20.99 27.3302 20.56C27.0702 18.83 26.2802 15.74 23.8402 13.24C23.2902 12.67 22.7102 12.2 22.1202 11.81L23.3402 5.2C23.6402 3.54 22.3602 2 20.6702 2C19.1702 2 17.9602 3.21 17.9602 4.71V10.11C16.6402 9.85 15.7302 9.89 15.7302 9.89C15.7302 9.89 15.0302 9.85 13.9702 10.02V4.71C13.9702 3.21 12.7602 2 11.2602 2C9.56024 2 8.28023 3.54 8.59023 5.2L9.76023 11.54C9.03023 11.98 8.30023 12.54 7.61023 13.24C5.18023 15.74 4.38023 18.82 4.12023 20.56C4.04023 21 4.00023 21.44 3.99023 21.9C3.99023 21.91 3.99023 21.92 3.99023 21.92C3.99023 24.8 5.66023 27.28 8.07023 28.47C8.07023 28.47 10.6902 30 15.7102 30C20.7402 30 23.3502 28.47 23.3502 28.47C25.7702 27.28 27.4302 24.8 27.4302 21.92C27.4502 21.92 27.4502 21.91 27.4502 21.89Z", "role": "head"}, {"d": "M11.1298 10.78C11.1898 11.1 11.4598 11.33 11.7898 11.33C12.1698 11.33 12.4698 11.02 12.4698 10.66V4.74C12.4698 4.07 11.9098 3.5 11.2398 3.5C10.7498 3.5 10.4498 3.77 10.3098 3.93C10.1798 4.09 9.95984 4.44 10.0498 4.93L11.1298 10.78Z", "role": "inner"}, {"d": "M19.4498 4.74V10.65C19.4498 11.02 19.7498 11.33 20.1298 11.33C20.4498 11.33 20.7298 11.1 20.7898 10.78L21.8698 4.94C21.9598 4.45 21.7498 4.1 21.6098 3.94C21.4698 3.78 21.1698 3.5 20.6798 3.5C19.9998 3.5 19.4498 4.07 19.4498 4.74Z", "role": "inner"}, {"d": "M2.50013 21C2.22399 21 2.00013 21.2239 2.00013 21.5C2.00013 21.7761 2.22399 22 2.50013 22H9.50013C9.77627 22 10.0001 21.7761 10.0001 21.5C10.0001 21.2239 9.77627 21 9.50013 21H2.50013Z", "role": "whisker"}, {"d": "M9.63749 23.9808C9.90301 23.9049 10.0568 23.6282 9.98089 23.3626C9.90503 23.0971 9.62829 22.9434 9.36277 23.0192L2.36277 25.0192C2.09725 25.0951 1.9435 25.3718 2.01937 25.6374C2.09523 25.9029 2.37197 26.0566 2.63749 25.9808L9.63749 23.9808Z", "role": "whisker"}, {"d": "M22.0001 21.5C22.0001 21.2239 22.224 21 22.5001 21H29.5001C29.7763 21 30.0001 21.2239 30.0001 21.5C30.0001 21.7761 29.7763 22 29.5001 22H22.5001C22.224 22 22.0001 21.7761 22.0001 21.5Z", "role": "whisker"}, {"d": "M22.6375 23.0192C22.372 22.9434 22.0952 23.0971 22.0194 23.3626C21.9435 23.6282 22.0973 23.9049 22.3628 23.9808L29.3628 25.9808C29.6283 26.0566 29.905 25.9029 29.9809 25.6374C30.0568 25.3718 29.903 25.0951 29.6375 25.0192L22.6375 23.0192Z", "role": "whisker"}, {"d": "M15.9597 24.67L14.5997 25.41C14.5197 25.45 14.4697 25.54 14.4697 25.63V26.41C14.4697 26.65 14.6697 26.85 14.9097 26.85H17.0297C17.2697 26.85 17.4697 26.65 17.4697 26.41V25.63C17.4697 25.54 17.4197 25.45 17.3397 25.41L15.9597 24.67Z", "role": "teeth"}, {"d": "M15.5198 22.81L14.5798 22.04C14.4298 21.91 14.3398 21.73 14.3398 21.53C14.3398 21.17 14.6398 20.87 14.9998 20.87H16.9198C17.2798 20.87 17.5798 21.17 17.5798 21.53C17.5798 21.73 17.4898 21.91 17.3398 22.04L16.3998 22.81C16.1398 23.02 15.7698 23.02 15.5198 22.81Z", "role": "mouthIn"}, {"d": "M11 17.9687C11 17.4165 11.4477 16.9688 12 16.9688C12.5523 16.9688 13 17.4165 13 17.9688V18.9688C13 19.521 12.5523 19.9688 12 19.9688C11.4477 19.9688 11 19.521 11 18.9688V17.9687Z", "role": "eye"}, {"d": "M19 17.9687C19 17.4165 19.4477 16.9688 20 16.9688C20.5523 16.9688 21 17.4165 21 17.9688V18.9688C21 19.521 20.5523 19.9688 20 19.9688C19.4477 19.9688 19 19.521 19 18.9688V17.9687Z", "role": "eye"}, {"d": "M12.48 23.02C12.7561 23.02 12.98 23.2439 12.98 23.52C12.98 24.2039 13.5361 24.76 14.22 24.76C14.9038 24.76 15.46 24.2039 15.46 23.52C15.46 23.2439 15.6838 23.02 15.96 23.02L15.965 23.02L15.97 23.02C16.2461 23.02 16.47 23.2439 16.47 23.52C16.47 24.2039 17.0261 24.76 17.71 24.76C18.3938 24.76 18.95 24.2039 18.95 23.52C18.95 23.2439 19.1738 23.02 19.45 23.02C19.7261 23.02 19.95 23.2439 19.95 23.52C19.95 24.7562 18.9461 25.76 17.71 25.76C17.0051 25.76 16.3757 25.4336 15.965 24.9238C15.5542 25.4336 14.9249 25.76 14.22 25.76C12.9838 25.76 11.98 24.7562 11.98 23.52C11.98 23.2439 12.2038 23.02 12.48 23.02Z", "role": "dark"}]};</script>
+<script>
+(function(){
+  var PAL=window.__v1.PAL, H=window.pet2Helpers, DARK=H.DARK, TONGUE='#f29aa6';
+  var FIT={cat:{s:3.3,tx:47.2,ty:5,eyes:[[12,18.6],[20,18.6]],es:1},dog:{s:3.3,tx:47.2,ty:6,eyes:[[13,14.2],[19,14.2]],es:.86},rabbit:{s:3.3,tx:47.2,ty:5,eyes:[[12,18.6],[20,18.6]],es:1}};
+  var FEAT={cat:{s:2.9,anchor:[16,21],to:[100,82],roles:['nose','mouthIn']},dog:{s:2.6,anchor:[16,18.4],to:[100,79],roles:['dark','tongue'],skipEyes:true},rabbit:{s:2.9,anchor:[16,21.9],to:[100,84],roles:['mouthIn','teeth','dark'],skipEyes:true}};
+  function colorMap(g){ var c1=g.c1,c2=g.c2,c3=g.c3,c4=g.c4; return {head:c1,inner:c4,nose:c4,whisker:H.darken(c1,.3),eye:DARK,mouthIn:H.mix(c4,'#5a2a3a',.45),muzzle:c3,tongue:TONGUE,ear:c2,dark:DARK,teeth:'#fff',other:c2}; }
+  var uid=0;
+  function fluentHead(sp,g,opt){
+    opt=opt||{}; var map=colorMap(g), f=FIT[sp], sh=H.darken(g.c1,.18), hi=H.tint(g.c1,.14), id='fh'+(++uid);
+    var tr='translate('+f.tx+','+f.ty+') scale('+f.s+')', headD=window.FLUENT[sp][0].d, out='';
+    out+='<g transform="'+tr+'">';
+    window.FLUENT[sp].forEach(function(p,i){ if(i===0) return; if(opt.ourEyes&&p.role==='eye') return; if(opt.ourEyes&&sp==='dog'&&p.role==='ear') return; });
+    out+='</g>';
+    // 头壳 + 明暗（裁到头壳）
+    out='<path d="'+headD+'" fill="'+map.head+'" transform="'+tr+'"/>';
+    if(opt.shade){ out+='<clipPath id="'+id+'"><path d="'+headD+'" transform="'+tr+'"/></clipPath><g clip-path="url(#'+id+')">'+H.E(86,44,22,13,hi,{opacity:.55})+H.E(100,104,32,11,sh,{opacity:.5})+'</g>'; }
+    out+='<g transform="'+tr+'">';
+    window.FLUENT[sp].forEach(function(p,i){ if(i===0) return; if(opt.ourEyes&&p.role==='eye') return; out+='<path d="'+p.d+'" fill="'+map[p.role]+'"/>'; });
+    out+='</g>';
+    if(opt.ourEyes){ f.eyes.forEach(function(e){ var x=f.tx+e[0]*f.s, y=f.ty+e[1]*f.s; out+='<g transform="translate('+x+','+y+') scale('+f.es+') translate('+(-x)+','+(-y)+')">'+window.pet2Eye(x,y,g.eye,4)+'</g>'; }); }
+    if(opt.shade) out+=H.E(70,86,6.5,3.6,g.c4,{opacity:.4})+H.E(130,86,6.5,3.6,g.c4,{opacity:.4});
+    return out;
+  }
+  function fluentFeatures(sp,g){
+    var map=colorMap(g), f=FEAT[sp], tx=f.to[0]-f.anchor[0]*f.s, ty=f.to[1]-f.anchor[1]*f.s, out='<g transform="translate('+tx+','+ty+') scale('+f.s+')">';
+    window.FLUENT[sp].forEach(function(p){ if(p.role==='eye') return; if(f.roles.indexOf(p.role)<0) return; out+='<path d="'+p.d+'" fill="'+map[p.role]+'"/>'; });
+    out+='</g>';
+    var w=H.darken(g.c1,.3);
+    if(sp==='cat') out+='<path d="M72,84 L50,80 M72,90 L50,94 M128,84 L150,80 M128,90 L150,94" fill="none" stroke="'+w+'" stroke-width="2" stroke-linecap="round" opacity=".8"/>';
+    if(sp==='rabbit') out+='<path d="M74,86 L50,84 M74,91 L52,96 M126,86 L150,84 M126,91 L148,96" fill="none" stroke="'+w+'" stroke-width="2" stroke-linecap="round" opacity=".8"/>';
+    return out;
+  }
+  function withFluentHead(sp,g,opt){ return window.pet2(g,{species:sp,noHead:true}).replace('</svg>', fluentHead(sp,g,opt)+'</svg>'); }
+  function withFluentFeatures(sp,g){ return window.pet2(g,{species:sp,noMouth:true}).replace('</svg>', fluentFeatures(sp,g)+'</svg>'); }
+  window.hybrid={withFluentHead:withFluentHead,withFluentFeatures:withFluentFeatures};
+})();
+</script>
+<script>
+(function(){
+  var PAL=window.__v1.PAL, rows=[['cat','peach'],['dog','cream'],['rabbit','greyblue']];
+  rows.forEach(function(r){ var sp=r[0], g=PAL[r[1]];
+    document.getElementById(sp).innerHTML=
+      '<div class="mock">'+window.pet2(g,{species:sp})+'<div class="note">A · v2 母版</div></div>'+
+      '<div class="mock">'+window.hybrid.withFluentHead(sp,g,{})+'<div class="note">B · Fluent 原脸，按角色换基因色</div></div>'+
+      '<div class="mock">'+window.hybrid.withFluentHead(sp,g,{ourEyes:true,shade:true})+'<div class="note">C · Fluent 头壳 + 六层眼 + 额头高光与下巴暗 + 腮红</div></div>'+
+      '<div class="mock">'+window.hybrid.withFluentFeatures(sp,g)+'<div class="note">D · v2 头壳，鼻嘴换 Fluent 曲线</div></div>';
+  });
+})();
+</script>

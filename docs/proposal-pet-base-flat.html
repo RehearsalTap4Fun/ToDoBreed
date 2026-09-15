@@ -1,0 +1,266 @@
+<title>扁平坐姿试作</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F2F4EE; --card:#E9EDE2; --card2:#E1E6D9; --ink:#222E27; --muted:#5C6B60; --faint:#8C978B;
+  --line:#D4DACA; --line-strong:#B7C0AC; --accent:#A2650F; --accent-soft:#F1E3C8;
+  --keep:#3F7247; --keep-bg:#DCE8D8; --alien:#A2650F; --alien-bg:#F1E3C8; --weak:#2A6B85; --weak-bg:#D8E6EC; --over:#A5402A; --over-bg:#F0DCD6;
+  --serif:'Noto Serif SC','Songti SC','SimSun',serif; --sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif; --mono:'IBM Plex Mono','SF Mono','Menlo',monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#161B17;--card:#1E2620;--card2:#26312A;--ink:#E2E8DD;--muted:#9BA89B;--faint:#6E7B6F;--line:#2D382F;--line-strong:#41503F;--accent:#DFA24B;--accent-soft:#3A3020;--keep:#8CBB8E;--keep-bg:#22352A;--alien:#DFA24B;--alien-bg:#3A3020;--weak:#72ACC7;--weak-bg:#1F313A;--over:#D97F63;--over-bg:#3A2622}}
+:root[data-theme="dark"]{--paper:#161B17;--card:#1E2620;--card2:#26312A;--ink:#E2E8DD;--muted:#9BA89B;--faint:#6E7B6F;--line:#2D382F;--line-strong:#41503F;--accent:#DFA24B;--accent-soft:#3A3020;--keep:#8CBB8E;--keep-bg:#22352A;--alien:#DFA24B;--alien-bg:#3A3020;--weak:#72ACC7;--weak-bg:#1F313A;--over:#D97F63;--over-bg:#3A2622}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:52px 32px 96px}
+.prose{max-width:720px}
+h1,h2,h3{font-family:var(--serif);text-wrap:balance;margin:0}
+h1{font-size:48px;font-weight:900;line-height:1.1;letter-spacing:.02em}
+h2{font-size:24px;font-weight:700}
+h3{font-size:17px;font-weight:700}
+p{margin:0 0 14px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+header{padding-bottom:24px;border-bottom:1px solid var(--line-strong);margin-bottom:36px}
+.dek{font-size:18px;color:var(--muted);margin-top:14px;max-width:680px;line-height:1.6}
+.dek b{color:var(--ink);font-weight:500}
+section{margin-top:48px}
+.rowhead{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.rowhead .sp{font-family:var(--serif);font-size:22px;font-weight:700}
+.rowhead .sub{color:var(--muted);font-size:14px}
+.cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.cols .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);padding:0 4px 6px}
+.cols .lab.over{color:var(--over)}
+.mocks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mocks.c6{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:900px){.mocks,.cols{grid-template-columns:repeat(2,minmax(0,1fr))}.mocks.c6{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.mocks,.cols,.mocks.c6{grid-template-columns:1fr}}
+.mock{background:var(--card);padding:12px 12px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mock.over{outline:1px dashed var(--over)}
+.mock svg{width:100%;height:auto;display:block;overflow:visible}
+.mock .nm{font-family:var(--serif);font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mock .nm small{font-family:var(--mono);font-weight:500;font-size:11px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
+.mock .note{font-size:13px;color:var(--muted);line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11.5px;line-height:1;padding:5px 7px;border-radius:2px;white-space:nowrap}
+.chip.k{background:var(--keep-bg);color:var(--keep)}.chip.a{background:var(--alien-bg);color:var(--alien)}.chip.w{background:var(--weak-bg);color:var(--weak)}.chip.o{background:var(--over-bg);color:var(--over)}
+.small .mock{padding:10px}
+.small .mock .nm{font-size:14px;flex-wrap:wrap}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:12px;align-items:center}
+.genes{display:flex;gap:6px;align-items:center}
+.genes i{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.08)}
+.verdict{border-top:3px solid var(--accent);background:var(--card);padding:18px 22px 6px;margin-top:22px}
+.verdict .lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--accent);margin-bottom:8px}
+ul{margin:0 0 12px;padding-left:1.3em}li{margin-bottom:6px}li::marker{color:var(--faint)}
+footer{margin-top:64px;padding-top:16px;border-top:1px solid var(--line-strong);font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.06em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow"><span>怪奇生物孵化器 · 画风试作</span><span>2026-09-03</span><span>扁平无描边 · 坐姿基准</span></div>
+  <h1 style="margin-top:16px">扁平坐姿试作</h1>
+  <p class="dek">按以太猫那一路的语法重画：<b>无描边、色块界形、一层底部阴影、四个基因色加眼色</b>。猫、狗、兔各四档，从纯宠物到超出强度阀，看物种在这套画法下能撑住几处怪。全部是纯 SVG 代码，无位图。</p>
+</header>
+
+<div class="prose">
+<p>每张卡右上角是主题或配色名。绿色标签是保留的锚点，琥珀色是强特异，蓝色是弱特异，第四列红色是超出阀值的部分。所有猫狗兔共用同一套坐姿坐标，区别只在头壳、耳、嘴、尾四件物种套件和基因色。</p>
+</div>
+
+<section>
+  <div class="cols"><div class="lab">特异 0 · 纯宠物</div><div class="lab">特异 1 · 普通蛋</div><div class="lab">特异 2 · 含 R / L</div><div class="lab over">特异 5 · 超出阀值</div></div>
+  <div class="rowhead"><span class="sp">猫</span><span class="sub">三角立耳 · 胡须垫 · 长尾 · 坐姿</span></div>
+  <div class="mocks" id="cats"></div>
+</section>
+<section>
+  <div class="rowhead"><span class="sp">狗</span><span class="sub">垂耳 · 吻与鼻头 · 吐舌 · 翘尾</span></div>
+  <div class="mocks" id="dogs"></div>
+</section>
+<section>
+  <div class="rowhead"><span class="sp">兔</span><span class="sub">长直耳 · 门牙 · 绒球尾 · 直身坐</span></div>
+  <div class="mocks" id="rabbits"></div>
+</section>
+
+<section class="small">
+  <div class="rowhead"><span class="sp">表情库</span><span class="sub">同一只猫，只换眼与嘴。性格槽第一次有了画面</span></div>
+  <div class="mocks c6" id="faces"></div>
+</section>
+<section class="small">
+  <div class="rowhead"><span class="sp">基因换色</span><span class="sub">同一份 SVG，换四个颜色变量</span></div>
+  <div class="mocks c6" id="colors"></div>
+</section>
+
+<div class="prose">
+<div class="verdict">
+  <div class="lab">试作结论</div>
+  <ul>
+    <li><strong>SVG 撑得住这套风格。</strong>无描边靠明度差界形，一层阴影给体积，四个基因色决定一切配色，整只生物十几 KB 代码，file:// 单机版直接可跑。</li>
+    <li><strong>两处强特异是舒适区。</strong>第三列每只都还是一眼可辨的宠物，怪处有落点。第四列堆到五处，头壳被帽子、兜帽、触角淹没，物种只剩姿势在撑，这就是阀值要拦的地方。</li>
+    <li><strong>表情库补上了性格槽的画面。</strong>眼形乘嘴形就能表达六种性格，之前这两个槽只有文字。</li>
+  </ul>
+</div>
+</div>
+
+<footer><span>GSI · 画风试作 · 配套《宠物底型》提案 v2</span><span>2026-09-03</span></footer>
+</div>
+
+<script>
+(function(){
+  var DARK='#3b3232', TONGUE='#f29aa6', GLOW='#f6d365';
+  function h2r(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  function r2h(r){return '#'+r.map(function(v){v=Math.max(0,Math.min(255,Math.round(v)));return (v<16?'0':'')+v.toString(16);}).join('');}
+  function mix(a,b,t){var A=h2r(a),B=h2r(b);return r2h([A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t]);}
+  function darken(h,t){return mix(h,'#2a2030',t);}
+  function tint(h,t){return mix(h,'#ffffff',t);}
+  var PAL={
+    peach:{n:'桃橘',c1:'#f6c6a8',c2:'#e39468',c3:'#fcefe3',c4:'#e78c98',eye:'#4f9a6f'},
+    cream:{n:'奶油',c1:'#f3e4c4',c2:'#b98a5a',c3:'#fbf6ea',c4:'#d98c8c',eye:'#5a86c9'},
+    greyblue:{n:'灰蓝',c1:'#b6c6d6',c2:'#7d92a8',c3:'#edf2f6',c4:'#f0a3ad',eye:'#d29a3a'},
+    deepsea:{n:'深海',c1:'#8fcfd0',c2:'#3f8fb0',c3:'#e6f5f4',c4:'#f6d365',eye:'#23557a',dark:'#1e4d6e'},
+    fungal:{n:'菌沼',c1:'#cfd99c',c2:'#8ea25c',c3:'#f1f4dc',c4:'#f4a261',eye:'#5f6f2a',dark:'#556325'},
+    shadow:{n:'幽影',c1:'#b9afe4',c2:'#8377d1',c3:'#ece8f8',c4:'#f9c74f',eye:'#3f3577',dark:'#463c78'},
+    mint:{n:'薄荷',c1:'#bfe5cf',c2:'#79b592',c3:'#eef8f2',c4:'#f4a9b8',eye:'#5a8dd6'},
+    lavender:{n:'薰衣草',c1:'#d3c2f2',c2:'#a58ad9',c3:'#f2ecfb',c4:'#f7b1c6',eye:'#46b39d'},
+    coral:{n:'珊瑚',c1:'#f2a99a',c2:'#c96c7a',c3:'#fbe4dd',c4:'#f6d365',eye:'#4aa3a0'},
+    cocoa:{n:'可可',c1:'#c9a88f',c2:'#8a6248',c3:'#f3e8dd',c4:'#e8a0a0',eye:'#6fa8dc'}
+  };
+  var uid=0;
+  function el(t,a){var s='<'+t;for(var k in a){s+=' '+k+'="'+a[k]+'"';}return s+'/>';}
+  function E(cx,cy,rx,ry,f,extra){return el('ellipse',Object.assign({cx:cx,cy:cy,rx:rx,ry:ry,fill:f},extra||{}));}
+  function C(cx,cy,r,f,extra){return el('circle',Object.assign({cx:cx,cy:cy,r:r,fill:f},extra||{}));}
+  function P(d,f,extra){return el('path',Object.assign({d:d,fill:f},extra||{}));}
+  function tri(pts,f,w){return P('M'+pts[0]+' L'+pts[1]+' L'+pts[2]+' Z',f,{stroke:f,'stroke-width':w,'stroke-linejoin':'round'});}
+  function tube(d,w,c){return P(d,'none',{stroke:c,'stroke-width':w,'stroke-linecap':'round'});}
+  function halo(x,y){return C(x,y,12,GLOW,{opacity:.28})+C(x,y,6,GLOW);}
+  var TORSO='M100,96 C126,96 142,118 147,148 C151,168 137,183 100,183 C63,183 49,168 53,148 C58,118 74,96 100,96 Z';
+  function bodyShapes(){return P(TORSO,'')+E(64,158,20,22,'')+E(136,158,20,22,'');}
+  function headShape(){return C(100,70,36,'');}
+
+  function eye(x,y,type,ec,side){
+    var o='';
+    if(type==='sleepy'){ o+=E(x,y,9,10,ec)+E(x+1,y+2,4.5,5.5,DARK)+E(x,y-6,11,8.5,'HEAD')+tube('M'+(x-9)+','+(y-1)+' Q'+x+','+(y+4)+' '+(x+9)+','+(y-1),2.2,DARK); return o; }
+    if(type==='almond'){ o+=P('M'+(x-10)+','+y+' Q'+x+','+(y-12)+' '+(x+10)+','+y+' Q'+x+','+(y+9)+' '+(x-10)+','+y+' Z',ec)+E(x+(side||0)*2,y+1,4,5,DARK)+C(x-3,y-3,2.2,'#fff'); return o; }
+    if(type==='wide'){ o+=E(x,y,10.5,12,ec)+E(x,y+1.5,3.6,4.6,DARK)+C(x-3.5,y-4.5,2.8,'#fff')+C(x+3,y+3,1.4,'#fff'); return o; }
+    if(type==='googly'){ var big=side<0; o+=E(x,y,big?10:7.5,big?11:8.5,ec)+E(x+(big?3:-2),y+(big?-3:2),big?4.5:3.5,big?5.5:4.5,DARK)+C(x-3,y-4,2.2,'#fff'); return o; }
+    if(type==='serious'){ o+=E(x,y+1,9,8.5,ec)+E(x+1,y+2,4.2,5,DARK)+C(x-3,y-2,2,'#fff')+el('rect',{x:x-9.5,y:y-15,width:19,height:4.2,rx:2,fill:DARK}); return o; }
+    if(type==='thicc'){ o+=E(x,y,9,10,ec)+E(x+1,y+1,4.5,6,DARK)+C(x-3,y-4,2.4,'#fff')+el('rect',{x:x-11,y:y-20,width:22,height:6.5,rx:3,fill:DARK,transform:'rotate('+((side||1)*-6)+' '+x+' '+(y-17)+')'}); return o; }
+    o+=E(x,y,9,10,ec)+E(x+1,y+1,4.5,6,DARK)+C(x-3,y-4,2.6,'#fff')+C(x+3,y+3,1.3,'#fff',{opacity:.8}); return o;
+  }
+  function mouth(type,c4){
+    var o='';
+    if(type==='w') return tube('M92,90 q4,5 8,0 q4,5 8,0',2.4,DARK);
+    if(type==='smile') return tube('M91,91 q9,8 18,0',2.4,DARK);
+    if(type==='tongue') return tube('M91,90 q9,8 18,0',2.4,DARK)+P('M95,92 h10 v6.5 a5,5 0 0 1 -10,0 Z',TONGUE);
+    if(type==='pout') return C(100,93,3,DARK);
+    if(type==='teeth') return tube('M92,90 q8,4 16,0',2.4,DARK)+el('rect',{x:95.7,y:90.5,width:4.2,height:6.5,rx:1,fill:'#fff'})+el('rect',{x:100.3,y:90.5,width:4.2,height:6.5,rx:1,fill:'#fff'});
+    if(type==='fang') return tube('M91,91 q9,8 18,0',2.4,DARK)+P('M104,93 l5,0 l-2.5,5 Z','#fff');
+    if(type==='serious') return tube('M93,93 h14',2.6,DARK);
+    if(type==='open') return P('M91,90 q9,12 18,0 Z',DARK)+P('M95,92 q5,7 10,0 Z',TONGUE);
+    return o;
+  }
+
+  function pet(o){
+    var g=PAL[o.pal], c1=g.c1,c2=g.c2,c3=g.c3,c4=g.c4,ec=g.eye, sh=darken(c1,.16), lg=tint(c1,.10), dk=g.dark||darken(c1,.45);
+    var sp=o.species, W=o.wild||[], K=o.weak||[]; function has(k){return W.indexOf(k)>=0||K.indexOf(k)>=0;}
+    var id='f'+(++uid), out='';
+    out+=E(100,190,52,6,'#000',{opacity:.10});
+    // behind
+    var tail=has('fishtail')?'fish':has('shroomtail')?'shroom':sp;
+    if(has('wings')){ out+=P('M64,132 C30,124 20,88 46,80 C62,76 70,102 70,130 Z',c3)+P('M136,132 C170,124 180,88 154,80 C138,76 130,102 130,130 Z',c3)+tube('M60,120 C44,110 40,96 48,88',2,c2)+tube('M140,120 C156,110 160,96 152,88',2,c2); }
+    if(has('tentacles')){ out+=tube('M60,152 C38,152 28,130 42,110',7,c2)+tube('M140,152 C162,154 174,134 162,112',7,c2)+tube('M150,168 C178,172 190,150 180,130',7,c2); }
+    if(tail==='cat') out+=tube('M146,162 C170,158 180,130 166,110',12,c1)+C(166,110,6.5,c3);
+    if(tail==='dog') out+=tube('M146,160 C162,156 168,140 158,128',11,c1)+C(158,128,5.5,c3);
+    if(tail==='rabbit') out+=C(154,160,11,c3);
+    if(tail==='fish') out+=P('M140,162 L174,136 Q182,162 174,188 Z',c2)+tube('M150,162 L170,146 M150,162 L170,178',2,sh,{opacity:.6});
+    // body
+    out+=E(64,158,20,22,c1)+E(136,158,20,22,c1)+P(TORSO,c1);
+    out+='<clipPath id="'+id+'b">'+bodyShapes().replace(/fill=""/g,'')+'</clipPath><g clip-path="url(#'+id+'b)">';
+    out+=E(100,148,24,30,c3);                       // belly
+    out+=E(100,192,74,26,sh);                        // bottom shade
+    out+=E(100,102,30,9,sh,{opacity:.7});            // neck shade
+    if(has('spots')) out+=E(76,144,8,6,c2)+E(124,150,10,7,c2)+E(60,166,6,5,c2);
+    if(has('stripes')) out+=tube('M56,146 q10,-8 22,2',6,c2)+tube('M144,146 q-10,-8 -22,2',6,c2)+tube('M60,162 q10,-6 18,2',6,c2);
+    if(has('patch')) out+=E(128,152,10,8,c2);
+    if(has('calico')) out+=E(126,150,16,12,c2)+E(84,168,12,8,sh);
+    if(has('cow')) out+=E(74,150,14,12,c2)+E(122,168,12,8,c2);
+    if(has('rings')) [[74,146,9],[126,152,10],[100,170,7]].forEach(function(r){ out+=C(r[0],r[1],r[2],'none',{stroke:c2,'stroke-width':2.5})+C(r[0],r[1],r[2]*0.42,'none',{stroke:c2,'stroke-width':2}); });
+    if(has('stars')) [[72,142,5],[110,132,4],[128,156,6],[92,162,4],[118,172,3]].forEach(function(s){ var x=s[0],y=s[1],r=s[2],a=r*.32; out+=P('M'+x+','+(y-r)+' L'+(x+a)+','+(y-a)+' L'+(x+r)+','+y+' L'+(x+a)+','+(y+a)+' L'+x+','+(y+r)+' L'+(x-a)+','+(y+a)+' L'+(x-r)+','+y+' L'+(x-a)+','+(y-a)+' Z',c4); });
+    if(has('gel')) out+=E(78,132,9,16,'#fff',{opacity:.35,transform:'rotate(-18 78 132)'})+C(126,128,4,'#fff',{opacity:.6})+C(134,144,2.6,'#fff',{opacity:.6})+C(70,170,3.2,'#fff',{opacity:.6});
+    out+='</g>';
+    if(has('fins')){ out+=tri(['58,128','34,118','40,152'],c2,6)+tri(['142,128','166,118','160,152'],c2,6)+tube('M52,130 L40,124 M52,138 L42,146',1.6,sh,{opacity:.6})+tube('M148,130 L160,124 M148,138 L158,146',1.6,sh,{opacity:.6}); }
+    // legs
+    var pawc=has('socks')?c3:lg;
+    out+=E(60,181,11,6,lg)+E(140,181,11,6,lg);
+    out+=el('rect',{x:83,y:126,width:14,height:54,rx:7,fill:lg})+el('rect',{x:103,y:126,width:14,height:54,rx:7,fill:lg});
+    out+=E(90,181,9.5,6,pawc)+E(110,181,9.5,6,pawc);
+    // head
+    out+=C(100,70,36,c1);
+    if(has('hood')) out+=P('M62,74 C58,16 142,16 138,74 Q100,54 62,74 Z',dk);
+    if(sp==='cat'){ out+=tri(['60,62','88,34','58,22'],c1,10)+tri(['140,62','112,34','142,22'],c1,10)+tri(['66,56','82,42','64,32'],c4,4)+tri(['134,56','118,42','136,32'],c4,4); }
+    if(sp==='dog'){ out+=E(62,80,13,26,c2,{transform:'rotate(12 62 80)'})+E(138,80,13,26,c2,{transform:'rotate(-12 138 80)'}); }
+    if(sp==='rabbit'){ out+=E(84,28,10,30,c1,{transform:'rotate(-6 84 28)'})+E(116,28,10,30,c1,{transform:'rotate(6 116 28)'})+E(84,30,5,22,c4,{transform:'rotate(-6 84 30)'})+E(116,30,5,22,c4,{transform:'rotate(6 116 30)'}); }
+    // head pattern (clipped to head)
+    out+='<clipPath id="'+id+'h">'+headShape().replace(/fill=""/g,'')+'</clipPath><g clip-path="url(#'+id+'h)">';
+    if(has('tabby')) out+=tube('M88,52 l4,-12 M100,50 l0,-14 M112,52 l-4,-12',4,c2);
+    if(has('patch')) out+=C(116,70,15,c2);
+    if(has('calico')) out+=E(72,56,16,14,c2);
+    if(has('cow')) out+=E(120,54,14,11,c2);
+    if(has('spots')) out+=E(80,50,7,5,c2);
+    if(has('blaze')) out+=E(100,68,7,22,c3);
+    out+='</g>';
+    if(has('cap')) out+='<g transform="rotate(-6 108 36)">'+E(108,36,33,13,'#f4a261')+E(108,40,33,6,darken('#f4a261',.25),{opacity:.5})+C(96,32,4,'#fff',{opacity:.85})+C(114,29,3,'#fff',{opacity:.85})+C(126,36,2.5,'#fff',{opacity:.85})+'</g>';
+    if(has('nubs')) out+=C(90,38,5.5,c4)+C(110,38,5.5,c4);
+    if(has('antennae')) out+=tube('M90,38 C84,26 80,16 76,8',4,c1)+tube('M110,38 C116,26 120,16 124,8',4,c1)+halo(76,8)+halo(124,8);
+    if(has('lantern')) out+=tube('M106,36 C110,22 116,14 124,6',5,c1)+halo(124,6);
+    // face
+    if(sp==='cat') out+=E(92,86,10,7,c3)+E(108,86,10,7,c3);
+    if(sp==='dog') out+=E(100,88,20,14,c3);
+    if(sp==='rabbit') out+=E(100,87,12,8,c3);
+    var et=o.eyes||'round'; var eyeStr=eye(85,72,et,ec,-1)+eye(115,72,et,ec,1); out+=eyeStr.replace(/HEAD/g,c1);
+    if(has('eye3')) out+=eye(100,50,'round',ec,0).replace(/HEAD/g,c1).replace(/r="2.6"/,'r="2"');
+    if(sp==='cat') out+=tri(['96,82','104,82','100,87'],c4,2);
+    if(sp==='dog') out+=E(100,84,7.5,5.5,DARK)+C(97,82,1.6,'#fff',{opacity:.7});
+    if(sp==='rabbit') out+=tri(['96.5,82','103.5,82','100,86'],c4,1.5)+tube('M100,86 l0,4',2,DARK);
+    out+=mouth(o.mouth||'smile',c4);
+    out+=E(70,86,6,3.5,c4,{opacity:.45})+E(130,86,6,3.5,c4,{opacity:.45});
+    if(tail==='shroom') [[156,150,10,6],[170,164,9,5.5],[160,178,8,5]].forEach(function(m){ out+=el('rect',{x:m[0]-3.5,y:m[1]-2,width:7,height:8,rx:3,fill:c3})+E(m[0],m[1],m[2],m[3],'#f4a261')+C(m[0]-m[2]*.4,m[1]-1,1.8,'#fff',{opacity:.85}); });
+    if(has('orbs')) [[28,104],[172,96],[24,160],[178,170]].forEach(function(q){ out+=C(q[0],q[1],9,GLOW,{opacity:.28})+C(q[0],q[1],4,GLOW); });
+    return '<svg viewBox="-6 -10 212 216" role="img" aria-label="'+(o.name||'')+'" shape-rendering="geometricPrecision">'+out+'</svg>';
+  }
+  function chips(list,cls){return (list||[]).map(function(t){return '<span class="chip '+cls+'">'+t+'</span>';}).join('');}
+  function card(o){
+    var g=PAL[o.pal];
+    var genes='<span class="genes" title="基因色"><i style="background:'+g.c1+'"></i><i style="background:'+g.c2+'"></i><i style="background:'+g.c3+'"></i><i style="background:'+g.c4+'"></i><i style="background:'+g.eye+';border-radius:50%"></i></span>';
+    return '<div class="mock'+(o.over?' over':'')+'">'+pet(o)+'<div class="nm"><span>'+o.name+'</span><small>'+(o.tag||g.n)+'</small></div>'+(o.note?'<div class="note">'+o.note+'</div>':'')+'<div class="chips">'+chips(o.keep,'k')+chips(o.alien,'a')+chips(o.weak2,'w')+chips(o.overc,'o')+'</div></div>';
+  }
+  function fill(id,list){var e=document.getElementById(id); if(e) e.innerHTML=list.map(card).join('');}
+
+  fill('cats',[
+    {species:'cat',pal:'peach',eyes:'round',mouth:'w',weak:['tabby'],name:'桃橘猫',tag:'特异 0',note:'纯宠物。四个锚点齐全，只有先天虎斑。',keep:['耳','脸','尾','坐姿'],weak2:['虎斑']},
+    {species:'cat',pal:'deepsea',eyes:'almond',mouth:'smile',wild:['fishtail'],weak:['spots'],name:'汐喵',tag:'深海 · 特异 1',note:'尾巴换成鱼尾。仍是一眼可辨的猫。',keep:['耳','脸','坐姿'],alien:['鱼尾'],weak2:['软斑纹']},
+    {species:'cat',pal:'fungal',eyes:'sleepy',mouth:'pout',wild:['cap','shroomtail'],weak:['rings'],name:'菌喵',tag:'菌沼 · 特异 2',note:'戴菌帽、拖菌簇尾，困困眼。怪得成立。',keep:['耳','脸','坐姿'],alien:['菌伞','菌簇尾'],weak2:['孢环纹','困困眼']},
+    {species:'cat',pal:'shadow',eyes:'wide',mouth:'open',wild:['hood','eye3','wings','tentacles','gel'],weak:['stars'],over:true,name:'幽喵 · 超阀',tag:'幽影 · 特异 5',note:'兜帽、三眼、翅、软带、凝胶皮全上。只剩姿势在撑。',keep:['坐姿'],overc:['幽帽','三珠眼','圆蛾翅','软带附肢','凝胶皮'],weak2:['星点纹']}
+  ]);
+  fill('dogs',[
+    {species:'dog',pal:'cream',eyes:'round',mouth:'tongue',weak:['patch'],name:'奶油狗',tag:'特异 0',note:'纯宠物。单眼补丁是先天纹样。',keep:['垂耳','吻与鼻','吐舌','短尾'],weak2:['单眼补丁']},
+    {species:'dog',pal:'fungal',eyes:'thicc',mouth:'smile',wild:['cap'],weak:['spots'],name:'菌汪',tag:'菌沼 · 特异 1',note:'菌帽扣在垂耳上，粗眉认真。',keep:['垂耳','吻与鼻','短尾'],alien:['菌伞'],weak2:['软斑纹']},
+    {species:'dog',pal:'deepsea',eyes:'googly',mouth:'tongue',wild:['fins','lantern'],weak:['orbs'],name:'汐汪',tag:'深海 · 特异 2',note:'侧鳍加潮灯，一大一小眼。还是那只傻狗。',keep:['垂耳','吻与鼻','吐舌','短尾'],alien:['侧鳍','潮灯'],weak2:['发光珠','一大一小眼']},
+    {species:'dog',pal:'shadow',eyes:'serious',mouth:'fang',wild:['hood','eye3','tentacles','gel','antennae'],weak:['stars'],over:true,name:'幽汪 · 超阀',tag:'幽影 · 特异 5',note:'垂耳被兜帽吞掉，吻部还在，但没人先看见狗。',keep:['吻与鼻','坐姿'],overc:['幽帽','三珠眼','软带附肢','凝胶皮','灯泡触角'],weak2:['星点纹']}
+  ]);
+  fill('rabbits',[
+    {species:'rabbit',pal:'greyblue',eyes:'round',mouth:'teeth',weak:['blaze','socks'],name:'灰兔',tag:'特异 0',note:'纯宠物。面部白纹和白袜是先天纹样。',keep:['长耳','门牙','绒球尾','坐姿'],weak2:['面纹','白袜']},
+    {species:'rabbit',pal:'shadow',eyes:'almond',mouth:'teeth',wild:['eye3'],weak:['stars'],name:'幽兔',tag:'幽影 · 特异 1',note:'额上多一只眼。长耳门牙都在。',keep:['长耳','门牙','绒球尾','坐姿'],alien:['三珠眼'],weak2:['星点纹']},
+    {species:'rabbit',pal:'deepsea',eyes:'wide',mouth:'pout',wild:['fishtail','fins'],weak:['orbs'],name:'汐兔',tag:'深海 · 特异 2',note:'绒球尾换成鱼尾，加侧鳍。惊讶的兔。',keep:['长耳','门牙','坐姿'],alien:['鱼尾','侧鳍'],weak2:['发光珠']},
+    {species:'rabbit',pal:'fungal',eyes:'sleepy',mouth:'open',wild:['cap','shroomtail','antennae','wings','nubs'],weak:['rings'],over:true,name:'菌兔 · 超阀',tag:'菌沼 · 特异 5',note:'长耳还在，但帽子、触角、角芽把头顶挤满了。',keep:['长耳','门牙','坐姿'],overc:['菌伞','菌簇尾','灯泡触角','圆蛾翅','软角芽'],weak2:['孢环纹']}
+  ]);
+  fill('faces',[
+    {species:'cat',pal:'peach',eyes:'round',mouth:'smile',weak:['tabby'],name:'软心慢慢',tag:'圆眼·微笑'},
+    {species:'cat',pal:'peach',eyes:'wide',mouth:'open',weak:['tabby'],name:'亮眼好奇',tag:'大眼·张嘴'},
+    {species:'cat',pal:'peach',eyes:'thicc',mouth:'serious',weak:['tabby'],name:'软胆勇士',tag:'粗眉·直嘴'},
+    {species:'cat',pal:'peach',eyes:'sleepy',mouth:'pout',weak:['tabby'],name:'走神云朵',tag:'困眼·嘟嘴'},
+    {species:'cat',pal:'peach',eyes:'googly',mouth:'tongue',weak:['tabby'],name:'淘气弹簧',tag:'歪眼·吐舌'},
+    {species:'cat',pal:'peach',eyes:'almond',mouth:'w',weak:['tabby'],name:'藏光腼腆',tag:'杏眼·w嘴'}
+  ]);
+  fill('colors',['peach','mint','lavender','coral','cocoa','greyblue'].map(function(p){return {species:'cat',pal:p,eyes:'round',mouth:'w',weak:['tabby'],name:PAL[p].n+'猫'};}));
+})();
+</script>
