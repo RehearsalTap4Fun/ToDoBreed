@@ -11,6 +11,10 @@ if [ ! -d qmonster-assets/catalog ]; then
   echo "正在同步 QMonster 部件资源……"
   npm run sync:qmonster || echo "（资源同步失败，形象渲染将不可用，但游戏可玩）"
 fi
+if [ ! -d qmonster-assets/hatchery ]; then
+  echo "正在同步小猫组合 SDK……"
+  npm run sync:hatchery || echo "（小猫 SDK 同步失败，试验场不可用，但游戏可玩）"
+fi
 
 # 已在运行则直接打开页面
 if curl -s -o /dev/null "http://localhost:5123"; then
