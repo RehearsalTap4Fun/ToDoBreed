@@ -35,7 +35,7 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
     expect(FELINE_RULES_VERSION).toBe('feline-rules-v2')
   })
 
-  it('异变处数落在各判定区间内（现有素材与批次 1 到位两种可用性）', () => {
+  it('异变处数落在各判定区间内（目录实际与登记表全量两种可用性）', () => {
     for (const available of [LIVE_AVAILABILITY, FULL_AVAILABILITY]) {
       for (const mode of MODES) {
         const allowed = new Set(FELINE_MODE_COUNTS[mode].counts)
@@ -63,7 +63,7 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
     }
   })
 
-  it('可用性过滤：现有素材下只出 SDK 认识的 6 件，toSdkSelections 通过；待素材件会被拒绝', () => {
+  it('可用性过滤：默认只出目录已有的件，toSdkSelections 通过；按花纹缺件时不会抽到', () => {
     const live = new Set<string>(LIVE_MUTATION_IDS)
     for (const t of FELINE_THEMES) {
       for (const mode of MODES) {
@@ -74,10 +74,9 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
         }
       }
     }
-    const planned = planFeline('pick-planned', 'sky', 'aberration', FULL_AVAILABILITY)
-    if (planned.mutations.some((m) => MUTATION_MAP[m].status === 'planned')) {
-      expect(() => toSdkSelections(planned)).toThrow(/FELINE_SDK_UNKNOWN_MUTATION/)
-    }
+    // 不在 SDK 枚举里的 id 会被拒绝
+    const bogus = { ...planFeline('x', 'sky', 'normal'), selections: { ...planFeline('x', 'sky', 'normal').selections, back: 'jet-pack' } }
+    expect(() => toSdkSelections(bogus)).toThrow(/FELINE_SDK_UNKNOWN_MUTATION/)
     // 按花纹的可用性：某花纹缺件时不会抽到
     const onlyCrown = () => new Set(['dragon-horns', 'antlers'])
     for (const s of seeds(50)) {
@@ -120,7 +119,7 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
     }
   })
 
-  it('分层生效：批次 1 到位后正常态也会出 R/L，且 R/L 件更常落到亲和主题', () => {
+  it('分层生效：正常态会出少量 R/L，变异/畸变更多，且 R/L 件更常落到亲和主题', () => {
     const rare = { normal: 0, mutation: 0, aberration: 0 }
     let skyHalo = 0
     let forestHalo = 0
@@ -142,9 +141,10 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
     expect(rare.mutation / total).toBeGreaterThan(rare.normal / total)
     expect(rare.aberration / total).toBeGreaterThan(rare.normal / total)
     expect(skyHalo).toBeGreaterThan(forestHalo)
-    // 现有素材全是 N：正常态不会出 R/L
+    // 只给 6 件原始件（全 N）时，正常态不会出 R/L
+    const originals = () => new Set(['fin-ears', 'forked-tail-tip', 'small-lion-mane', 'small-wings', 'dragon-horns', 'antlers'])
     for (const t of FELINE_THEMES) {
-      for (const s of seeds(200)) expect(planFeline(s, t.id, 'normal').rarity).toBe('N')
+      for (const s of seeds(200)) expect(planFeline(s, t.id, 'normal', originals).rarity).toBe('N')
     }
   })
 
@@ -187,18 +187,15 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
     }
   })
 
-  it('登记表：现有 6 件与 SDK 枚举一致且全为 N；批次 1 有 R 与 L；标志异变全为 N 级且各主题唯一', () => {
+  it('登记表：live 件与 SDK 枚举一致；6 件原始件全为 N，批次 1 为 R×3/L×2；标志异变全为 N 级且各主题唯一', () => {
     const live = MUTATION_DEFS.filter((d) => d.status === 'live').map((d) => d.id)
     expect([...live].sort()).toEqual([...MUTATIONS].sort())
-    for (const d of MUTATION_DEFS) {
-      if (d.status === 'live') {
-        expect(d.tier).toBe('N')
-        expect(MUTATION_SLOT[d.id as (typeof MUTATIONS)[number]]).toBe(d.slot)
-      }
-    }
-    const planned = MUTATION_DEFS.filter((d) => d.status === 'planned')
-    expect(planned.some((d) => d.tier === 'R')).toBe(true)
-    expect(planned.some((d) => d.tier === 'L')).toBe(true)
+    const originals = ['fin-ears', 'forked-tail-tip', 'small-lion-mane', 'small-wings', 'dragon-horns', 'antlers']
+    for (const id of originals) expect(MUTATION_MAP[id as keyof typeof MUTATION_MAP].tier).toBe('N')
+    const batch1 = MUTATION_DEFS.filter((d) => !originals.includes(d.id))
+    expect(batch1.filter((d) => d.tier === 'R').map((d) => d.id).sort()).toEqual(['feathered-wings', 'flame-tail', 'frill-neck'])
+    expect(batch1.filter((d) => d.tier === 'L').map((d) => d.id).sort()).toEqual(['dragon-wings', 'halo'])
+    for (const d of MUTATION_DEFS) expect(MUTATION_SLOT[d.id as (typeof MUTATIONS)[number]]).toBe(d.slot)
     expect(new Set(ALL_MUTATION_IDS).size).toBe(MUTATION_DEFS.length)
     expect(new Set(Object.values(MUTATION_CHARS)).size).toBe(MUTATION_DEFS.length)
     const signatures = FELINE_THEMES.map((t) => t.signature)

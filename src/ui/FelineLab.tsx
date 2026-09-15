@@ -249,8 +249,8 @@ function MutationLegend({ availability }: { availability: Availability | null })
   return (
     <details className="flab-panel" open>
       <summary>
-        异变登记表 · {MUTATION_DEFS.length} 件（现有 {MUTATION_DEFS.filter((d) => d.status === 'live').length}
-        ，批次 1 待素材 {MUTATION_DEFS.filter((d) => d.status === 'planned').length}）
+        异变登记表 · {MUTATION_DEFS.length} 件（已进目录 {MUTATION_DEFS.filter((d) => d.status === 'live').length}
+        ，待素材 {MUTATION_DEFS.filter((d) => d.status === 'planned').length}）
       </summary>
       <div className="flab-legend">
         {TIERS.map((tier) => (
@@ -285,8 +285,8 @@ function DistributionPreview({ availability }: { availability: Availability | nu
   const SAMPLE = 400
   const stats = useMemo(() => {
     const scenarios: { key: string; label: string; av: Availability | null }[] = [
-      { key: 'live', label: '现有素材', av: availability },
-      { key: 'full', label: '批次 1 到位后', av: FULL_AVAILABILITY },
+      { key: 'live', label: '目录实际可用', av: availability },
+      { key: 'full', label: '登记表全量', av: FULL_AVAILABILITY },
     ]
     return scenarios.map((sc) => {
       const perMode = MODES.map((mode) => {

@@ -1,12 +1,12 @@
 /**
  * QMonster v0.10「小猫组合」孵化 SDK：加载器 + 类型镜像。
- * 产物来自 RandomPet master `npm run build` → dist/hatchery（qmonster.js + snapshot.json + 目录 + 39 张 PNG），
+ * 产物来自 RandomPet master `npm run build` → dist/hatchery（qmonster.js + snapshot.json + 目录 + 44 张 PNG），
  * 由 `npm run sync:hatchery` 同步到 qmonster-assets/hatchery/<runtimeRevision>/，经 /qmonster/ 静态托管。
  * 按对接指南 v3.0：只消费产物不引源码；发布目录按 runtimeRevision 固定且不可变；URL 来自部署配置而非存档。
  */
 
 export const FELINE_RUNTIME_REVISION =
-  'de35c6f2b58dc641e2d6594e3a8f888d2c2902fbd493e73e966611dc21284ec8'
+  '942d401f8013f4def2ff027d0839a34ad58a608774f532629d0845d318994cf4'
 /** 协议兼容值：SDK 的 spec.catalogVersion 固定为此字符串（与目录名 v0.10.0 分开管理，勿改） */
 export const FELINE_CATALOG_VERSION = '0.10.0-candidate.1'
 export const FELINE_RELEASE_BASE = `/qmonster/hatchery/${FELINE_RUNTIME_REVISION}/`
@@ -29,6 +29,12 @@ export const MUTATIONS = [
   'small-lion-mane',
   'small-wings',
   'forked-tail-tip',
+  // 异变批次 1（2026-09-15，RandomPet master d601e40）
+  'halo',
+  'dragon-wings',
+  'feathered-wings',
+  'frill-neck',
+  'flame-tail',
 ] as const
 
 export type Coat = (typeof COATS)[number]
@@ -44,6 +50,11 @@ export const MUTATION_SLOT: Record<Mutation, MutationSlot> = {
   'small-lion-mane': 'neck',
   'small-wings': 'back',
   'forked-tail-tip': 'tailTip',
+  halo: 'crown',
+  'dragon-wings': 'back',
+  'feathered-wings': 'back',
+  'frill-neck': 'neck',
+  'flame-tail': 'tailTip',
 }
 
 export const FELINE_SLOTS = [
@@ -60,11 +71,11 @@ export type FelineSlot = (typeof FELINE_SLOTS)[number]
 export interface FelineSelections {
   coat: Coat
   expression: Expression
-  crown: 'none' | 'dragon-horns' | 'antlers'
+  crown: 'none' | 'dragon-horns' | 'antlers' | 'halo'
   ears: 'none' | 'fin-ears'
-  neck: 'none' | 'small-lion-mane'
-  back: 'none' | 'small-wings'
-  tailTip: 'none' | 'forked-tail-tip'
+  neck: 'none' | 'small-lion-mane' | 'frill-neck'
+  back: 'none' | 'small-wings' | 'feathered-wings' | 'dragon-wings'
+  tailTip: 'none' | 'forked-tail-tip' | 'flame-tail'
 }
 
 export interface FelineSpec {
