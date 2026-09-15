@@ -15,6 +15,15 @@ import { Creature } from '../render/Creature'
 import { EggView } from '../render/Egg'
 import { QCreatureImg } from './QCreatureImg'
 import { useTraitIndex } from '../qmonster/semantics'
+import {
+  COAT_NAMES,
+  EXPRESSION_NAMES,
+  FELINE_SLOT_NAMES,
+  FELINE_THEME_MAP,
+  themeDisplayName,
+} from '../qmonster/feline/themes'
+import { MUTATION_MAP as F_MUTATION_MAP, TIER_NAMES } from '../qmonster/feline/mutations'
+import type { FelineSlot } from '../qmonster/feline/sdk'
 
 export function EventModals({
   event,
@@ -26,6 +35,17 @@ export function EventModals({
   onNext: () => void
 }) {
   if (!event) return null
+  if (event.type === 'freveal') {
+    return (
+      <FRevealCard
+        slot={event.slot}
+        value={event.value}
+        index={event.index}
+        total={event.total}
+        onNext={onNext}
+      />
+    )
+  }
   if (event.type === 'reveal') {
     if (event.qtraitId !== undefined) {
       return <QRevealCard qtraitId={event.qtraitId} index={event.index} onNext={onNext} />
@@ -48,6 +68,7 @@ export function EventModals({
   }
   if (event.type === 'hatch') {
     const record = liveRecord(event.record.id) ?? event.record
+    if (record.kind === 'feline') return <FHatchCard record={record} onNext={onNext} />
     return record.kind === 'qmonster' ? (
       <QHatchCard record={record} onNext={onNext} />
     ) : (
@@ -89,47 +110,74 @@ export function EventModals({
   return null
 }
 
-function HatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => void }) {
-  const aberrant = record.outcome === 'aberrant'
-  const hardFed = record.fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
-
-  // 破壳演出（§08）：蓄力抖动 → 白光迸发 → 生物登场；可点击跳过，尊重减动效偏好
+/** 破壳演出三段式（§08）：蓄力抖动 → 白光迸发 → 登场；ready 为 false 时蓄力段等待立绘就绪 */
+function useHatchStage(ready: boolean) {
   const reduced = useMemo(
     () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
     [],
   )
-  const [stage, setStage] = useState<'charge' | 'flash' | 'reveal'>(reduced ? 'reveal' : 'charge')
+  const [stage, setStage] = useState<'charge' | 'flash' | 'reveal'>('charge')
+  const [minChargeDone, setMinChargeDone] = useState(reduced)
+
   useEffect(() => {
-    if (stage === 'charge') {
-      const t = setTimeout(() => setStage('flash'), 1700)
-      return () => clearTimeout(t)
+    if (reduced) return
+    const t = setTimeout(() => setMinChargeDone(true), 1700)
+    return () => clearTimeout(t)
+  }, [reduced])
+
+  useEffect(() => {
+    if (stage === 'charge' && ready && minChargeDone) {
+      setStage(reduced ? 'reveal' : 'flash')
     }
-    if (stage === 'flash') {
-      const t = setTimeout(() => setStage('reveal'), 480)
-      return () => clearTimeout(t)
-    }
+  }, [stage, ready, minChargeDone, reduced])
+
+  // flash → reveal 的定时器必须独立成 effect（与上一个合写会被 cleanup 清掉导致卡白光）
+  useEffect(() => {
+    if (stage !== 'flash') return
+    const t = setTimeout(() => setStage('reveal'), 480)
+    return () => clearTimeout(t)
   }, [stage])
 
-  if (stage !== 'reveal') {
-    const displayEgg = {
-      theme: record.theme,
-      points: 100,
-      risk: record.riskAtHatch,
-    } as unknown as Egg
-    return (
-      <div
-        className="overlay hatch-stage"
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setStage('reveal')}
-      >
-        <div className={stage === 'charge' ? 'hatch-egg-charging' : undefined}>
-          <EggView egg={displayEgg} size={250} />
-        </div>
-        {stage === 'flash' && <div className="hatch-flash" />}
-        <p className="hatch-hint">破壳中……（点击跳过）</p>
+  return { stage, skip: () => setStage('reveal') }
+}
+
+function HatchStage({
+  record,
+  stage,
+  ready,
+  onSkip,
+}: {
+  record: CreatureRecord
+  stage: 'charge' | 'flash'
+  ready: boolean
+  onSkip?: () => void
+}) {
+  const displayEgg = {
+    theme: record.theme,
+    ftheme: record.ftheme,
+    points: 100,
+    risk: record.riskAtHatch,
+  } as unknown as Egg
+  return (
+    <div className="overlay hatch-stage" role="dialog" aria-modal="true" onClick={onSkip}>
+      <div className={stage === 'charge' ? 'hatch-egg-charging' : undefined}>
+        <EggView egg={displayEgg} size={250} />
       </div>
-    )
+      {stage === 'flash' && <div className="hatch-flash" />}
+      <p className="hatch-hint">
+        {ready ? (onSkip ? '破壳中……（点击跳过）' : '破壳中……') : '生命成形中……'}
+      </p>
+    </div>
+  )
+}
+
+function HatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => void }) {
+  const aberrant = record.outcome === 'aberrant'
+  const hardFed = record.fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
+  const { stage, skip } = useHatchStage(true)
+
+  if (stage !== 'reveal') {
+    return <HatchStage record={record} stage={stage} ready onSkip={skip} />
   }
 
   return (
@@ -191,7 +239,6 @@ function HatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => v
   )
 }
 
-
 /** gen2 揭露卡：语义特征信息来自 QMonster 目录 */
 function QRevealCard({
   qtraitId,
@@ -230,43 +277,9 @@ function QHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => 
   const traitIndex = useTraitIndex()
   const aberrant = record.outcome === 'aberrant'
   const ready = record.qstatus === 'ready'
-  const reduced = useMemo(
-    () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
-    [],
-  )
-  const [stage, setStage] = useState<'charge' | 'flash' | 'reveal'>('charge')
-  const [minChargeDone, setMinChargeDone] = useState(reduced)
+  const { stage } = useHatchStage(ready)
 
-  useEffect(() => {
-    if (reduced) return
-    const t = setTimeout(() => setMinChargeDone(true), 1700)
-    return () => clearTimeout(t)
-  }, [reduced])
-
-  useEffect(() => {
-    if (stage === 'charge' && ready && minChargeDone) {
-      setStage(reduced ? 'reveal' : 'flash')
-    }
-  }, [stage, ready, minChargeDone, reduced])
-
-  useEffect(() => {
-    if (stage !== 'flash') return
-    const t = setTimeout(() => setStage('reveal'), 480)
-    return () => clearTimeout(t)
-  }, [stage])
-
-  if (stage !== 'reveal') {
-    const displayEgg = { theme: record.theme, points: 100, risk: record.riskAtHatch } as unknown as Egg
-    return (
-      <div className="overlay hatch-stage" role="dialog" aria-modal="true">
-        <div className={stage === 'charge' ? 'hatch-egg-charging' : undefined}>
-          <EggView egg={displayEgg} size={250} />
-        </div>
-        {stage === 'flash' && <div className="hatch-flash" />}
-        <p className="hatch-hint">{ready ? '破壳中……' : '生命成形中……'}</p>
-      </div>
-    )
-  }
+  if (stage !== 'reveal') return <HatchStage record={record} stage={stage} ready={ready} />
 
   const hardFed = record.fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
   return (
@@ -307,6 +320,127 @@ function QHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => 
         </div>
         <div className="hatch-fed">
           这只生物由 {record.fedTodos.length} 条待办喂大
+          {hardFed > 0 && `，其中 ${hardFed} 条是硬仗`}。
+        </div>
+        <button className="primary" onClick={onNext} autoFocus style={{ marginTop: '0.8rem' }}>
+          记入图鉴
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── gen3 小猫轨 ─────────────────────────────── */
+
+/** gen3 揭露卡：花纹 / 表情 / 五个异变位置之一 */
+function FRevealCard({
+  slot,
+  value,
+  index,
+  total,
+  onNext,
+}: {
+  slot: FelineSlot
+  value: string
+  index: number
+  total: number
+  onNext: () => void
+}) {
+  let title: string
+  let flavor: string
+  let tier: 'N' | 'R' | 'L' | null = null
+  if (slot === 'coat') {
+    title = COAT_NAMES[value as keyof typeof COAT_NAMES] ?? value
+    flavor = '毛色先定了调子。接下来的一切，都长在这身毛上。'
+  } else if (slot === 'expression') {
+    title = EXPRESSION_NAMES[value as keyof typeof EXPRESSION_NAMES] ?? value
+    flavor = '它在蛋里已经做好了这个表情，等着见你。'
+  } else if (value === 'none') {
+    title = `${FELINE_SLOT_NAMES[slot]}安静`
+    flavor = '这里目前没有异变——但破壳那一刻或有变数。'
+  } else {
+    const def = F_MUTATION_MAP[value as keyof typeof F_MUTATION_MAP]
+    title = def?.name ?? value
+    flavor = def?.brief ?? ''
+    tier = def?.tier ?? null
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true">
+      <div className="modal-card">
+        <div className="eyebrow">特征揭露 · {FELINE_SLOT_NAMES[slot]}</div>
+        <h3>{title}</h3>
+        {tier && <span className={`rarity-chip rarity-${tier}`}>{TIER_NAMES[tier]}</span>}
+        <p className="flavor">{flavor}</p>
+        <button className="primary" onClick={onNext} autoFocus>
+          收下
+        </button>
+        <div className="reveal-count">
+          第 {index + 1} / {total} 项特征
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** gen3 破壳卡：蓄力至 SDK 合成就绪 → 白光 → 登场；命名与稀有度在破壳瞬间已定 */
+function FHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => void }) {
+  const aberrant = record.outcome === 'aberrant'
+  const ready = record.fstatus === 'ready'
+  const { stage } = useHatchStage(ready)
+  const plan = record.fplan
+
+  if (stage !== 'reveal') return <HatchStage record={record} stage={stage} ready={ready} />
+
+  const hardFed = record.fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
+  const theme = record.ftheme ? FELINE_THEME_MAP[record.ftheme] : null
+  return (
+    <div className="overlay" role="dialog" aria-modal="true">
+      <div className="modal-card hatch-card">
+        <div className="eyebrow">
+          破壳 · {themeDisplayName(record)} · {record.id}
+        </div>
+        <QCreatureImg record={record} size={230} />
+        <h3>
+          {record.name}
+          {plan && !aberrant && (
+            <span className={`rarity-chip rarity-${plan.rarity}`} style={{ marginLeft: '0.5rem' }}>
+              {TIER_NAMES[plan.rarity]}
+            </span>
+          )}
+        </h3>
+        <p className="outcome">
+          {aberrant ? (
+            <span className="oc-ab">畸变孵化 · 判定 {record.riskAtHatch}% 风险命中</span>
+          ) : record.fmode === 'mutation' ? (
+            <span className="oc-normal">✦ 变异孵化 · 安然越过 {record.riskAtHatch}% 风险</span>
+          ) : (
+            <span className="oc-normal">正常孵化 · 安然越过 {record.riskAtHatch}% 风险</span>
+          )}
+        </p>
+        {aberrant && (
+          <div className="ab-note">
+            它破壳时有点不知所措——身上长了太多不属于{theme?.name ?? '这个主题'}的东西。工作间的灯为它调暗了一档。
+          </div>
+        )}
+        {record.fmode === 'mutation' && (
+          <div className="mut-note">✦ 变异降临：它比蛋里预示的多长出了几处东西。</div>
+        )}
+        {plan && (
+          <div className="hatch-traits">
+            <span>{COAT_NAMES[plan.selections.coat]}</span>
+            <span>{EXPRESSION_NAMES[plan.selections.expression]}</span>
+            {plan.mutations.map((m) => {
+              const def = F_MUTATION_MAP[m]
+              return (
+                <span key={m} className={def.tier === 'L' ? 'hl' : def.tier === 'R' ? 'hr' : ''}>
+                  {def.name}
+                </span>
+              )
+            })}
+          </div>
+        )}
+        <div className="hatch-fed">
+          这只小猫由 {record.fedTodos.length} 条待办喂大
           {hardFed > 0 && `，其中 ${hardFed} 条是硬仗`}。
         </div>
         <button className="primary" onClick={onNext} autoFocus style={{ marginTop: '0.8rem' }}>

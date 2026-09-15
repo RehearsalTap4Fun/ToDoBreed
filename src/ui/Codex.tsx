@@ -1,13 +1,21 @@
 import { useState } from 'react'
 import { GROW } from '../core/engine'
-import { Q_SLOT_NAMES, Q_SLOT_ORDER, SLOT_ORDER, type CreatureRecord, type ThemeId } from '../core/types'
+import { Q_SLOT_NAMES, Q_SLOT_ORDER, SLOT_ORDER, type CreatureRecord } from '../core/types'
 import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
-import { THEMES, THEME_IDS } from '../data/themes'
 import { Creature } from '../render/Creature'
 import { QCreatureImg } from './QCreatureImg'
 import { useTraitIndex, type QTraitInfo } from '../qmonster/semantics'
+import {
+  COAT_NAMES,
+  EXPRESSION_NAMES,
+  FELINE_THEMES,
+  themeDisplayName,
+  type FelineThemeId,
+} from '../qmonster/feline/themes'
+import { MUTATION_DEFS, MUTATION_MAP as F_MUTATION_MAP, TIER_NAMES } from '../qmonster/feline/mutations'
+import { COATS } from '../qmonster/feline/sdk'
 
-type Tab = 'all' | ThemeId | 'aberrant'
+type Tab = 'all' | FelineThemeId | 'legacy' | 'aberrant'
 
 export function Codex({
   codex,
@@ -28,16 +36,22 @@ export function Codex({
   const seenQTraits = new Set(
     codex.flatMap((r) => (r.qsemantic ? Object.values(r.qsemantic) : [])).filter(Boolean),
   )
+  const felines = codex.filter((r) => r.kind === 'feline' && r.fplan)
+  const seenCoats = new Set(felines.map((r) => r.fplan!.selections.coat))
+  const seenMutations = new Set(felines.flatMap((r) => r.fplan!.mutations))
+  const legacyCount = codex.filter((r) => r.kind !== 'feline').length
   const traitIndex = useTraitIndex()
   const aberrantCount = codex.filter((r) => r.outcome === 'aberrant').length
-  const mutatedCount = codex.filter((r) => r.mutation).length
+  const mutatedCount = codex.filter((r) => r.mutation || r.qmode === 'mutation' || r.fmode === 'mutation').length
+  const legendCount = felines.filter((r) => r.outcome !== 'aberrant' && r.fplan!.rarity === 'L').length
   const maxedCount = codex.filter((r) => r.growths >= GROW.cap).length
 
   const shown = codex
     .filter((r) => {
       if (tab === 'all') return true
       if (tab === 'aberrant') return r.outcome === 'aberrant'
-      return r.theme === tab
+      if (tab === 'legacy') return r.kind !== 'feline'
+      return r.ftheme === tab
     })
     .slice()
     .reverse()
@@ -52,17 +66,30 @@ export function Codex({
               入册 <b>{codex.length}</b>
             </span>
             <span>
-              古典特征 <b>{seenTraits.size}</b>/{TRAITS.length}
+              花纹 <b>{seenCoats.size}</b>/{COATS.length}
             </span>
             <span>
-              语义特征 <b>{seenQTraits.size}</b>/{traitIndex?.size ?? 61}
+              异变 <b>{seenMutations.size}</b>/{MUTATION_DEFS.length}
+            </span>
+            <span>
+              传说 <b>{legendCount}</b>
             </span>
             <span>
               变异 <b>{mutatedCount}</b>
             </span>
-            <span>
-              圆满 <b>{maxedCount}</b>
-            </span>
+            {legacyCount > 0 && (
+              <>
+                <span>
+                  古典特征 <b>{seenTraits.size}</b>/{TRAITS.length}
+                </span>
+                <span>
+                  语义特征 <b>{seenQTraits.size}</b>/{traitIndex?.size ?? 61}
+                </span>
+                <span>
+                  圆满 <b>{maxedCount}</b>
+                </span>
+              </>
+            )}
             <span>
               标本室 <b>{aberrantCount}</b>
             </span>
@@ -77,11 +104,16 @@ export function Codex({
           <button className={tab === 'all' ? 'on' : ''} onClick={() => setTab('all')}>
             全部
           </button>
-          {THEME_IDS.map((t) => (
-            <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
-              {THEMES[t].name} · {codex.filter((r) => r.theme === t).length}
+          {FELINE_THEMES.map((t) => (
+            <button key={t.id} className={tab === t.id ? 'on' : ''} onClick={() => setTab(t.id)}>
+              {t.name} · {codex.filter((r) => r.ftheme === t.id).length}
             </button>
           ))}
+          {legacyCount > 0 && (
+            <button className={tab === 'legacy' ? 'on' : ''} onClick={() => setTab('legacy')}>
+              旧谱系 · {legacyCount}
+            </button>
+          )}
           <button className={tab === 'aberrant' ? 'on' : ''} onClick={() => setTab('aberrant')}>
             标本室 · {aberrantCount}
           </button>
@@ -128,12 +160,14 @@ function CreatureCard({
   const [editing, setEditing] = useState(false)
   const [nick, setNick] = useState(r.nickname ?? '')
   const hardFed = r.fedTodos.filter((t) => t.difficulty === 'hard' || t.difficulty === 'epic').length
+  const bitmap = r.kind === 'qmonster' || r.kind === 'feline'
+  const mutated = r.mutation !== null || r.qmode === 'mutation' || r.fmode === 'mutation'
 
   return (
     <div className={`creature-card${r.outcome === 'aberrant' ? ' aberrant' : ''}`}>
       <span className="cc-id">{r.id}</span>
       <div className="cc-fig">
-        {r.kind === 'qmonster' ? (
+        {bitmap ? (
           <QCreatureImg record={r} size={150} />
         ) : (
           <Creature
@@ -152,15 +186,17 @@ function CreatureCard({
         {r.nickname && <small style={{ fontWeight: 400, fontSize: '0.7em' }}>（{r.name}）</small>}
       </h4>
       <div className="cc-sub">
-        <span>{THEMES[r.theme].name}</span>
+        <span>{themeDisplayName(r)}</span>
         <span>{r.hatchedDay}</span>
-        <span className={`oc-pill ${r.outcome === 'aberrant' ? 'ab' : 'ok'}`}>
-          {r.outcome === 'aberrant' ? '畸变' : '正常'}
-        </span>
-        {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
-        {r.kind === 'qmonster' && r.qmode === 'mutation' && (
-          <span className="oc-pill mut">✦ 变异</span>
+        {r.kind === 'feline' && r.fplan && r.outcome !== 'aberrant' ? (
+          <span className={`oc-pill rar-${r.fplan.rarity}`}>{TIER_NAMES[r.fplan.rarity]}</span>
+        ) : (
+          <span className={`oc-pill ${r.outcome === 'aberrant' ? 'ab' : 'ok'}`}>
+            {r.outcome === 'aberrant' ? '畸变' : '正常'}
+          </span>
         )}
+        {r.mutation && <span className="oc-pill mut">✦ {MUTATION_MAP[r.mutation].name}</span>}
+        {!r.mutation && mutated && <span className="oc-pill mut">✦ 变异</span>}
         {r.growths >= GROW.cap ? (
           <span className="oc-pill grown" title={`成长已圆满（${GROW.cap}/${GROW.cap}），驻场不会再升品——换一只小家伙上岗吧`}>
             ✧ 圆满
@@ -210,25 +246,41 @@ function CreatureCard({
         </div>
       )}
       <div className="cc-traits">
-        {r.kind === 'qmonster'
-          ? Q_SLOT_ORDER.map((slot) => {
-              const info = r.qsemantic ? traitIndex?.get(r.qsemantic[slot]) : undefined
+        {r.kind === 'feline' && r.fplan ? (
+          <>
+            <span>{COAT_NAMES[r.fplan.selections.coat]}</span>
+            <span>{EXPRESSION_NAMES[r.fplan.selections.expression]}</span>
+            {r.fplan.mutations.map((m) => {
+              const def = F_MUTATION_MAP[m]
               return (
-                <span key={slot} className={info?.rarity === 'L' ? 'hl' : info?.rarity === 'R' ? 'hr' : ''}>
-                  {info?.displayName ?? Q_SLOT_NAMES[slot]}
-                </span>
-              )
-            })
-          : SLOT_ORDER.map((slot) => {
-              const t = TRAIT_MAP[r.traits![slot]]
-              const ab = r.aberrations.find((a) => a.slot === slot)
-              return (
-                <span key={slot} className={ab ? 'abt' : t.rarity === 'L' ? 'hl' : t.rarity === 'R' ? 'hr' : ''}>
-                  {t.name}
-                  {ab ? `·${ABERRATION_MAP[ab.ab].name}` : ''}
+                <span key={m} className={def.tier === 'L' ? 'hl' : def.tier === 'R' ? 'hr' : ''}>
+                  {def.name}
                 </span>
               )
             })}
+            {r.fplan.mutations.length === 0 && <span>无异变</span>}
+          </>
+        ) : r.kind === 'qmonster' ? (
+          Q_SLOT_ORDER.map((slot) => {
+            const info = r.qsemantic ? traitIndex?.get(r.qsemantic[slot]) : undefined
+            return (
+              <span key={slot} className={info?.rarity === 'L' ? 'hl' : info?.rarity === 'R' ? 'hr' : ''}>
+                {info?.displayName ?? Q_SLOT_NAMES[slot]}
+              </span>
+            )
+          })
+        ) : (
+          SLOT_ORDER.map((slot) => {
+            const t = TRAIT_MAP[r.traits![slot]]
+            const ab = r.aberrations.find((a) => a.slot === slot)
+            return (
+              <span key={slot} className={ab ? 'abt' : t.rarity === 'L' ? 'hl' : t.rarity === 'R' ? 'hr' : ''}>
+                {t.name}
+                {ab ? `·${ABERRATION_MAP[ab.ab].name}` : ''}
+              </span>
+            )
+          })
+        )}
       </div>
       <div className="cc-fed">
         由 {r.fedTodos.length} 条待办喂大{hardFed > 0 && `，其中 ${hardFed} 条是硬仗`}。

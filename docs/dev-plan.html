@@ -244,6 +244,18 @@ frame → limbs → head → mouth → surface → pattern → temperament → q
     <li><strong>命名：</strong>词根 + 最高稀有度语义特征展示名首字（撞字顺延次字）。</li>
     <li><strong>暂缓项（Phase 3）：</strong>gen2 驻场成长（改用 QMonster <code>rerollSlot</code> 同槽重掷）；收集统计与目录的深度联动。</li>
   </ul>
+
+  <h3><span class="h3no">5.6</span>gen3 小猫轨：QMonster v0.10 小猫组合（2026-09-15 接入正式流程）</h3>
+  <p>新蛋在 <code>spawnEgg</code> 时注定 <code>fseed</code>（<code>f{saveSalt}-{seedTick}</code>）与 6 主题之一的 <code>ftheme</code>（未收集主题权重 ×2），并<strong>同步</strong>掷定正常形态 <code>fplan</code>（<code>planFeline(fseed, ftheme, 'normal')</code>，规则 <code>feline-rules-v2</code>）存入蛋——揭露卡直接取值，无需异步身份解析。<code>theme</code> 字段保留为旧主题回退映射，只供命运骰与旧代码路径使用。gen2（qseed）与古典蛋不再产生，但双轨代码保留供旧存档回放。</p>
+  <ul>
+    <li><strong>7 槽揭露：</strong>阈值 <code>F_THRESHOLDS = [14,28,42,56,70,84,98]</code>，顺序花纹→表情→额顶→耳→颈→背→尾（<code>revealCountFor / revealTotalFor</code> 按轨别分派）；事件为 <code>freveal</code>，无异变的位置揭露为"安静"并提示破壳或有变数。</li>
+    <li><strong>破壳 = 出生一刻的反转：</strong><code>hatchEgg</code> 按判定映射 <code>fmode</code>（畸变→aberration，变异→mutation，正常→normal）以同 fseed 重掷最终 <code>fplan</code>；命名（词根+最高层异变字+喵）与稀有度（max(最高异变层, 处数层)）在破壳瞬间即定，不再有"未名"过渡。</li>
+    <li><strong>编排层只管立绘：</strong><code>qmonster/feline/orchestrator.ts</code> 调 SDK <code>hatch(fseed, selections)</code> 合成 1254² WebP，入 IndexedDB（键 = SDK cacheKey，绑定目录哈希+运行版本+规格哈希），并把 <code>StoredFelineVisual</code> 回写为 <code>fvisual</code>（<code>setRecordFelineVisual</code> 置 ready）；缓存丢失按 fvisual <code>restore</code>，字节一致。</li>
+    <li><strong>SDK 接法：</strong>只消费 RandomPet master <code>dist/hatchery</code> 产物（<code>npm run sync:hatchery</code> → <code>qmonster-assets/hatchery/&lt;runtimeRevision&gt;/</code>，经 /qmonster/ 托管），<code>src/qmonster/feline/sdk.ts</code> 钉 <code>FELINE_RUNTIME_REVISION</code> 并镜像类型；不再依赖源码别名。file:// 下不可用（需 crypto.subtle + OffscreenCanvas）。</li>
+    <li><strong>异变分层：</strong>登记表 <code>feline/mutations.ts</code> 11 件（6 件原始 N；批次 1：颈膜/羽翼/焰尾 R，光环/龙翼 L），每次抽取先掷层（正常 N82/R15/L3、变异 N45/R40/L15、畸变 N30/R40/L30）再按主题亲和加权；正常态掷到 N 层时首件 80% 给标志异变，变异态首件必为标志。</li>
+    <li><strong>UI：</strong>观察卡墙 / 机器 LED 按 7 槽；揭露卡 <code>FRevealCard</code>、破壳卡 <code>FHatchCard</code>（三段式共用 <code>useHatchStage</code>）；图鉴按 6 小猫主题分页 + 旧谱系页，统计花纹 x/6、异变 x/11、传说数；驻场用表情给气泡；蛋外观按主题色板与装饰（炎烬火星 / 云翼云片 / 曜庭菱纹 / 林苔蘑菇）。</li>
+    <li><strong>暂缓项：</strong>gen3 驻场成长（可用 SDK 单槽重掷，向上换层）；批次 2 素材（耳位蝠翼耳 R 需 6 花纹、光环加粗）；gen2 旧记录的源码别名解耦。</li>
+  </ul>
 </section>
 
 <!-- ═══════════════ §06 ═══════════════ -->
@@ -279,6 +291,8 @@ frame → limbs → head → mouth → surface → pattern → temperament → q
 
   <h3><span class="h3no">6.4</span>QMonster 位图管线（gen2 · Phase 2）</h3>
   <p>gen2 生物立绘由 <code>@qmonster/generator-core</code>（生成 spec）+ <code>@qmonster/renderer-canvas</code>（canvas 合成，调色板蒙版走 getImageData）渲染，素材经 <code>scripts/sync-qmonster.mjs</code> 从 <code>../RandomPet</code> 同步到 <code>qmonster-assets/</code>（gitignore）。运行时依赖以 vite alias 指向 RandomPet 源码；类型检查用本地最小 .d.ts 镜像解耦（<code>src/qmonster/types/</code>）。UI 侧 <code>QCreatureImg</code> 从 IndexedDB 取 Blob 建 objectURL，pending 态呼吸占位；本章 §6.1–§6.2 的 SVG 管线自此专属古典轨（StyleLab 保留为古典画风实验室）。</p>
+  <h3><span class="h3no">6.5</span>小猫轨位图管线（gen3）</h3>
+  <p>gen3 立绘全部由 SDK <code>qmonster.js</code>（esbuild 自包含 ESM，运行时按固定 URL 动态 import）在浏览器 OffscreenCanvas 上合成：SDK 校验目录字节 SHA-256 与快照一致、按 <code>selections</code> 解析投影、清除原耳/原尾区域、按异变 id 取模板变换（批次 1 新件为恒等变换）后输出 WebP；孵化器不接触渲染细节，也不重画任何部件。<code>QCreatureImg</code> 对 gen2/gen3 统一：先查 IndexedDB，再按各自权威身份（qspec / fvisual）重绘。</p>
 </section>
 
 <!-- ═══════════════ §07 ═══════════════ -->
@@ -343,6 +357,8 @@ CreatureRecord { id "GSI-001", name, nickname?, traits×8,
       <tr><td class="tname">Phase 2<br>(v0.1.9)</td><td>QMonster 换轨：新蛋 gen2（8 语义槽 ×61 特征，目录 v0.3.0）+ 旧生物双轨；异步编排层（身份/最终形态解析、确定性 seed 重试、IndexedDB 立绘缓存）；破壳/揭露/图鉴/驻场全 UI 双轨；连击承接为变异率 +2%；单机形态 v2（启动器 + 本地静态服务 :5123，file:// 降级古典轨）</td><td><span class="chip done">已完成</span></td></tr>
       <tr><td class="tname">Phase 3</td><td>gen2 驻场成长（rerollSlot 同槽重掷）；收集统计与目录深度联动；古典画风实验室（StyleLab）去留评估</td><td><span class="chip next">规划中</span></td></tr>
       <tr><td class="tname">Phase 4</td><td>宠物底型（2026-09-03 拍板）：首发猫 / 狗 / 兔，姿态以宠物猫狗常见坐姿为基准；不新做四足母体，现有 blob / biped / floating 三母体加物种套件 28 件（目录 v0.4.0），孵化器经 <code>lockedSelections</code> 锁 bodyFrame / headShape / tail / mouthShape；第 1 槽揭露物种，命名改词根+物种字，图鉴加 3×3 品系格。提案与生产单见 <code>docs/proposal-pet-base.html</code></td><td><span class="chip next">已拍板 · 待素材</span></td></tr>
+      <tr><td class="tname">Phase 5<br>(gen3)</td><td>小猫轨接入正式流程（2026-09-15）：RandomPet master v0.10「小猫组合」SDK（6 花纹 × 3 表情 × 11 异变，44 张毛绒写实 PNG，dist/hatchery 钉版 942d401f）；6 新主题 ↔ 6 标志异变；7 槽揭露 / 破壳按判定重掷 / 图鉴分页统计 / 驻场 / IndexedDB 缓存 + fvisual restore；异变分层规则 v2；试验场 <code>?flab=1</code>；52 测试</td><td><span class="chip done">已完成</span></td></tr>
+      <tr><td class="tname">Phase 5.x</td><td>批次 2 素材（蝠翼耳 R ×6 花纹、光环加粗）；gen3 驻场成长（SDK 单槽重掷向上换层）；gen2 旧记录去源码别名（冻结为缓存图或迁移）</td><td><span class="chip next">规划中</span></td></tr>
       <tr><td class="tname">v0.2c</td><td>主画风定稿（gen2 位图为主，sticker / plush 古典轨去留，待用户拍板）</td><td><span class="chip next">待拍板</span></td></tr>
       <tr><td class="tname">v0.2.x</td><td>剩余 7 主题逐批放出（每主题=色板+偏向池+词根+蛋装饰，纯内容扩充）；驻场生物动画补全 R 级性格</td><td><span class="chip later">规划中</span></td></tr>
       <tr><td class="tname">v0.3+</td><td>分享卡导出、周挑战蛋、生态羁绊、双驻场、年度报告、音景；多端同步与外部待办源接入再评估</td><td><span class="chip later">远期</span></td></tr>

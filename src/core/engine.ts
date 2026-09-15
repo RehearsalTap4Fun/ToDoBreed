@@ -2,8 +2,11 @@ import { hashStr, mulberry32, pick, weightedPick } from './rng'
 import { addDays, daysBetween, isMonday, mondayOf } from './time'
 import { gsiId, makeName } from './naming'
 import { rollDestiny, rollTraitForSlot } from './draw'
-import { THEMES, THEME_IDS } from '../data/themes'
+import { THEMES } from '../data/themes'
 import { TRAIT_MAP, TRAITS } from '../data/traits'
+import { FELINE_THEMES, FELINE_THEME_MAP } from '../qmonster/feline/themes'
+import { planFeline } from '../qmonster/feline/rules'
+import { FELINE_SLOTS, type StoredFelineVisual } from '../qmonster/feline/sdk'
 import {
   DIFFICULTY_META,
   Q_SLOT_ORDER,
@@ -23,6 +26,8 @@ import {
 
 export const HATCH_POINTS = 100
 export const THRESHOLDS = [12, 24, 36, 48, 60, 72, 84, 96]
+/** gen3（小猫轨）7 槽揭露阈值：花纹、表情、额顶、耳、颈、背、尾 */
+export const F_THRESHOLDS = [14, 28, 42, 56, 70, 84, 98]
 export const SHED_CAP = 3
 export const DORMANT_MAX_WEEKS = 3
 
@@ -50,6 +55,16 @@ export function revealCount(points: number): number {
   return THRESHOLDS.filter((t) => points >= t).length
 }
 
+/** 按蛋的轨别计算已揭露槽数（gen3 为 7 槽，其余 8 槽） */
+export function revealCountFor(egg: Pick<Egg, 'points' | 'fseed'>): number {
+  if (egg.fseed) return F_THRESHOLDS.filter((t) => egg.points >= t).length
+  return revealCount(egg.points)
+}
+
+export function revealTotalFor(egg: Pick<Egg, 'fseed'>): number {
+  return egg.fseed ? FELINE_SLOTS.length : SLOT_ORDER.length
+}
+
 function addRisk(egg: Egg, amount: number): void {
   egg.risk = Math.min(RISK.cap, egg.risk + amount)
 }
@@ -57,12 +72,14 @@ function addRisk(egg: Egg, amount: number): void {
 function spawnEgg(s: GameState, day: string, events: GameEvent[]): void {
   const seed = hashStr(`${s.saveSalt}|egg|${s.seedTick}`)
   const rng = mulberry32(seed ^ 0x51ab)
-  // 未收集主题权重 ×2（§04）
-  const collected = new Set(s.codex.map((c) => c.theme))
-  const theme = weightedPick(
+  // gen3（小猫轨）：6 主题，未收集主题权重 ×2（§04）
+  const collected = new Set(s.codex.map((c) => c.ftheme).filter(Boolean))
+  const ftheme = weightedPick(
     rng,
-    THEME_IDS.map((t) => ({ item: t, w: collected.has(t) ? 1 : 2 })),
+    FELINE_THEMES.map((t) => ({ item: t.id, w: collected.has(t.id) ? 1 : 2 })),
   )
+  const theme = FELINE_THEME_MAP[ftheme].legacyTheme
+  const fseed = `f${s.saveSalt.toString(36)}-${s.seedTick}`
   const egg: Egg = {
     id: `egg-${s.seedTick}`,
     theme,
@@ -72,14 +89,16 @@ function spawnEgg(s: GameState, day: string, events: GameEvent[]): void {
     risk: RISK.base,
     destiny: rollDestiny(THEMES[theme], seed),
     revealed: {},
-    // gen2（QMonster 换轨）：新蛋一律携带 QMonster 基础种子，形象与语义特征由生成器提供
-    qseed: `q${s.saveSalt.toString(36)}-${s.seedTick}`,
+    fseed,
+    ftheme,
+    // 正常形态身份此刻同步掷定并存档（揭露卡取值）；破壳时按判定同 seed 重掷最终形态
+    fplan: planFeline(fseed, ftheme, 'normal'),
     dormantWeeks: 0,
     fedBy: [],
   }
   s.seedTick += 1
   s.currentEgg = egg
-  events.push({ type: 'eggArrived', theme })
+  events.push({ type: 'eggArrived', theme, ftheme })
 }
 
 /** 变异率 = 5% 基础 + 每条困难/史诗待办 +1%，上限 15%（§06.3） */
@@ -117,7 +136,23 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
   }
 
   let record: CreatureRecord
-  if (egg.qseed) {
+  if (egg.fseed && egg.ftheme) {
+    // gen3：最终形态按判定模式同 seed 重掷（"出生一刻的反转"），命名与稀有度即刻可知；立绘由编排层异步合成
+    const fmode = aberrant ? 'aberration' : mutated ? 'mutation' : 'normal'
+    const fplan = planFeline(egg.fseed, egg.ftheme, fmode)
+    record = {
+      ...base,
+      name: fplan.name,
+      kind: 'feline',
+      fseed: egg.fseed,
+      ftheme: egg.ftheme,
+      fmode,
+      fplan,
+      fstatus: 'pending',
+      aberrations: [],
+      mutation: null,
+    }
+  } else if (egg.qseed) {
     // gen2：形象与语义特征由 QMonster 决定；权威 spec 由编排层异步解析后回写
     record = {
       ...base,
@@ -266,11 +301,23 @@ export function addTodo(
 function feedPoints(s: GameState, points: number, today: string, events: GameEvent[]): void {
   const egg = s.currentEgg
   if (!egg) return
-  const before = revealCount(egg.points)
+  const before = revealCountFor(egg)
   egg.points = Math.min(HATCH_POINTS, egg.points + points)
-  const after = revealCount(egg.points)
+  const after = revealCountFor(egg)
   const boost = s.streak >= STREAK_ACTIVATE
   for (let i = before; i < after; i++) {
+    if (egg.fseed && egg.fplan) {
+      // gen3：揭露正常形态的 7 槽之一（花纹→表情→额顶→耳→颈→背→尾）
+      const fslot = FELINE_SLOTS[i]
+      events.push({
+        type: 'freveal',
+        slot: fslot,
+        value: egg.fplan.selections[fslot],
+        index: i,
+        total: FELINE_SLOTS.length,
+      })
+      continue
+    }
     const slot = SLOT_ORDER[i]
     if (egg.qseed) {
       // gen2：揭露 QMonster 语义槽（身份未解析时先出空卡，UI 显示"凝聚中"）
@@ -529,8 +576,8 @@ function conflictsWith(candidateId: string, traits: Record<SlotId, string>, exce
  */
 function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
   const rec = residentOf(s)
-  // gen2 生物的成长将在 Phase 3 对接 QMonster rerollSlot；本期仅 legacy 生物可成长
-  if (!rec || rec.kind === 'qmonster' || !rec.traits || rec.growths >= GROW.cap) return
+  // gen2/gen3 生物的成长待对接各自的重掷接口；本期仅 legacy 生物可成长
+  if (!rec || rec.kind === 'qmonster' || rec.kind === 'feline' || !rec.traits || rec.growths >= GROW.cap) return
   const rng = mulberry32(hashStr(`${s.saveSalt}|grow|${todo.id}`))
   if (rng() >= GROW.chance[todo.difficulty]) return
 
@@ -604,6 +651,22 @@ export function setRecordSpec(
   target.qimageKey = patch.qimageKey
   target.qstatus = 'ready'
   if (patch.name && target.nickname === null) target.name = patch.name
+  return s
+}
+
+/** 回写 gen3 档案的形象身份与缓存键（编排层合成完成后调用） */
+export function setRecordFelineVisual(
+  state: GameState,
+  recordId: string,
+  patch: { fvisual: StoredFelineVisual; fimageKey: string },
+): GameState {
+  const rec = state.codex.find((c) => c.id === recordId)
+  if (!rec || rec.kind !== 'feline') return state
+  const s = clone(state)
+  const target = s.codex.find((c) => c.id === recordId)!
+  target.fvisual = patch.fvisual
+  target.fimageKey = patch.fimageKey
+  target.fstatus = 'ready'
   return s
 }
 

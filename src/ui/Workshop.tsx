@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HATCH_POINTS, residentOf, revealCount } from '../core/engine'
+import { HATCH_POINTS, residentOf, revealCountFor, revealTotalFor } from '../core/engine'
 import {
   Q_SLOT_NAMES,
   Q_SLOT_ORDER,
@@ -9,7 +9,15 @@ import {
   type Difficulty,
   type GameState,
 } from '../core/types'
-import { THEMES } from '../data/themes'
+import {
+  COAT_NAMES,
+  EXPRESSION_NAMES,
+  FELINE_SLOT_NAMES,
+  FELINE_THEME_MAP,
+  eggDisplayName,
+} from '../qmonster/feline/themes'
+import { MUTATION_MAP as F_MUTATION_MAP } from '../qmonster/feline/mutations'
+import { FELINE_SLOTS } from '../qmonster/feline/sdk'
 import { TRAIT_MAP } from '../data/traits'
 import { EggView } from '../render/Egg'
 import { Creature } from '../render/Creature'
@@ -107,7 +115,7 @@ export function Workshop({
         />
       </div>
 
-      {/* 墙上的 8 张观察卡：已揭露特征（gen2 读语义槽，legacy 读旧特征库） */}
+      {/* 墙上的观察卡：已揭露特征（gen3 7 槽小猫身份 / gen2 语义槽 / legacy 旧特征库） */}
       <TraitWall egg={egg} />
 
       {/* 墙上的休眠棚搁板 */}
@@ -130,11 +138,11 @@ export function Workshop({
             <div className="machine-base">
               <span className="machine-label">GSI·MK-I</span>
               <div className="led-strip">
-                {SLOT_ORDER.map((slot, i) => (
+                {Array.from({ length: egg ? revealTotalFor(egg) : 8 }, (_, i) => (
                   <span
-                    key={slot}
-                    className={`led${egg && i < revealCount(egg.points) ? ' lit' : ''}`}
-                    title={SLOT_NAMES[slot]}
+                    key={i}
+                    className={`led${egg && i < revealCountFor(egg) ? ' lit' : ''}`}
+                    title={egg?.fseed ? FELINE_SLOT_NAMES[FELINE_SLOTS[i]] : SLOT_NAMES[SLOT_ORDER[i]]}
                   />
                 ))}
               </div>
@@ -188,9 +196,10 @@ export function Workshop({
           <div className="clipboard">
             {egg ? (
               <>
-                <b>{THEMES[egg.theme].name}</b>
+                <b>{eggDisplayName(egg)}</b>
                 <span className="cb-line">
-                  孵化点 <em>{egg.points}</em> / {HATCH_POINTS} · 已揭露 {revealCount(egg.points)}/8
+                  孵化点 <em>{egg.points}</em> / {HATCH_POINTS} · 已揭露 {revealCountFor(egg)}/
+                  {revealTotalFor(egg)}
                 </span>
                 <div className="risk-line">
                   <span>风险</span>
@@ -228,9 +237,13 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
   const hour = new Date().getHours()
   const night = hour >= 20 || hour < 6
 
-  let wrapCls = rec.kind === 'qmonster' ? 'res-walk-mid' : ''
+  let wrapCls = rec.kind === 'qmonster' || rec.kind === 'feline' ? 'res-walk-mid' : ''
   let bubble: string | null = null
-  if (!silent) {
+  if (rec.kind === 'feline') {
+    // 小猫轨没有性格槽：用表情给个小气泡
+    const expr = rec.fplan?.selections.expression
+    bubble = expr === 'small-fangs' ? '!' : expr === 'tongue-tip' ? '♪' : '…'
+  } else if (!silent) {
     switch (temp) {
       case 'temp_timid':
         wrapCls = 'res-shiver'
@@ -269,7 +282,7 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
   return (
     <>
       <div className={`resident ${wrapCls}`}>
-        {rec.kind === 'qmonster' ? (
+        {rec.kind === 'qmonster' || rec.kind === 'feline' ? (
           <QCreatureImg record={rec} size={112} className={silent ? undefined : 'creature-idle'} />
         ) : (
           <Creature
@@ -292,10 +305,53 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
 }
 
 
-/** 观察卡墙：gen2 蛋读 QMonster 语义槽（身份解析前显示凝聚中），legacy 蛋读旧特征库 */
+/** 观察卡墙：gen3 蛋读 7 槽小猫身份，gen2 蛋读 QMonster 语义槽（身份解析前显示凝聚中），legacy 蛋读旧特征库 */
 function TraitWall({ egg }: { egg: GameState['currentEgg'] }) {
   const traitIndex = useTraitIndex()
-  const revealed = egg ? revealCount(egg.points) : 0
+  const revealed = egg ? revealCountFor(egg) : 0
+
+  if (egg?.fseed && egg.fplan) {
+    const plan = egg.fplan
+    return (
+      <div className="trait-wall">
+        {FELINE_SLOTS.map((slot, i) => {
+          const shown = i < revealed
+          const value = plan.selections[slot]
+          let name: string | null = null
+          let flavor = '尚未揭露'
+          let rarity: 'N' | 'R' | 'L' | null = null
+          if (shown) {
+            if (slot === 'coat') {
+              name = COAT_NAMES[plan.selections.coat]
+              flavor = FELINE_THEME_MAP[egg.ftheme!].tagline
+            } else if (slot === 'expression') {
+              name = EXPRESSION_NAMES[plan.selections.expression]
+              flavor = '它的表情'
+            } else if (value === 'none') {
+              name = '安静'
+              flavor = `${FELINE_SLOT_NAMES[slot]}目前没有异变——破壳那一刻或有变数`
+            } else {
+              const def = F_MUTATION_MAP[value as keyof typeof F_MUTATION_MAP]
+              name = def?.name ?? value
+              flavor = def?.brief ?? ''
+              rarity = def?.tier ?? null
+            }
+          }
+          return (
+            <div
+              key={slot}
+              className={`wallcard${name ? '' : ' unknown'}${rarity === 'L' ? ' l' : rarity === 'R' ? ' r' : ''}`}
+              title={flavor}
+            >
+              <span className="wc-slot">{FELINE_SLOT_NAMES[slot]}</span>
+              <span className="wc-name">{name ?? '？'}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="trait-wall">
       {SLOT_ORDER.map((slot, i) => {

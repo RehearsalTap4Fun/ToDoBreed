@@ -1,6 +1,7 @@
 import { useId, useMemo } from 'react'
 import type { Egg as EggT } from '../core/types'
 import { THEMES } from '../data/themes'
+import { FELINE_THEME_MAP } from '../qmonster/feline/themes'
 import { mix, shade } from './colors'
 
 const EGG_PATH =
@@ -11,11 +12,15 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
   const rawId = useId()
   const uid = useMemo(() => `e${rawId.replace(/[^a-zA-Z0-9]/g, '')}`, [rawId])
   const theme = THEMES[egg.theme]
-  const [primary, secondary, accent] = theme.palette
+  const ftheme = egg.ftheme ? FELINE_THEME_MAP[egg.ftheme] : null
+  const [primary, secondary, accent] = ftheme ? ftheme.palette : theme.palette
+  const label = ftheme ? ftheme.eggName : theme.name
+  /** 壳面装饰风格：gen3 按小猫主题映射，旧蛋按旧主题 */
+  const deco: string = ftheme ? ftheme.eggDeco : egg.theme
   const glow = 0.15 + (egg.points / 100) * 0.55
 
   return (
-    <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label={theme.name}>
+    <svg viewBox="0 0 200 200" width={size} height={size} role="img" aria-label={label}>
       <defs>
         {/* 粉彩壳色 + 贴纸描边，与生物默认画风统一 */}
         <linearGradient id={`${uid}-shell`} x1="0" y1="0" x2="0.6" y2="1">
@@ -62,7 +67,7 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
 
         <g clipPath={`url(#${uid}-clip)`}>
           {/* 主题装饰 */}
-          {egg.theme === 'deepsea' && (
+          {deco === 'deepsea' && (
             <g>
               <circle className="bubble b1" cx={80} cy={150} r={5} fill={secondary} opacity={0.55} />
               <circle className="bubble b2" cx={112} cy={160} r={3.4} fill={secondary} opacity={0.5} />
@@ -70,7 +75,7 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
               <path d="M70,45 Q60,80 66,118" stroke={accent} strokeWidth={5} fill="none" opacity={0.28} strokeLinecap="round" />
             </g>
           )}
-          {egg.theme === 'fungal' && (
+          {deco === 'fungal' && (
             <g>
               <circle cx={78} cy={70} r={4} fill={accent} opacity={0.5} />
               <circle cx={124} cy={96} r={5.5} fill={accent} opacity={0.4} />
@@ -78,10 +83,33 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
               <circle cx={118} cy={140} r={4.4} fill={secondary} opacity={0.5} />
             </g>
           )}
-          {egg.theme === 'shadow' && (
+          {deco === 'shadow' && (
             <g>
               <path d="M60,110 q40,-26 80,0 q-40,26 -80,0 z" fill="#000" opacity={0.45} />
               <circle className="shadow-blink" cx={100} cy={110} r={3} fill={secondary} opacity={0.8} />
+            </g>
+          )}
+          {deco === 'ember' && (
+            <g>
+              <circle className="bubble b1" cx={84} cy={150} r={3.5} fill={secondary} opacity={0.75} />
+              <circle className="bubble b2" cx={110} cy={158} r={2.6} fill={accent} opacity={0.7} />
+              <circle className="bubble b3" cx={98} cy={140} r={2} fill={secondary} opacity={0.6} />
+              <path d="M74,122 q26,-18 52,0" stroke={secondary} strokeWidth={4} fill="none" opacity={0.35} strokeLinecap="round" />
+            </g>
+          )}
+          {deco === 'sky' && (
+            <g fill={accent}>
+              <ellipse cx={82} cy={96} rx={16} ry={7} opacity={0.6} />
+              <ellipse cx={118} cy={128} rx={20} ry={8} opacity={0.5} />
+              <ellipse cx={100} cy={70} rx={11} ry={5} opacity={0.45} />
+            </g>
+          )}
+          {deco === 'regal' && (
+            <g fill={secondary} opacity={0.55}>
+              <path d="M84,80 l5,-7 l5,7 l-5,7 z" />
+              <path d="M118,104 l5,-7 l5,7 l-5,7 z" />
+              <path d="M96,134 l4,-6 l4,6 l-4,6 z" />
+              <path d="M124,64 l3,-5 l3,5 l-3,5 z" />
             </g>
           )}
 
@@ -100,10 +128,10 @@ export function EggView({ egg, size = 200 }: { egg: EggT; size?: number }) {
         </g>
 
         {/* 高光 */}
-        <ellipse cx={82} cy={62} rx={11} ry={20} fill="#fff" opacity={egg.theme === 'shadow' ? 0.08 : 0.22} transform="rotate(-18 82 62)" />
+        <ellipse cx={82} cy={62} rx={11} ry={20} fill="#fff" opacity={deco === 'shadow' ? 0.08 : 0.22} transform="rotate(-18 82 62)" />
 
-        {/* 菌沼蛋壳上的活蘑菇 */}
-        {egg.theme === 'fungal' && (
+        {/* 菌沼/林苔蛋壳上的活蘑菇 */}
+        {deco === 'fungal' && (
           <g>
             <g transform="translate(58,88)">
               <line x1={0} y1={0} x2={-4} y2={-9} stroke="#D8CBAF" strokeWidth={2.6} />

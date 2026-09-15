@@ -20,10 +20,16 @@ import {
   residentOf,
   resolveDueRule,
   revealCount,
+  revealCountFor,
+  revealTotalFor,
+  setRecordFelineVisual,
   setResident,
   swapEgg,
 } from '../src/core/engine'
-import { Q_SLOT_ORDER, SLOT_ORDER, type SlotId, type GameState } from '../src/core/types'
+import { Q_SLOT_ORDER, SLOT_ORDER, type GameEvent, type SlotId, type GameState } from '../src/core/types'
+import { parseImport } from '../src/core/storage'
+import { FELINE_THEME_MAP } from '../src/qmonster/feline/themes'
+import { planFeline } from '../src/qmonster/feline/rules'
 import { THEMES, THEME_IDS } from '../src/data/themes'
 import { TRAIT_MAP } from '../src/data/traits'
 
@@ -38,6 +44,19 @@ function fresh(day: string): GameState {
 /** 把当前蛋降级为 legacy（模拟换轨前的旧蛋，仍走 77 特征库管线） */
 function legacy(s: GameState): GameState {
   delete s.currentEgg!.qseed
+  delete s.currentEgg!.fseed
+  delete s.currentEgg!.ftheme
+  delete s.currentEgg!.fplan
+  return s
+}
+
+/** 把当前蛋改为 gen2（模拟 2026-08-31 至 09-15 间生成的 QMonster 蛋） */
+function gen2(s: GameState): GameState {
+  const egg = s.currentEgg!
+  delete egg.fseed
+  delete egg.ftheme
+  delete egg.fplan
+  egg.qseed = `q-test-${egg.id}`
   return s
 }
 
@@ -174,8 +193,8 @@ describe('按时连击', () => {
 })
 
 describe('gen2 换轨（QMonster）', () => {
-  it('新蛋携带 qseed；揭露不掷旧特征、事件带 qtraitId', () => {
-    let s = fresh(FRI)
+  it('gen2 蛋携带 qseed；揭露不掷旧特征、事件带 qtraitId', () => {
+    let s = gen2(fresh(FRI))
     expect(s.currentEgg!.qseed).toMatch(/^q/)
     s = addTodo(s, { title: '写周报', difficulty: 'hard', due: null }, FRI)
     const r = completeTodo(s, 'todo-1', FRI)
@@ -186,7 +205,7 @@ describe('gen2 换轨（QMonster）', () => {
   })
 
   it('身份回写后揭露事件携带语义特征 id', () => {
-    let s = fresh(FRI)
+    let s = gen2(fresh(FRI))
     const eggId = s.currentEgg!.id
     const slots = Object.fromEntries(Q_SLOT_ORDER.map((q) => [q, `sem_${q}`])) as Record<
       (typeof Q_SLOT_ORDER)[number],
@@ -202,7 +221,7 @@ describe('gen2 换轨（QMonster）', () => {
 
   it('孵化判定映射 qmode：畸变→aberration，变异→mutation，档案待渲染', () => {
     // 畸变
-    let s = fresh(FRI)
+    let s = gen2(fresh(FRI))
     s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.risk = 60
@@ -214,7 +233,7 @@ describe('gen2 换轨（QMonster）', () => {
     expect(rec.qstatus).toBe('pending')
     expect(rec.traits).toBeUndefined()
     // 变异
-    s = fresh(FRI)
+    s = gen2(fresh(FRI))
     s = addTodo(s, { title: 'b', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.destiny.judgmentRoll = 99
@@ -223,7 +242,7 @@ describe('gen2 换轨（QMonster）', () => {
     expect(rec.qmode).toBe('mutation')
     expect(rec.outcome).toBe('normal')
     // 正常
-    s = fresh(FRI)
+    s = gen2(fresh(FRI))
     s = addTodo(s, { title: 'c', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.destiny.judgmentRoll = 99
@@ -234,7 +253,7 @@ describe('gen2 换轨（QMonster）', () => {
 
   it('连击 ≥3 时孵化变异率 +2%', () => {
     const run = (streak: number) => {
-      let s = fresh(FRI)
+      let s = gen2(fresh(FRI))
       s.streak = streak
       s = addTodo(s, { title: 'x', difficulty: 'normal', due: null }, FRI)
       s.currentEgg!.points = 90
@@ -247,7 +266,7 @@ describe('gen2 换轨（QMonster）', () => {
   })
 
   it('setRecordSpec 回写权威 spec 并置 ready，昵称不被覆盖', () => {
-    let s = fresh(FRI)
+    let s = gen2(fresh(FRI))
     s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
     s.currentEgg!.points = 90
     s.currentEgg!.destiny.judgmentRoll = 99
@@ -264,6 +283,141 @@ describe('gen2 换轨（QMonster）', () => {
     expect(rec.qstatus).toBe('ready')
     expect(rec.qimageKey).toBe('qm:test')
     expect(rec.name).toBe('汐圆')
+  })
+})
+
+describe('gen3 小猫轨', () => {
+  it('新蛋携带 fseed/ftheme/fplan，正常形态即刻可知；旧主题字段为回退映射', () => {
+    const s = fresh(FRI)
+    const egg = s.currentEgg!
+    expect(egg.fseed).toMatch(/^f/)
+    expect(egg.qseed).toBeUndefined()
+    const theme = FELINE_THEME_MAP[egg.ftheme!]
+    expect(theme).toBeDefined()
+    expect(egg.theme).toBe(theme.legacyTheme)
+    expect(egg.fplan!.mode).toBe('normal')
+    expect(egg.fplan!.selections.coat).toBeTruthy()
+    expect(egg.fplan!.name.endsWith('喵')).toBe(true)
+    expect(egg.fplan).toEqual(planFeline(egg.fseed!, egg.ftheme!, 'normal'))
+  })
+
+  it('7 槽揭露：阈值 14/28/…/98，事件为 freveal 且取自蛋上的 fplan', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI) // +10 → 无揭露
+    let r = completeTodo(s, 'todo-1', FRI)
+    expect(r.events.filter((e) => e.type === 'freveal')).toHaveLength(0)
+    expect(r.events.filter((e) => e.type === 'reveal')).toHaveLength(0)
+    s = addTodo(r.state, { title: 'b', difficulty: 'hard', due: null }, FRI) // +20 → 30 → 2 槽
+    r = completeTodo(s, 'todo-2', FRI)
+    const ev = r.events.filter((e): e is Extract<GameEvent, { type: 'freveal' }> => e.type === 'freveal')
+    expect(ev.map((e) => e.slot)).toEqual(['coat', 'expression'])
+    expect(ev[0].value).toBe(r.state.currentEgg!.fplan!.selections.coat)
+    expect(ev[1].value).toBe(r.state.currentEgg!.fplan!.selections.expression)
+    expect(ev[0].total).toBe(7)
+    expect(Object.keys(r.state.currentEgg!.revealed)).toHaveLength(0)
+    expect(revealCountFor(r.state.currentEgg!)).toBe(2)
+    expect(revealCountFor({ points: 97, fseed: 'f' })).toBe(6)
+    expect(revealCountFor({ points: 98, fseed: 'f' })).toBe(7)
+    expect(revealCountFor({ points: 98, fseed: undefined })).toBe(8)
+    expect(revealTotalFor({ fseed: 'f' })).toBe(7)
+    expect(revealTotalFor({ fseed: undefined })).toBe(8)
+  })
+
+  it('破壳：按判定同 seed 重掷最终形态，kind=feline，命名来自 fplan', () => {
+    // 畸变
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.risk = 60
+    s.currentEgg!.destiny.judgmentRoll = 5
+    let rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
+    expect(rec.kind).toBe('feline')
+    expect(rec.fmode).toBe('aberration')
+    expect(rec.outcome).toBe('aberrant')
+    expect(rec.fplan!.aberrant).toBe(true)
+    expect(rec.fplan!.mutations.length).toBeGreaterThanOrEqual(3)
+    expect(rec.name).toBe(rec.fplan!.name)
+    expect(rec.fstatus).toBe('pending')
+    expect(rec.traits).toBeUndefined()
+    expect(rec.qseed).toBeUndefined()
+    expect(rec.fplan).toEqual(planFeline(rec.fseed!, rec.ftheme!, 'aberration'))
+    // 变异：必含主题标志异变
+    s = fresh(FRI)
+    s = addTodo(s, { title: 'b', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s.currentEgg!.destiny.mutationRoll = 0.04
+    rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
+    expect(rec.fmode).toBe('mutation')
+    expect(rec.outcome).toBe('normal')
+    expect(rec.fplan!.mutations.length).toBeGreaterThanOrEqual(2)
+    expect(rec.fplan!.mutations).toContain(FELINE_THEME_MAP[rec.ftheme!].signature)
+    // 正常：最终形态与蛋里预示的一致（结局注定）
+    s = fresh(FRI)
+    s = addTodo(s, { title: 'c', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s.currentEgg!.destiny.mutationRoll = 0.9
+    const eggPlan = s.currentEgg!.fplan
+    rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
+    expect(rec.fmode).toBe('normal')
+    expect(rec.fplan).toEqual(eggPlan)
+    expect(rec.fplan!.mutations.length).toBeLessThanOrEqual(1)
+  })
+
+  it('setRecordFelineVisual 回写形象身份并置 ready；非 gen3 档案忽略', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s = completeTodo(s, 'todo-1', FRI).state
+    const id = s.codex[0].id
+    const fvisual = {
+      kind: 'qmonster-feline-combination' as const,
+      spec: {
+        schemaVersion: 'feline-combination-v1' as const,
+        catalogVersion: '0.10.0-candidate.1' as const,
+        seed: s.codex[0].fseed!,
+        selections: s.codex[0].fplan!.selections as never,
+        rolls: { coat: 0, expression: 0, crown: 0, ears: 0, neck: 0, back: 0, tailTip: 0 },
+        locks: [],
+      },
+      catalogSha256: 'a'.repeat(64),
+      runtimeRevision: 'b'.repeat(64),
+    }
+    const s2 = setRecordFelineVisual(s, id, { fvisual, fimageKey: 'qmonster:feline:test' })
+    expect(s2.codex[0].fstatus).toBe('ready')
+    expect(s2.codex[0].fimageKey).toBe('qmonster:feline:test')
+    expect(s2.codex[0].fvisual).toEqual(fvisual)
+    expect(s.codex[0].fstatus).toBe('pending') // 不可变
+    expect(setRecordFelineVisual(s, 'nope', { fvisual, fimageKey: 'x' })).toBe(s)
+  })
+
+  it('主题抽取：已收集主题权重减半（同盐多次生成覆盖 6 主题）', () => {
+    let s = fresh(FRI)
+    const seen = new Set<string>()
+    for (let i = 0; i < 40; i++) {
+      seen.add(s.currentEgg!.ftheme!)
+      s = addTodo(s, { title: `t${i}`, difficulty: 'normal', due: null }, FRI)
+      s.currentEgg!.points = 95
+      s.currentEgg!.destiny.judgmentRoll = 99
+      s = completeTodo(s, `todo-${i + 1}`, FRI).state
+    }
+    expect(seen.size).toBe(6)
+    expect(s.codex).toHaveLength(40)
+    expect(s.codex.every((c) => c.kind === 'feline' && c.fplan && c.name.endsWith('喵'))).toBe(true)
+  })
+
+  it('导出/导入回环保留 gen3 字段', () => {
+    let s = fresh(FRI)
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s = completeTodo(s, 'todo-1', FRI).state
+    const back = parseImport(JSON.stringify(s))!
+    expect(back.codex[0].fplan).toEqual(s.codex[0].fplan)
+    expect(back.codex[0].kind).toBe('feline')
+    expect(back.currentEgg!.fplan).toEqual(s.currentEgg!.fplan)
   })
 })
 
@@ -541,14 +695,15 @@ describe('周循环与休眠', () => {
     expect(r.events.some((e) => e.type === 'eggArrived')).toBe(true)
   })
 
-  it('休眠满 3 周强制孵化入册（gen2 → 待渲染档案）', () => {
+  it('休眠满 3 周强制孵化入册（gen3 → 待合成档案）', () => {
     const s = fresh(TUE)
     const eggId = s.currentEgg!.id
     const r = processTime(s, '2026-09-14')
     expect(r.state.codex).toHaveLength(1)
     expect(r.state.codex[0].forced).toBe(true)
-    expect(r.state.codex[0].kind).toBe('qmonster')
-    expect(r.state.codex[0].qstatus).toBe('pending')
+    expect(r.state.codex[0].kind).toBe('feline')
+    expect(r.state.codex[0].fstatus).toBe('pending')
+    expect(r.state.codex[0].name).toMatch(/喵$/)
     expect(r.events.some((e) => e.type === 'forcedHatch')).toBe(true)
     expect(r.state.shed.every((e) => e.id !== eggId)).toBe(true)
   })

@@ -3,6 +3,7 @@ import {
   abandonTodo,
   addTemplate,
   setEggIdentity,
+  setRecordFelineVisual,
   setRecordSpec,
   addTodo,
   adoptInbox,
@@ -33,6 +34,9 @@ import type { Difficulty, GameEvent, GameState } from './core/types'
 import { THEMES } from './data/themes'
 import { qmonsterAvailable } from './qmonster/catalog'
 import { resolveEggIdentity, resolveRecord } from './qmonster/orchestrator'
+import { felineAvailable } from './qmonster/feline/sdk'
+import { resolveFelineRecord } from './qmonster/feline/orchestrator'
+import { FELINE_THEME_MAP } from './qmonster/feline/themes'
 import { Workshop } from './ui/Workshop'
 import { Codex } from './ui/Codex'
 import { Inbox, type InboxFeed } from './ui/Inbox'
@@ -90,8 +94,10 @@ export default function App() {
       setState(s)
       const modal: GameEvent[] = []
       for (const e of events) {
-        if (e.type === 'reveal' || e.type === 'hatch' || e.type === 'residentGrow') modal.push(e)
-        else if (e.type === 'eggArrived') pushToast(`一枚${THEMES[e.theme].name}降临了`)
+        if (e.type === 'reveal' || e.type === 'freveal' || e.type === 'hatch' || e.type === 'residentGrow')
+          modal.push(e)
+        else if (e.type === 'eggArrived')
+          pushToast(`一枚${e.ftheme ? FELINE_THEME_MAP[e.ftheme].eggName : THEMES[e.theme].name}降临了`)
         else if (e.type === 'autoFail')
           pushToast(`「${e.todoTitle}」逾期满 7 天，已判定失败（风险 +12%）`)
         else if (e.type === 'forcedHatch')
@@ -129,10 +135,26 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // gen2 编排：扫描未解析的蛋身份 / 待渲染档案，异步解析后回写存档
+  // gen2/gen3 编排：扫描未解析的蛋身份 / 待渲染档案，异步解析后回写存档
   const inflight = useRef(new Set<string>())
   useEffect(() => {
-    if (!state || !qmonsterAvailable()) return
+    if (!state) return
+    if (felineAvailable()) {
+      for (const rec of state.codex) {
+        if (rec.kind !== 'feline' || rec.fstatus !== 'pending') continue
+        const key = `frec:${rec.id}`
+        if (inflight.current.has(key)) continue
+        inflight.current.add(key)
+        resolveFelineRecord(rec)
+          .then((patch) => {
+            const cur = stateRef.current
+            if (cur) absorb(setRecordFelineVisual(cur, rec.id, patch), [])
+          })
+          .catch((e) => console.warn('[gen3] 小猫形象合成失败', e))
+          .finally(() => inflight.current.delete(key))
+      }
+    }
+    if (!qmonsterAvailable()) return
     const eggs = [state.currentEgg, ...state.shed].filter(
       (e): e is NonNullable<typeof e> => !!e && !!e.qseed && !e.qidentity,
     )

@@ -2716,3 +2716,16 @@ button.oc-pill.res.on {
   color: var(--paper-muted);
   margin: 0.4rem 0 0;
 }
+
+/* ── gen3 图鉴稀有度 pill ── */
+.oc-pill.rar-N {
+  color: var(--paper-muted);
+}
+.oc-pill.rar-R {
+  color: var(--rare);
+  border-color: var(--rare);
+}
+.oc-pill.rar-L {
+  color: var(--amber-deep);
+  border-color: var(--amber-deep);
+}
