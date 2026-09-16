@@ -5,6 +5,7 @@ import {
   LIVE_MUTATION_IDS,
   MUTATION_CHARS,
   MUTATION_DEFS,
+  MUTATION_MAP,
   TIER_ORDER,
   isSdkMutation,
   type AnyMutationId,
@@ -243,4 +244,75 @@ export function toSdkSelections(plan: FelinePlan): FelineSelections {
     if (v !== 'none' && !isSdkMutation(v)) throw new Error(`FELINE_SDK_UNKNOWN_MUTATION:${v}`)
   }
   return plan.selections as unknown as FelineSelections
+}
+
+/* ── 驻场成长（gen3） ─────────────────────────── */
+
+export interface FelineGrowth {
+  slot: MutationSlot
+  from: AnyMutationId | null
+  to: AnyMutationId
+  kind: 'fill' | 'upgrade'
+}
+
+/** 升品时"只升一档"权重 70、跳档 30（与古典轨一致） */
+export const GROW_STEP_WEIGHTS = { next: 70, jump: 30 } as const
+
+/**
+ * 驻场成长，每次一处："先长齐，再升品"：
+ * - 异变少于 2 处且有空位 → 在空位长出一件 N 级（按主题亲和加权）
+ * - 否则若某位置可向上换层 → 升品（同位置换更高层，只升一档为主）
+ * - 否则若仍有空位 → 长出；都没有 → null（不消耗成长次数）
+ * 命名不变（身份延续），层与稀有度按新异变重算；形象需由编排层按新选项重新合成。
+ */
+export function growFeline(
+  rng: Rng,
+  plan: FelinePlan,
+  available: Availability = LIVE_AVAILABILITY,
+): { plan: FelinePlan; growth: FelineGrowth } | null {
+  const theme = FELINE_THEME_MAP[plan.theme]
+  const avail = available(plan.selections.coat)
+  const defs = MUTATION_DEFS.filter((d) => avail.has(d.id))
+  const occupied = new Map<MutationSlot, MutationDef>()
+  for (const id of plan.mutations) occupied.set(MUTATION_MAP[id].slot, MUTATION_MAP[id])
+  const upgradable = [...occupied.entries()].filter(([slot, cur]) =>
+    defs.some((d) => d.slot === slot && tierIndex(d.tier) > tierIndex(cur.tier)),
+  )
+  const fills = defs.filter((d) => d.tier === 'N' && !occupied.has(d.slot))
+
+  const fill = (): FelineGrowth => {
+    const picked = weightedPick(
+      rng,
+      fills.map((d) => ({ item: d, w: affinityWeight(theme, 'normal', d.id) })),
+    )
+    return { slot: picked.slot, from: null, to: picked.id, kind: 'fill' }
+  }
+  const upgrade = (): FelineGrowth => {
+    const [slot, cur] = pick(rng, upgradable)
+    const cands = defs.filter((d) => d.slot === slot && tierIndex(d.tier) > tierIndex(cur.tier))
+    const picked = weightedPick(
+      rng,
+      cands.map((d) => ({
+        item: d,
+        w: tierIndex(d.tier) === tierIndex(cur.tier) + 1 ? GROW_STEP_WEIGHTS.next : GROW_STEP_WEIGHTS.jump,
+      })),
+    )
+    return { slot, from: cur.id, to: picked.id, kind: 'upgrade' }
+  }
+
+  let growth: FelineGrowth
+  if (plan.mutations.length < 2 && fills.length > 0) growth = fill()
+  else if (upgradable.length > 0) growth = upgrade()
+  else if (fills.length > 0) growth = fill()
+  else return null
+
+  const selections: PlanSelections = { ...plan.selections, [growth.slot]: growth.to }
+  const mutations =
+    growth.kind === 'upgrade'
+      ? plan.mutations.map((m) => (m === growth.from ? growth.to : m))
+      : [...plan.mutations, growth.to]
+  return {
+    plan: { ...plan, selections, mutations, tier: tierOf(mutations), rarity: rarityOf(mutations) },
+    growth,
+  }
 }

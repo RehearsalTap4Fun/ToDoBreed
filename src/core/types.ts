@@ -1,6 +1,7 @@
 import type { FelineThemeId } from '../qmonster/feline/themes'
 import type { FelineMode, FelinePlan } from '../qmonster/feline/rules'
-import type { FelineSlot, StoredFelineVisual } from '../qmonster/feline/sdk'
+import type { FelineSlot, MutationSlot, StoredFelineVisual } from '../qmonster/feline/sdk'
+import type { AnyMutationId } from '../qmonster/feline/mutations'
 
 export type SlotId =
   | 'frame'
@@ -234,6 +235,10 @@ export interface CreatureRecord {
   qstatus?: 'pending' | 'ready'
   /** gen2：IndexedDB 图像缓存键 */
   qimageKey?: string
+  /** gen2 冻结：512² 立绘 data URL（QMonster v0.3 运行时下线后旧生物只读展示，随存档携带） */
+  qimageData?: string
+  /** gen2 冻结：语义槽 → 展示名与稀有度 */
+  qtraitNames?: Partial<Record<QSlotId, { name: string; rarity: Rarity }>>
   /** gen3：小猫轨种子 */
   fseed?: string
   /** gen3：主题 */
@@ -298,3 +303,13 @@ export type GameEvent =
   | { type: 'streakOn'; count: number }
   | { type: 'streakBreak' }
   | { type: 'residentGrow'; record: CreatureRecord; slot: SlotId; fromId: string; toId: string }
+  /** gen3 驻场成长：长出（from=null）或升品 */
+  | {
+      type: 'fgrow'
+      record: CreatureRecord
+      slot: MutationSlot
+      from: AnyMutationId | null
+      to: AnyMutationId
+      rarityFrom: Rarity
+      rarityTo: Rarity
+    }

@@ -5,7 +5,7 @@ import { rollDestiny, rollTraitForSlot } from './draw'
 import { THEMES } from '../data/themes'
 import { TRAIT_MAP, TRAITS } from '../data/traits'
 import { FELINE_THEMES, FELINE_THEME_MAP } from '../qmonster/feline/themes'
-import { planFeline } from '../qmonster/feline/rules'
+import { growFeline, planFeline } from '../qmonster/feline/rules'
 import { FELINE_SLOTS, type StoredFelineVisual } from '../qmonster/feline/sdk'
 import {
   DIFFICULTY_META,
@@ -576,10 +576,15 @@ function conflictsWith(candidateId: string, traits: Record<SlotId, string>, exce
  */
 function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
   const rec = residentOf(s)
-  // gen2/gen3 生物的成长待对接各自的重掷接口；本期仅 legacy 生物可成长
-  if (!rec || rec.kind === 'qmonster' || rec.kind === 'feline' || !rec.traits || rec.growths >= GROW.cap) return
+  if (!rec || rec.growths >= GROW.cap) return
   const rng = mulberry32(hashStr(`${s.saveSalt}|grow|${todo.id}`))
   if (rng() >= GROW.chance[todo.difficulty]) return
+  if (rec.kind === 'feline') {
+    tryFelineGrow(rec, rng, events)
+    return
+  }
+  // gen2 旧生物已冻结只读，不再成长
+  if (rec.kind === 'qmonster' || !rec.traits) return
 
   const traits = rec.traits
   const upgradables = SLOT_ORDER.filter((slot) => {
@@ -618,6 +623,44 @@ function tryResidentGrow(s: GameState, todo: Todo, events: GameEvent[]): void {
     fromId,
     toId: picked.id,
   })
+}
+
+/** gen3 成长：先长齐再升品（规则见 feline/rules.ts growFeline）；形象置为待重新合成 */
+function tryFelineGrow(rec: CreatureRecord, rng: ReturnType<typeof mulberry32>, events: GameEvent[]): void {
+  if (!rec.fplan) return
+  const grown = growFeline(rng, rec.fplan)
+  if (!grown) return
+  const rarityFrom = rec.fplan.rarity
+  rec.fplan = grown.plan
+  rec.growths += 1
+  rec.fstatus = 'pending'
+  delete rec.fvisual
+  delete rec.fimageKey
+  events.push({
+    type: 'fgrow',
+    record: structuredClone(rec),
+    slot: grown.growth.slot,
+    from: grown.growth.from,
+    to: grown.growth.to,
+    rarityFrom,
+    rarityTo: grown.plan.rarity,
+  })
+}
+
+/** 回写 gen2 冻结信息（立绘 data URL / 语义特征名），任一缺失时可分次补齐 */
+export function setRecordFrozen(
+  state: GameState,
+  recordId: string,
+  patch: { qimageData?: string; qtraitNames?: CreatureRecord['qtraitNames'] },
+): GameState {
+  const rec = state.codex.find((c) => c.id === recordId)
+  if (!rec || rec.kind !== 'qmonster') return state
+  if (!patch.qimageData && !patch.qtraitNames) return state
+  const s = clone(state)
+  const target = s.codex.find((c) => c.id === recordId)!
+  if (patch.qimageData) target.qimageData = patch.qimageData
+  if (patch.qtraitNames) target.qtraitNames = patch.qtraitNames
+  return s
 }
 
 /** 回写蛋的 QMonster 身份（编排层异步解析后调用） */

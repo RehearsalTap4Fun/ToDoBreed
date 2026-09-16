@@ -28,7 +28,9 @@ export function QCreatureImg({
 }) {
   const key = imageKeyOf(record)
   const status = statusOf(record)
-  const [url, setUrl] = useState<string | null>(key ? (urlCache.get(key) ?? null) : null)
+  // gen2 冻结立绘随存档携带：有则直接显示，不再依赖 IndexedDB 与 QMonster 运行时
+  const frozen = record.kind === 'qmonster' ? record.qimageData : undefined
+  const [url, setUrl] = useState<string | null>(frozen ?? (key ? (urlCache.get(key) ?? null) : null))
 
   useEffect(() => {
     if (url !== null || status !== 'ready') return

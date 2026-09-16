@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Catalog } from '@qmonster/generator-core'
 import type { MonsterSpec } from '@qmonster/generator-core'
-import { Q_SLOT_ORDER, type QIdentity, type QSlotId, type Rarity } from '../core/types'
+import { Q_SLOT_ORDER, type CreatureRecord, type QIdentity, type QSlotId, type Rarity } from '../core/types'
 import { loadCatalog, qmonsterAvailable } from './catalog'
 
 export interface QTraitInfo {
@@ -58,6 +58,19 @@ export function useTraitIndex(): Map<string, QTraitInfo> | null {
     }
   }, [])
   return index
+}
+
+/** gen2 语义特征展示：冻结名优先，其次目录索引（运行时下线后只剩前者） */
+export function qTraitDisplay(
+  rec: Pick<CreatureRecord, 'qsemantic' | 'qtraitNames'>,
+  slot: QSlotId,
+  index: Map<string, QTraitInfo> | null,
+): { name: string; rarity: Rarity } | undefined {
+  const frozen = rec.qtraitNames?.[slot]
+  if (frozen) return frozen
+  const id = rec.qsemantic?.[slot]
+  const info = id ? index?.get(id) : undefined
+  return info ? { name: info.displayName, rarity: info.rarity } : undefined
 }
 
 /** spec → 语义槽映射 */

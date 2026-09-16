@@ -23,13 +23,15 @@ import {
   revealCountFor,
   revealTotalFor,
   setRecordFelineVisual,
+  setRecordFrozen,
   setResident,
   swapEgg,
 } from '../src/core/engine'
 import { Q_SLOT_ORDER, SLOT_ORDER, type GameEvent, type SlotId, type GameState } from '../src/core/types'
 import { parseImport } from '../src/core/storage'
 import { FELINE_THEME_MAP } from '../src/qmonster/feline/themes'
-import { planFeline } from '../src/qmonster/feline/rules'
+import { planFeline, rarityOf } from '../src/qmonster/feline/rules'
+import { MUTATION_MAP } from '../src/qmonster/feline/mutations'
 import { THEMES, THEME_IDS } from '../src/data/themes'
 import { TRAIT_MAP } from '../src/data/traits'
 
@@ -418,6 +420,128 @@ describe('gen3 小猫轨', () => {
     expect(back.codex[0].fplan).toEqual(s.codex[0].fplan)
     expect(back.codex[0].kind).toBe('feline')
     expect(back.currentEgg!.fplan).toEqual(s.currentEgg!.fplan)
+  })
+})
+
+
+describe('gen3 驻场成长与 gen2 冻结', () => {
+  it('小猫驻场成长：先长齐再升品、上限 3 次、形象置为待合成、稀有度重算、命名不变', () => {
+    let s = fresh(FRI)
+    s.saveSalt = 4242
+    s = addTodo(s, { title: '开荒', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s.currentEgg!.destiny.mutationRoll = 0.9
+    s = completeTodo(s, 'todo-1', FRI).state
+    const id = s.codex[0].id
+    expect(s.codex[0].kind).toBe('feline')
+    s = setResident(s, id) // 后续待办会孵出新猫，驻场需固定在这一只
+    const before = structuredClone(s.codex[0])
+    // 先假装形象已合成，成长后应被清掉
+    s = setRecordFelineVisual(s, id, {
+      fvisual: { kind: 'qmonster-feline-combination', spec: {} as never, catalogSha256: 'a'.repeat(64), runtimeRevision: 'b'.repeat(64) },
+      fimageKey: 'k',
+    })
+    const order = { N: 0, R: 1, L: 2 } as const
+    let growEvents: Extract<GameEvent, { type: 'fgrow' }>[] = []
+    for (let i = 0; i < 80; i++) {
+      s = addTodo(s, { title: `硬仗${i}`, difficulty: 'epic', due: null }, FRI)
+      const r = completeTodo(s, `todo-${s.todos.length}`, FRI)
+      growEvents = growEvents.concat(
+        r.events.filter((e): e is Extract<GameEvent, { type: 'fgrow' }> => e.type === 'fgrow'),
+      )
+      s = r.state
+    }
+    const rec = s.codex.find((c) => c.id === id)!
+    expect(rec.growths).toBeGreaterThanOrEqual(1)
+    expect(rec.growths).toBeLessThanOrEqual(3)
+    expect(growEvents).toHaveLength(rec.growths)
+    expect(rec.fstatus).toBe('pending')
+    expect(rec.fvisual).toBeUndefined()
+    expect(rec.fimageKey).toBeUndefined()
+    expect(rec.name).toBe(before.name)
+    expect(rec.fplan!.rarity).toBe(rarityOf(rec.fplan!.mutations))
+    expect(rec.fplan!.mutations.length).toBeGreaterThanOrEqual(before.fplan!.mutations.length)
+    expect(order[rec.fplan!.tier]).toBeGreaterThanOrEqual(order[before.fplan!.tier])
+    // 每次成长：要么长出（from=null，处数+1），要么升品（同位置更高层）
+    for (const e of growEvents) {
+      expect(MUTATION_MAP[e.to].slot).toBe(e.slot)
+      if (e.from) {
+        expect(MUTATION_MAP[e.from].slot).toBe(e.slot)
+        expect(order[MUTATION_MAP[e.to].tier]).toBeGreaterThan(order[MUTATION_MAP[e.from].tier])
+      }
+      expect(order[e.rarityTo]).toBeGreaterThanOrEqual(order[e.rarityFrom])
+      expect(e.record.growths).toBeGreaterThanOrEqual(1)
+    }
+    // selections 与 mutations 一致
+    const fromSlots = (['crown', 'ears', 'neck', 'back', 'tailTip'] as const)
+      .map((slot) => rec.fplan!.selections[slot])
+      .filter((v) => v !== 'none')
+    expect([...fromSlots].sort()).toEqual([...rec.fplan!.mutations].sort())
+  })
+
+  it('gen2 旧生物不再成长；setRecordFrozen 只对 gen2 生效并可分次补齐', () => {
+    let s = gen2(fresh(FRI))
+    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    s.currentEgg!.points = 90
+    s.currentEgg!.destiny.judgmentRoll = 99
+    s = completeTodo(s, 'todo-1', FRI).state
+    const id = s.codex[0].id
+    expect(s.codex[0].kind).toBe('qmonster')
+    s = setResident(s, id)
+    for (let i = 0; i < 40; i++) {
+      s = addTodo(s, { title: `x${i}`, difficulty: 'epic', due: null }, FRI)
+      const r = completeTodo(s, `todo-${s.todos.length}`, FRI)
+      expect(r.events.some((e) => e.type === 'fgrow' || e.type === 'residentGrow')).toBe(false)
+      s = r.state
+    }
+    expect(s.codex.find((c) => c.id === id)!.growths).toBe(0)
+    const s2 = setRecordFrozen(s, id, { qimageData: 'data:image/webp;base64,AAAA' })
+    expect(s2.codex[0].qimageData).toBe('data:image/webp;base64,AAAA')
+    expect(s2.codex[0].qtraitNames).toBeUndefined()
+    const s3 = setRecordFrozen(s2, id, { qtraitNames: { frame: { name: '圆团', rarity: 'N' } } })
+    expect(s3.codex[0].qimageData).toBe('data:image/webp;base64,AAAA')
+    expect(s3.codex[0].qtraitNames!.frame!.name).toBe('圆团')
+    expect(setRecordFrozen(s3, id, {})).toBe(s3)
+    // gen3 档案不受影响
+    let g = fresh(FRI)
+    g = addTodo(g, { title: 'a', difficulty: 'normal', due: null }, FRI)
+    g.currentEgg!.points = 90
+    g.currentEgg!.destiny.judgmentRoll = 99
+    g = completeTodo(g, 'todo-1', FRI).state
+    expect(setRecordFrozen(g, g.codex[0].id, { qimageData: 'x' })).toBe(g)
+  })
+
+  it('读档迁移：台上与棚里的 gen2 蛋换成小猫蛋，进度与风险保留', () => {
+    let s = gen2(fresh(TUE))
+    s.currentEgg!.points = 30
+    s.currentEgg!.risk = 20
+    s.currentEgg!.theme = 'fungal'
+    // 入棚一枚 gen2 蛋
+    const shedEgg = structuredClone(s.currentEgg!)
+    shedEgg.id = 'egg-shed'
+    shedEgg.qseed = 'q-shed'
+    shedEgg.theme = 'shadow'
+    s.shed.push(shedEgg)
+    const back = parseImport(JSON.stringify(s))!
+    for (const egg of [back.currentEgg!, back.shed[0]]) {
+      expect(egg.qseed).toBeUndefined()
+      expect(egg.qidentity).toBeUndefined()
+      expect(egg.fseed).toMatch(/^f/)
+      expect(egg.fplan).toEqual(planFeline(egg.fseed!, egg.ftheme!, 'normal'))
+    }
+    expect(back.currentEgg!.ftheme).toBe('forest')
+    expect(back.shed[0].ftheme).toBe('shadow')
+    expect(back.currentEgg!.points).toBe(30)
+    expect(back.currentEgg!.risk).toBe(20)
+    // 再次读档幂等
+    const again = parseImport(JSON.stringify(back))!
+    expect(again.currentEgg!.fseed).toBe(back.currentEgg!.fseed)
+    // 古典蛋不受影响
+    const l = legacy(fresh(TUE))
+    const lb = parseImport(JSON.stringify(l))!
+    expect(lb.currentEgg!.fseed).toBeUndefined()
+    expect(lb.currentEgg!.qseed).toBeUndefined()
   })
 })
 

@@ -9,8 +9,11 @@ import {
   rarityOf,
   tierOf,
   toSdkSelections,
+  growFeline,
   type FelineMode,
+  type FelinePlan,
 } from '../src/qmonster/feline/rules'
+import { mulberry32 } from '../src/core/rng'
 import { FELINE_THEMES } from '../src/qmonster/feline/themes'
 import {
   ALL_MUTATION_IDS,
@@ -217,5 +220,42 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
     )
     expect(OFFLINE_BASE.endsWith('/')).toBe(true)
     expect(isOfflineMode()).toBe(false)
+  })
+
+  it('growFeline：少于 2 处先长齐 N 级；随后同位置升品；顶配返回 null；确定性', () => {
+    const base = planFeline('grow-seed', 'ember', 'normal')
+    const noMut: FelinePlan = { ...base, mutations: [], selections: { ...base.selections, crown: 'none', ears: 'none', neck: 'none', back: 'none', tailTip: 'none' }, tier: 'N', rarity: 'N' }
+    const g1 = growFeline(mulberry32(1), noMut)!
+    expect(g1.growth.kind).toBe('fill')
+    expect(g1.growth.from).toBeNull()
+    expect(MUTATION_MAP[g1.growth.to].tier).toBe('N')
+    expect(g1.plan.mutations).toEqual([g1.growth.to])
+    expect(g1.plan.rarity).toBe('N')
+    const g2 = growFeline(mulberry32(2), g1.plan)!
+    expect(g2.growth.kind).toBe('fill')
+    expect(g2.plan.mutations).toHaveLength(2)
+    expect(g2.plan.rarity).toBe('R') // 处数层
+    // 两处都是 N 级且可升 → 升品
+    let plan = g2.plan
+    let sawUpgrade = false
+    for (let i = 0; i < 6; i++) {
+      const g = growFeline(mulberry32(100 + i), plan)
+      if (!g) break
+      if (g.growth.kind === 'upgrade') {
+        sawUpgrade = true
+        expect(MUTATION_MAP[g.growth.from!].slot).toBe(g.growth.slot)
+        expect(['R', 'L']).toContain(MUTATION_MAP[g.growth.to].tier)
+      }
+      plan = g.plan
+      expect(plan.rarity).toBe(rarityOf(plan.mutations))
+    }
+    expect(sawUpgrade).toBe(true)
+    // 顶配：五个位置都是最高层 → 无法成长
+    const top: FelinePlan = { ...base, mutations: ['halo', 'fin-ears', 'frill-neck', 'dragon-wings', 'flame-tail'], selections: { ...base.selections, crown: 'halo', ears: 'fin-ears', neck: 'frill-neck', back: 'dragon-wings', tailTip: 'flame-tail' }, tier: 'L', rarity: 'L' }
+    expect(growFeline(mulberry32(7), top)).toBeNull()
+    // 确定性
+    expect(growFeline(mulberry32(9), noMut)).toEqual(growFeline(mulberry32(9), noMut))
+    // 命名不变
+    expect(g1.plan.name).toBe(noMut.name)
   })
 })

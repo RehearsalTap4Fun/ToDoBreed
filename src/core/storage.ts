@@ -2,6 +2,15 @@ import { SLOT_ORDER, type Egg, type GameState, type SlotId } from './types'
 import { mulberry32 } from './rng'
 import { DEFAULT_TEMPLATES, revealCount } from './engine'
 import { MUTATIONS } from '../data/traits'
+import { planFeline } from '../qmonster/feline/rules'
+import type { FelineThemeId } from '../qmonster/feline/themes'
+
+/** gen2 蛋换轨 gen3 时的主题映射（菌沼 → 林苔） */
+const LEGACY_TO_FELINE: Record<GameState['codex'][number]['theme'], FelineThemeId> = {
+  deepsea: 'deepsea',
+  fungal: 'forest',
+  shadow: 'shadow',
+}
 
 const KEY = 'gsi-save-v1'
 const DEV_OFFSET_KEY = 'gsi-dev-day-offset'
@@ -15,6 +24,16 @@ function migrate(s: GameState): GameState {
   if (s.residentId === undefined) s.residentId = null
   const fixEgg = (egg: Egg | null) => {
     if (!egg) return
+    // 2026-09-16：QMonster v0.3 运行时下线，台上/棚里的 gen2 蛋换成小猫蛋（进度、风险、喂养记录保留）
+    if (egg.qseed && !egg.fseed) {
+      const ftheme = LEGACY_TO_FELINE[egg.theme]
+      const fseed = `f${s.saveSalt.toString(36)}-${egg.id}`
+      egg.fseed = fseed
+      egg.ftheme = ftheme
+      egg.fplan = planFeline(fseed, ftheme, 'normal')
+      delete egg.qseed
+      delete egg.qidentity
+    }
     if (egg.destiny.mutationRoll === undefined) {
       const r = mulberry32(egg.seed ^ 0xbeef)
       egg.destiny.mutationRoll = r()

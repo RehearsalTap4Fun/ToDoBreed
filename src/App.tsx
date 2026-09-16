@@ -4,6 +4,7 @@ import {
   addTemplate,
   setEggIdentity,
   setRecordFelineVisual,
+  setRecordFrozen,
   setRecordSpec,
   addTodo,
   adoptInbox,
@@ -38,6 +39,7 @@ import { felineAvailable } from './qmonster/feline/sdk'
 import { ensureOfflineRuntime } from './qmonster/feline/offline'
 import { resolveFelineRecord } from './qmonster/feline/orchestrator'
 import { FELINE_THEME_MAP } from './qmonster/feline/themes'
+import { freezeGen2Record, needsFreeze } from './qmonster/freeze'
 import { Workshop } from './ui/Workshop'
 import { Codex } from './ui/Codex'
 import { Inbox, type InboxFeed } from './ui/Inbox'
@@ -95,7 +97,13 @@ export default function App() {
       setState(s)
       const modal: GameEvent[] = []
       for (const e of events) {
-        if (e.type === 'reveal' || e.type === 'freveal' || e.type === 'hatch' || e.type === 'residentGrow')
+        if (
+          e.type === 'reveal' ||
+          e.type === 'freveal' ||
+          e.type === 'hatch' ||
+          e.type === 'residentGrow' ||
+          e.type === 'fgrow'
+        )
           modal.push(e)
         else if (e.type === 'eggArrived')
           pushToast(`一枚${e.ftheme ? FELINE_THEME_MAP[e.ftheme].eggName : THEMES[e.theme].name}降临了`)
@@ -160,6 +168,21 @@ export default function App() {
           .catch((e) => console.warn('[gen3] 小猫形象合成失败', e))
           .finally(() => inflight.current.delete(key))
       }
+    }
+    // gen2 冻结：旧生物的立绘与特征名写进存档，脱离 QMonster v0.3 运行时（缓存优先，运行时在时可重绘）
+    for (const rec of state.codex) {
+      if (!needsFreeze(rec)) continue
+      const key = `freeze:${rec.id}`
+      if (inflight.current.has(key)) continue
+      inflight.current.add(key)
+      freezeGen2Record(rec)
+        .then((patch) => {
+          if (!patch) return
+          const cur = stateRef.current
+          if (cur) absorb(setRecordFrozen(cur, rec.id, patch), [])
+        })
+        .catch((e) => console.warn('[gen2] 冻结失败', e))
+        .finally(() => inflight.current.delete(key))
     }
     if (!qmonsterAvailable()) return
     const eggs = [state.currentEgg, ...state.shed].filter(

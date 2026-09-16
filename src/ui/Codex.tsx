@@ -4,7 +4,7 @@ import { Q_SLOT_NAMES, Q_SLOT_ORDER, SLOT_ORDER, type CreatureRecord } from '../
 import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
 import { Creature } from '../render/Creature'
 import { QCreatureImg } from './QCreatureImg'
-import { useTraitIndex, type QTraitInfo } from '../qmonster/semantics'
+import { qTraitDisplay, useTraitIndex, type QTraitInfo } from '../qmonster/semantics'
 import {
   COAT_NAMES,
   EXPRESSION_NAMES,
@@ -262,10 +262,10 @@ function CreatureCard({
           </>
         ) : r.kind === 'qmonster' ? (
           Q_SLOT_ORDER.map((slot) => {
-            const info = r.qsemantic ? traitIndex?.get(r.qsemantic[slot]) : undefined
+            const info = qTraitDisplay(r, slot, traitIndex)
             return (
               <span key={slot} className={info?.rarity === 'L' ? 'hl' : info?.rarity === 'R' ? 'hr' : ''}>
-                {info?.displayName ?? Q_SLOT_NAMES[slot]}
+                {info?.name ?? Q_SLOT_NAMES[slot]}
               </span>
             )
           })

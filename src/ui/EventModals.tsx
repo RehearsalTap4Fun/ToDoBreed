@@ -14,7 +14,7 @@ import { THEMES } from '../data/themes'
 import { Creature } from '../render/Creature'
 import { EggView } from '../render/Egg'
 import { QCreatureImg } from './QCreatureImg'
-import { useTraitIndex } from '../qmonster/semantics'
+import { qTraitDisplay, useTraitIndex } from '../qmonster/semantics'
 import {
   COAT_NAMES,
   EXPRESSION_NAMES,
@@ -75,6 +75,10 @@ export function EventModals({
     ) : (
       <HatchCard record={record} onNext={onNext} />
     )
+  }
+  if (event.type === 'fgrow') {
+    const record = liveRecord(event.record.id) ?? event.record
+    return <FGrowCard event={event} record={record} onNext={onNext} />
   }
   if (event.type === 'residentGrow') {
     const from = TRAIT_MAP[event.fromId]
@@ -310,13 +314,13 @@ function QHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => 
         )}
         <div className="hatch-traits">
           {Q_SLOT_ORDER.map((slot) => {
-            const info = record.qsemantic ? traitIndex?.get(record.qsemantic[slot]) : undefined
+            const info = qTraitDisplay(record, slot, traitIndex)
             return (
               <span
                 key={slot}
                 className={info?.rarity === 'L' ? 'hl' : info?.rarity === 'R' ? 'hr' : ''}
               >
-                {info?.displayName ?? Q_SLOT_NAMES[slot]}
+                {info?.name ?? Q_SLOT_NAMES[slot]}
               </span>
             )
           })}
@@ -344,6 +348,56 @@ function OfflineImageNote() {
 }
 
 /* ── gen3 小猫轨 ─────────────────────────────── */
+
+/** gen3 驻场成长卡：长出新异变或同位置升品；立绘按新选项重新合成（就绪前显示占位） */
+function FGrowCard({
+  event,
+  record,
+  onNext,
+}: {
+  event: Extract<GameEvent, { type: 'fgrow' }>
+  record: CreatureRecord
+  onNext: () => void
+}) {
+  const to = F_MUTATION_MAP[event.to]
+  const from = event.from ? F_MUTATION_MAP[event.from] : null
+  const slotName = FELINE_SLOT_NAMES[event.slot]
+  const who = record.nickname ?? record.name
+  return (
+    <div className="overlay" role="dialog" aria-modal="true">
+      <div className="modal-card">
+        <div className="eyebrow">驻场成长 · {slotName}</div>
+        <QCreatureImg record={record} size={150} />
+        <h3>{to.name}</h3>
+        <span className={`rarity-chip rarity-${to.tier}`}>{TIER_NAMES[to.tier]}</span>
+        <p className="flavor">
+          {who} 看着你把事情做完，忽然开窍了——
+          {from ? (
+            <>
+              {slotName}由「{from.name}」长成了「{to.name}」。
+            </>
+          ) : (
+            <>
+              {slotName}长出了「{to.name}」。
+            </>
+          )}
+          <br />
+          {to.brief}
+          {event.rarityTo !== event.rarityFrom && (
+            <>
+              <br />
+              稀有度 {TIER_NAMES[event.rarityFrom]} → {TIER_NAMES[event.rarityTo]}
+            </>
+          )}
+        </p>
+        <button className="primary" onClick={onNext} autoFocus>
+          好耶
+        </button>
+        <div className="reveal-count">成长 {record.growths} / 3</div>
+      </div>
+    </div>
+  )
+}
 
 /** gen3 揭露卡：花纹 / 表情 / 五个异变位置之一 */
 function FRevealCard({
