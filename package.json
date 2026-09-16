@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "collect": "node scripts/collect-todos.mjs",
-    "release": "npm run build && mkdir -p release && cp dist/index.html \"release/怪奇生物孵化器.html\" && cp public/gsi-inbox.js release/gsi-inbox.js 2>/dev/null; echo \"单机版: release/怪奇生物孵化器.html\"",
+    "release:assets": "node scripts/build-release-assets.mjs",
+    "release": "npm run build && node scripts/build-release-assets.mjs && mkdir -p release && cp dist/index.html \"release/怪奇生物孵化器.html\" && cp public/gsi-inbox.js release/gsi-inbox.js 2>/dev/null; echo \"单机版: release/怪奇生物孵化器.html\"",
     "sync:qmonster": "node scripts/sync-qmonster.mjs",
     "sync:hatchery": "node scripts/sync-hatchery.mjs",
     "play": "node scripts/serve.mjs"

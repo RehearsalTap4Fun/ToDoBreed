@@ -34,6 +34,11 @@ console.log(`[sync-hatchery] 已同步 runtimeRevision ${rev.slice(0, 12)}… �
 const pinned = readFileSync(join(ROOT, 'src/qmonster/feline/sdk.ts'), 'utf8').match(
   /FELINE_RUNTIME_REVISION =\s*'([0-9a-f]{64})'/,
 )?.[1]
+if (pinned === rev) {
+  // SDK 静态内联进应用：钉版一致时同步 vendor 副本（单文件形态也靠它）
+  cpSync(join(SRC, 'qmonster.js'), join(ROOT, 'src/qmonster/feline/vendor/qmonster.js'))
+  console.log('[sync-hatchery] 已刷新 src/qmonster/feline/vendor/qmonster.js')
+}
 if (pinned && pinned !== rev) {
   console.warn(
     `[sync-hatchery] 注意：src/qmonster/feline/sdk.ts 钉的是 ${pinned.slice(0, 12)}…，与本次产物不同；` +

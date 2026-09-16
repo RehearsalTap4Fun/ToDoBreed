@@ -35,6 +35,7 @@ import { THEMES } from './data/themes'
 import { qmonsterAvailable } from './qmonster/catalog'
 import { resolveEggIdentity, resolveRecord } from './qmonster/orchestrator'
 import { felineAvailable } from './qmonster/feline/sdk'
+import { ensureOfflineRuntime } from './qmonster/feline/offline'
 import { resolveFelineRecord } from './qmonster/feline/orchestrator'
 import { FELINE_THEME_MAP } from './qmonster/feline/themes'
 import { Workshop } from './ui/Workshop'
@@ -135,6 +136,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // file://（或 ?offline=1）形态：拉起旁置素材通道；就绪后触发一次编排扫描
+  const [felineReady, setFelineReady] = useState(false)
+  useEffect(() => {
+    ensureOfflineRuntime().then(setFelineReady)
+  }, [])
+
   // gen2/gen3 编排：扫描未解析的蛋身份 / 待渲染档案，异步解析后回写存档
   const inflight = useRef(new Set<string>())
   useEffect(() => {
@@ -183,7 +190,7 @@ export default function App() {
         .catch((e) => console.warn('[gen2] 档案解析失败', e))
         .finally(() => inflight.current.delete(key))
     }
-  }, [state, absorb])
+  }, [state, absorb, felineReady])
 
   // 线索信箱：拉取采集器产出的建议。http 下 fetch gsi-inbox.json；
   // file://（纯单机单文件形态）下 fetch 被浏览器禁用，改为注入 gsi-inbox.js 读全局变量。

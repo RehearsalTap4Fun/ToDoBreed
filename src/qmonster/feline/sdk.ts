@@ -1,7 +1,11 @@
+import * as vendored from './vendor/qmonster.js'
+import { OFFLINE_BASE, ensureOfflineRuntime, isOfflineMode, offlineRuntimeReady } from './offline'
+
 /**
  * QMonster v0.10「小猫组合」孵化 SDK：加载器 + 类型镜像。
  * 产物来自 RandomPet master `npm run build` → dist/hatchery（qmonster.js + snapshot.json + 目录 + 44 张 PNG），
- * 由 `npm run sync:hatchery` 同步到 qmonster-assets/hatchery/<runtimeRevision>/，经 /qmonster/ 静态托管。
+ * 由 `npm run sync:hatchery` 同步到 qmonster-assets/hatchery/<runtimeRevision>/（经 /qmonster/ 静态托管），
+ * 同时把 qmonster.js 拷到 vendor/ 静态内联进应用（单文件形态也能用；file:// 下素材走 offline.ts 的注入通道）。
  * 按对接指南 v3.0：只消费产物不引源码；发布目录按 runtimeRevision 固定且不可变；URL 来自部署配置而非存档。
  */
 
@@ -125,32 +129,25 @@ export interface FelineSdk {
   ): { ok: true; value: FelineSpec } | { ok: false; diagnostics: { path: string[]; message: string }[] }
 }
 
-/** SDK 需要 HTTP 同源 + 安全上下文（crypto.subtle）+ OffscreenCanvas；file:// 单机形态不可用 */
+/**
+ * SDK 是否可用：需要 crypto.subtle + OffscreenCanvas；HTTP 形态直接可用，
+ * file://（或 ?offline=1）形态要等 offline.ts 的旁置素材通道就绪（清单缺失则不可用）。
+ */
 export function felineAvailable(): boolean {
-  return (
-    location.protocol !== 'file:' &&
-    typeof crypto !== 'undefined' &&
-    crypto.subtle !== undefined &&
-    typeof OffscreenCanvas !== 'undefined'
-  )
+  const caps =
+    typeof crypto !== 'undefined' && crypto.subtle !== undefined && typeof OffscreenCanvas !== 'undefined'
+  if (!caps) return false
+  return isOfflineMode() ? offlineRuntimeReady() : true
 }
 
-let sdk: Promise<FelineSdk> | null = null
+/** 资源基址：HTTP 形态指向 /qmonster/hatchery/<rev>/；离线形态指向垫片接管的伪域名 */
+export function felineReleaseBase(): string {
+  return isOfflineMode() ? OFFLINE_BASE : new URL(FELINE_RELEASE_BASE, location.origin).href
+}
 
-/** 运行时动态加载固定版本的 qmonster.js（自包含 ESM，无外部依赖） */
+/** SDK 静态内联（vendor/qmonster.js），保留异步签名以兼容调用方 */
 export function loadFelineSdk(): Promise<FelineSdk> {
-  if (sdk === null) {
-    const url = new URL(`${FELINE_RELEASE_BASE}qmonster.js`, location.origin).href
-    sdk = import(/* @vite-ignore */ url)
-      .then((mod) => mod as FelineSdk)
-      .catch((error) => {
-        sdk = null
-        throw new Error(
-          `FELINE_SDK_LOAD:${String(error)}（是否已 npm run sync:hatchery？期望 ${url}）`,
-        )
-      })
-  }
-  return sdk
+  return Promise.resolve(vendored as unknown as FelineSdk)
 }
 
 let hatchery: Promise<FelineHatchery> | null = null
@@ -158,11 +155,15 @@ let hatchery: Promise<FelineHatchery> | null = null
 /** 创建并缓存孵化器实例：SDK 会校验目录字节 SHA-256 与快照一致 */
 export function loadFelineHatchery(): Promise<FelineHatchery> {
   if (hatchery === null) {
-    hatchery = loadFelineSdk()
+    hatchery = ensureOfflineRuntime()
+      .then((ok) => {
+        if (!ok) throw new Error('FELINE_OFFLINE_FILES_MISSING：单文件形态缺少旁置 qmonster-files/，请重新 npm run release 并整目录拷贝')
+        return loadFelineSdk()
+      })
       .then((mod) =>
         mod.createFelineHatchery({
-          catalogUrl: new URL(`${FELINE_RELEASE_BASE}${FELINE_CATALOG_FILE}`, location.origin).href,
-          resourceBaseUrl: new URL(FELINE_RELEASE_BASE, location.origin).href,
+          catalogUrl: `${felineReleaseBase()}${FELINE_CATALOG_FILE}`,
+          resourceBaseUrl: felineReleaseBase(),
         }),
       )
       .catch((error) => {
@@ -184,7 +185,8 @@ let catalogInfo: Promise<FelineCatalogInfo> | null = null
 
 export function loadFelineCatalogInfo(): Promise<FelineCatalogInfo> {
   if (catalogInfo === null) {
-    catalogInfo = fetch(new URL(`${FELINE_RELEASE_BASE}${FELINE_CATALOG_FILE}`, location.origin).href)
+    catalogInfo = ensureOfflineRuntime()
+      .then(() => fetch(`${felineReleaseBase()}${FELINE_CATALOG_FILE}`))
       .then(async (response) => {
         if (!response.ok) throw new Error(`FELINE_CATALOG_HTTP_${response.status}`)
         const json = (await response.json()) as {

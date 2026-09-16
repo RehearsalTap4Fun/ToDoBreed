@@ -20,6 +20,7 @@ import {
   MUTATION_MAP,
 } from '../src/qmonster/feline/mutations'
 import { COATS, MUTATIONS, MUTATION_SLOT } from '../src/qmonster/feline/sdk'
+import { OFFLINE_BASE, isOfflineMode, scriptNameFor } from '../src/qmonster/feline/offline'
 
 const MODES: FelineMode[] = ['normal', 'mutation', 'aberration']
 const seeds = (n: number) => Array.from({ length: n }, (_, i) => `t-${i}`)
@@ -205,5 +206,16 @@ describe('gen3 小猫组合规则 v2（分层异变）', () => {
       expect(t.secondary).not.toContain(t.signature)
       for (const id of [...t.secondary, ...t.affinity]) expect(MUTATION_MAP[id]).toBeDefined()
     }
+  })
+
+  it('离线通道：资源路径 → 旁置脚本名与构建脚本规则一致；node 环境视为非离线', () => {
+    expect(scriptNameFor('packages/asset-catalog/assets/v0.10.0/halo.png')).toBe(
+      'packages__asset-catalog__assets__v0.10.0__halo.png.js',
+    )
+    expect(scriptNameFor('packages/asset-catalog/catalog/v0.10.0/catalog.json')).toBe(
+      'packages__asset-catalog__catalog__v0.10.0__catalog.json.js',
+    )
+    expect(OFFLINE_BASE.endsWith('/')).toBe(true)
+    expect(isOfflineMode()).toBe(false)
   })
 })
