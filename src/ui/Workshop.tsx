@@ -237,7 +237,8 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
   const hour = new Date().getHours()
   const night = hour >= 20 || hour < 6
 
-  let wrapCls = rec.kind === 'qmonster' || rec.kind === 'feline' ? 'res-walk-mid' : ''
+  // gen3 是坐姿立绘：横向走动会像在飘，改为固定位置原地呼吸
+  let wrapCls = rec.kind === 'feline' ? 'res-sit' : rec.kind === 'qmonster' ? 'res-walk-mid' : ''
   let bubble: string | null = null
   if (rec.kind === 'feline') {
     // 小猫轨没有性格槽：用表情给个小气泡
@@ -282,7 +283,9 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
   return (
     <>
       <div className={`resident ${wrapCls}`}>
-        {rec.kind === 'qmonster' || rec.kind === 'feline' ? (
+        {rec.kind === 'feline' ? (
+          <QCreatureImg record={rec} size={112} className="creature-breathe" />
+        ) : rec.kind === 'qmonster' ? (
           <QCreatureImg record={rec} size={112} className={silent ? undefined : 'creature-idle'} />
         ) : (
           <Creature

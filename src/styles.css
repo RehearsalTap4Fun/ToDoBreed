@@ -685,6 +685,11 @@ select:focus-visible {
 .res-dim {
   opacity: 0.68;
 }
+/* gen3 坐姿猫：固定在地板一处，不走动 */
+.res-sit {
+  left: 30%;
+  animation: none;
+}
 @keyframes res-walk {
   from {
     left: 2%;
@@ -1336,6 +1341,20 @@ button.oc-pill.res.on {
 }
 .creature-idle {
   animation: bob 3.2s ease-in-out infinite;
+}
+/* 坐姿呼吸：以脚底为轴轻微起伏，不离地 */
+.creature-breathe {
+  transform-origin: 50% 100%;
+  animation: breathe 3.6s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.012, 1.02);
+  }
 }
 @keyframes bob {
   0%,
