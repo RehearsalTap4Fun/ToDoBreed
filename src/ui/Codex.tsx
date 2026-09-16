@@ -4,7 +4,7 @@ import { Q_SLOT_NAMES, Q_SLOT_ORDER, SLOT_ORDER, type CreatureRecord } from '../
 import { ABERRATION_MAP, MUTATION_MAP, TRAIT_MAP, TRAITS } from '../data/traits'
 import { Creature } from '../render/Creature'
 import { QCreatureImg } from './QCreatureImg'
-import { qTraitDisplay, useTraitIndex, type QTraitInfo } from '../qmonster/semantics'
+import { Q_TRAIT_TOTAL, qTraitDisplay } from '../qmonster/semantics'
 import {
   COAT_NAMES,
   EXPRESSION_NAMES,
@@ -40,7 +40,6 @@ export function Codex({
   const seenCoats = new Set(felines.map((r) => r.fplan!.selections.coat))
   const seenMutations = new Set(felines.flatMap((r) => r.fplan!.mutations))
   const legacyCount = codex.filter((r) => r.kind !== 'feline').length
-  const traitIndex = useTraitIndex()
   const aberrantCount = codex.filter((r) => r.outcome === 'aberrant').length
   const mutatedCount = codex.filter((r) => r.mutation || r.qmode === 'mutation' || r.fmode === 'mutation').length
   const legendCount = felines.filter((r) => r.outcome !== 'aberrant' && r.fplan!.rarity === 'L').length
@@ -83,7 +82,7 @@ export function Codex({
                   古典特征 <b>{seenTraits.size}</b>/{TRAITS.length}
                 </span>
                 <span>
-                  语义特征 <b>{seenQTraits.size}</b>/{traitIndex?.size ?? 61}
+                  语义特征 <b>{seenQTraits.size}</b>/{Q_TRAIT_TOTAL}
                 </span>
                 <span>
                   圆满 <b>{maxedCount}</b>
@@ -131,7 +130,6 @@ export function Codex({
               <CreatureCard
                 key={r.id}
                 record={r}
-                traitIndex={traitIndex}
                 isResident={residentId === r.id}
                 onRename={onRename}
                 onSetResident={onSetResident}
@@ -146,13 +144,11 @@ export function Codex({
 
 function CreatureCard({
   record: r,
-  traitIndex,
   isResident,
   onRename,
   onSetResident,
 }: {
   record: CreatureRecord
-  traitIndex: Map<string, QTraitInfo> | null
   isResident: boolean
   onRename: (rid: string, nick: string) => void
   onSetResident: (rid: string | null) => void
@@ -262,7 +258,7 @@ function CreatureCard({
           </>
         ) : r.kind === 'qmonster' ? (
           Q_SLOT_ORDER.map((slot) => {
-            const info = qTraitDisplay(r, slot, traitIndex)
+            const info = qTraitDisplay(r, slot)
             return (
               <span key={slot} className={info?.rarity === 'L' ? 'hl' : info?.rarity === 'R' ? 'hr' : ''}>
                 {info?.name ?? Q_SLOT_NAMES[slot]}

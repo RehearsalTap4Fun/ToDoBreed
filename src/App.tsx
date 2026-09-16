@@ -2,10 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   abandonTodo,
   addTemplate,
-  setEggIdentity,
   setRecordFelineVisual,
   setRecordFrozen,
-  setRecordSpec,
   addTodo,
   adoptInbox,
   applyTemplate,
@@ -33,8 +31,6 @@ import {
 } from './core/storage'
 import type { Difficulty, GameEvent, GameState } from './core/types'
 import { THEMES } from './data/themes'
-import { qmonsterAvailable } from './qmonster/catalog'
-import { resolveEggIdentity, resolveRecord } from './qmonster/orchestrator'
 import { felineAvailable } from './qmonster/feline/sdk'
 import { ensureOfflineRuntime } from './qmonster/feline/offline'
 import { resolveFelineRecord } from './qmonster/feline/orchestrator'
@@ -150,7 +146,7 @@ export default function App() {
     ensureOfflineRuntime().then(setFelineReady)
   }, [])
 
-  // gen2/gen3 编排：扫描未解析的蛋身份 / 待渲染档案，异步解析后回写存档
+  // gen3 编排 + gen2 冻结收尾：扫描待合成档案，异步完成后回写存档
   const inflight = useRef(new Set<string>())
   useEffect(() => {
     if (!state) return
@@ -182,35 +178,6 @@ export default function App() {
           if (cur) absorb(setRecordFrozen(cur, rec.id, patch), [])
         })
         .catch((e) => console.warn('[gen2] 冻结失败', e))
-        .finally(() => inflight.current.delete(key))
-    }
-    if (!qmonsterAvailable()) return
-    const eggs = [state.currentEgg, ...state.shed].filter(
-      (e): e is NonNullable<typeof e> => !!e && !!e.qseed && !e.qidentity,
-    )
-    for (const egg of eggs) {
-      const key = `egg:${egg.id}`
-      if (inflight.current.has(key)) continue
-      inflight.current.add(key)
-      resolveEggIdentity(egg)
-        .then((identity) => {
-          const cur = stateRef.current
-          if (cur) absorb(setEggIdentity(cur, egg.id, identity), [])
-        })
-        .catch((e) => console.warn('[gen2] 蛋身份解析失败', e))
-        .finally(() => inflight.current.delete(key))
-    }
-    for (const rec of state.codex) {
-      if (rec.kind !== 'qmonster' || rec.qstatus !== 'pending') continue
-      const key = `rec:${rec.id}`
-      if (inflight.current.has(key)) continue
-      inflight.current.add(key)
-      resolveRecord(rec)
-        .then((patch) => {
-          const cur = stateRef.current
-          if (cur) absorb(setRecordSpec(cur, rec.id, patch), [])
-        })
-        .catch((e) => console.warn('[gen2] 档案解析失败', e))
         .finally(() => inflight.current.delete(key))
     }
   }, [state, absorb, felineReady])

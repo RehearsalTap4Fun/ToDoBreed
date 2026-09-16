@@ -19,16 +19,7 @@
     "noEmit": true,
     "types": [
       "vite/client"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "@qmonster/generator-core": [
-        "./src/qmonster/types/generator-core.d.ts"
-      ],
-      "@qmonster/renderer-canvas": [
-        "./src/qmonster/types/renderer-canvas.d.ts"
-      ]
-    }
+    ]
   },
   "include": [
     "src",

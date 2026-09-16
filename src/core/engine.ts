@@ -9,7 +9,6 @@ import { growFeline, planFeline } from '../qmonster/feline/rules'
 import { FELINE_SLOTS, type StoredFelineVisual } from '../qmonster/feline/sdk'
 import {
   DIFFICULTY_META,
-  Q_SLOT_ORDER,
   SLOT_ORDER,
   type CreatureRecord,
   type Difficulty,
@@ -18,7 +17,6 @@ import {
   type DueRule,
   type GameState,
   type InboxItem,
-  type QIdentity,
   type SlotId,
   type Todo,
   type TodoTemplate,
@@ -107,7 +105,7 @@ export const MUTATION = { base: 0.05, perHard: 0.01, cap: 0.15 }
 /** 按时连击：连续 3 条按时完成后，揭露稀有度加成 R×1.5 / L×2（§05.3） */
 export const STREAK_ACTIVATE = 3
 
-/** 孵化结算：判定 → 建档 → 入册。不负责从孵化台/休眠棚移除。 */
+/** 孵化结算：判定 → 建档 → 入册。不负责从孵化台/休眠棚移除。gen2（qseed）蛋已由读档迁移换成 gen3，此处不再处理。 */
 function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): CreatureRecord {
   const aberrant = egg.destiny.judgmentRoll < egg.risk
   const fedTodos = egg.fedBy
@@ -149,19 +147,6 @@ function hatchEgg(s: GameState, egg: Egg, day: string, forced: boolean): Creatur
       fmode,
       fplan,
       fstatus: 'pending',
-      aberrations: [],
-      mutation: null,
-    }
-  } else if (egg.qseed) {
-    // gen2：形象与语义特征由 QMonster 决定；权威 spec 由编排层异步解析后回写
-    record = {
-      ...base,
-      name: `${egg.destiny.rootChar}·未名`,
-      kind: 'qmonster',
-      qseed: egg.qseed,
-      qmode: aberrant ? 'aberration' : mutated ? 'mutation' : 'normal',
-      qsemantic: egg.qidentity?.slots,
-      qstatus: 'pending',
       aberrations: [],
       mutation: null,
     }
@@ -319,15 +304,9 @@ function feedPoints(s: GameState, points: number, today: string, events: GameEve
       continue
     }
     const slot = SLOT_ORDER[i]
-    if (egg.qseed) {
-      // gen2：揭露 QMonster 语义槽（身份未解析时先出空卡，UI 显示"凝聚中"）
-      const qtraitId = egg.qidentity?.slots[Q_SLOT_ORDER[i]] ?? ''
-      events.push({ type: 'reveal', slot, traitId: '', index: i, qtraitId })
-    } else {
-      const traitId = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, boost)
-      egg.revealed[slot] = traitId
-      events.push({ type: 'reveal', slot, traitId, index: i })
-    }
+    const traitId = rollTraitForSlot(THEMES[egg.theme], egg.seed, i, egg.revealed, boost)
+    egg.revealed[slot] = traitId
+    events.push({ type: 'reveal', slot, traitId, index: i })
   }
   if (egg.points >= HATCH_POINTS) {
     const record = hatchEgg(s, egg, today, false)
@@ -660,40 +639,6 @@ export function setRecordFrozen(
   const target = s.codex.find((c) => c.id === recordId)!
   if (patch.qimageData) target.qimageData = patch.qimageData
   if (patch.qtraitNames) target.qtraitNames = patch.qtraitNames
-  return s
-}
-
-/** 回写蛋的 QMonster 身份（编排层异步解析后调用） */
-export function setEggIdentity(state: GameState, eggId: string, identity: QIdentity): GameState {
-  const find = (st: GameState) =>
-    st.currentEgg?.id === eggId ? st.currentEgg : st.shed.find((e) => e.id === eggId)
-  const target = find(state)
-  if (!target || !target.qseed || target.qidentity) return state
-  const s = clone(state)
-  find(s)!.qidentity = identity
-  return s
-}
-
-/** 回写档案的权威 MonsterSpec 与最终信息（编排层解析+渲染完成后调用） */
-export function setRecordSpec(
-  state: GameState,
-  recordId: string,
-  patch: {
-    qspec: unknown
-    qsemantic: Record<string, string>
-    qimageKey: string
-    name?: string
-  },
-): GameState {
-  const rec = state.codex.find((c) => c.id === recordId)
-  if (!rec || rec.kind !== 'qmonster') return state
-  const s = clone(state)
-  const target = s.codex.find((c) => c.id === recordId)!
-  target.qspec = patch.qspec
-  target.qsemantic = patch.qsemantic as CreatureRecord['qsemantic']
-  target.qimageKey = patch.qimageKey
-  target.qstatus = 'ready'
-  if (patch.name && target.nickname === null) target.name = patch.name
   return s
 }
 

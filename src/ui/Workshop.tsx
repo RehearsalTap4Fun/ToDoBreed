@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { HATCH_POINTS, residentOf, revealCountFor, revealTotalFor } from '../core/engine'
 import {
-  Q_SLOT_NAMES,
-  Q_SLOT_ORDER,
   SLOT_NAMES,
   SLOT_ORDER,
   type CreatureRecord,
@@ -22,7 +20,6 @@ import { TRAIT_MAP } from '../data/traits'
 import { EggView } from '../render/Egg'
 import { Creature } from '../render/Creature'
 import { QCreatureImg } from './QCreatureImg'
-import { useTraitIndex } from '../qmonster/semantics'
 import { TodoBoard } from './TodoBoard'
 import { Shed } from './Shed'
 
@@ -115,7 +112,7 @@ export function Workshop({
         />
       </div>
 
-      {/* 墙上的观察卡：已揭露特征（gen3 7 槽小猫身份 / gen2 语义槽 / legacy 旧特征库） */}
+      {/* 墙上的观察卡：已揭露特征（gen3 7 槽小猫身份 / legacy 旧特征库） */}
       <TraitWall egg={egg} />
 
       {/* 墙上的休眠棚搁板 */}
@@ -308,9 +305,8 @@ function Resident({ rec, pinned }: { rec: CreatureRecord | null; pinned: boolean
 }
 
 
-/** 观察卡墙：gen3 蛋读 7 槽小猫身份，gen2 蛋读 QMonster 语义槽（身份解析前显示凝聚中），legacy 蛋读旧特征库 */
+/** 观察卡墙：gen3 蛋读 7 槽小猫身份，legacy 蛋读旧特征库 */
 function TraitWall({ egg }: { egg: GameState['currentEgg'] }) {
-  const traitIndex = useTraitIndex()
   const revealed = egg ? revealCountFor(egg) : 0
 
   if (egg?.fseed && egg.fplan) {
@@ -361,17 +357,8 @@ function TraitWall({ egg }: { egg: GameState['currentEgg'] }) {
         let name: string | null = null
         let flavor = '尚未揭露'
         let rarity: 'N' | 'R' | 'L' | null = null
-        let slotName: string = SLOT_NAMES[slot]
-        if (egg?.qseed) {
-          slotName = Q_SLOT_NAMES[Q_SLOT_ORDER[i]]
-          if (i < revealed) {
-            const qid = egg.qidentity?.slots[Q_SLOT_ORDER[i]]
-            const info = qid ? traitIndex?.get(qid) : undefined
-            name = info?.displayName ?? '凝聚中'
-            flavor = info?.flavorText ?? '身份尚在凝聚'
-            rarity = info?.rarity ?? null
-          }
-        } else if (egg && i < revealed) {
+        const slotName: string = SLOT_NAMES[slot]
+        if (egg && i < revealed) {
           const id = egg.revealed[slot]
           const t = id ? TRAIT_MAP[id] : null
           if (t) {

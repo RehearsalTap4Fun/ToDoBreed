@@ -292,7 +292,7 @@ export interface GameState {
 }
 
 export type GameEvent =
-  | { type: 'reveal'; slot: SlotId; traitId: string; index: number; qtraitId?: string }
+  | { type: 'reveal'; slot: SlotId; traitId: string; index: number }
   /** gen3 揭露：7 槽之一（value 为花纹/表情/异变 id 或 'none'） */
   | { type: 'freveal'; slot: FelineSlot; value: string; index: number; total: number }
   | { type: 'hatch'; record: CreatureRecord }

@@ -5,8 +5,6 @@ import { makeName } from '../src/core/naming'
 import {
   abandonTodo,
   addTemplate,
-  setEggIdentity,
-  setRecordSpec,
   addTodo,
   adoptInbox,
   applyTemplate,
@@ -27,7 +25,7 @@ import {
   setResident,
   swapEgg,
 } from '../src/core/engine'
-import { Q_SLOT_ORDER, SLOT_ORDER, type GameEvent, type SlotId, type GameState } from '../src/core/types'
+import { SLOT_ORDER, type CreatureRecord, type GameEvent, type SlotId, type GameState } from '../src/core/types'
 import { parseImport } from '../src/core/storage'
 import { FELINE_THEME_MAP } from '../src/qmonster/feline/themes'
 import { planFeline, rarityOf } from '../src/qmonster/feline/rules'
@@ -191,100 +189,6 @@ describe('按时连击', () => {
     expect(s.streak).toBe(1)
     s = abandonTodo(s, 'todo-2')
     expect(s.streak).toBe(0)
-  })
-})
-
-describe('gen2 换轨（QMonster）', () => {
-  it('gen2 蛋携带 qseed；揭露不掷旧特征、事件带 qtraitId', () => {
-    let s = gen2(fresh(FRI))
-    expect(s.currentEgg!.qseed).toMatch(/^q/)
-    s = addTodo(s, { title: '写周报', difficulty: 'hard', due: null }, FRI)
-    const r = completeTodo(s, 'todo-1', FRI)
-    const reveals = r.events.filter((e) => e.type === 'reveal')
-    expect(reveals).toHaveLength(1)
-    expect(reveals[0].type === 'reveal' && reveals[0].qtraitId).toBe('') // 身份未解析 → 空卡
-    expect(Object.keys(r.state.currentEgg!.revealed)).toHaveLength(0) // 不走旧特征库
-  })
-
-  it('身份回写后揭露事件携带语义特征 id', () => {
-    let s = gen2(fresh(FRI))
-    const eggId = s.currentEgg!.id
-    const slots = Object.fromEntries(Q_SLOT_ORDER.map((q) => [q, `sem_${q}`])) as Record<
-      (typeof Q_SLOT_ORDER)[number],
-      string
-    >
-    s = setEggIdentity(s, eggId, { resolvedSeed: 'q-x#2', slots })
-    expect(s.currentEgg!.qidentity!.resolvedSeed).toBe('q-x#2')
-    s = addTodo(s, { title: '任务', difficulty: 'hard', due: null }, FRI)
-    const r = completeTodo(s, 'todo-1', FRI)
-    const reveal = r.events.find((e) => e.type === 'reveal')
-    expect(reveal && reveal.type === 'reveal' && reveal.qtraitId).toBe('sem_frame')
-  })
-
-  it('孵化判定映射 qmode：畸变→aberration，变异→mutation，档案待渲染', () => {
-    // 畸变
-    let s = gen2(fresh(FRI))
-    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.risk = 60
-    s.currentEgg!.destiny.judgmentRoll = 5
-    let rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
-    expect(rec.kind).toBe('qmonster')
-    expect(rec.qmode).toBe('aberration')
-    expect(rec.outcome).toBe('aberrant')
-    expect(rec.qstatus).toBe('pending')
-    expect(rec.traits).toBeUndefined()
-    // 变异
-    s = gen2(fresh(FRI))
-    s = addTodo(s, { title: 'b', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.destiny.judgmentRoll = 99
-    s.currentEgg!.destiny.mutationRoll = 0.04
-    rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
-    expect(rec.qmode).toBe('mutation')
-    expect(rec.outcome).toBe('normal')
-    // 正常
-    s = gen2(fresh(FRI))
-    s = addTodo(s, { title: 'c', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.destiny.judgmentRoll = 99
-    s.currentEgg!.destiny.mutationRoll = 0.9
-    rec = completeTodo(s, 'todo-1', FRI).state.codex[0]
-    expect(rec.qmode).toBe('normal')
-  })
-
-  it('连击 ≥3 时孵化变异率 +2%', () => {
-    const run = (streak: number) => {
-      let s = gen2(fresh(FRI))
-      s.streak = streak
-      s = addTodo(s, { title: 'x', difficulty: 'normal', due: null }, FRI)
-      s.currentEgg!.points = 90
-      s.currentEgg!.destiny.judgmentRoll = 99
-      s.currentEgg!.destiny.mutationRoll = 0.06 // 基础 5% 落空，+2% 后命中
-      return completeTodo(s, 'todo-1', FRI).state.codex[0].qmode
-    }
-    expect(run(0)).toBe('normal')
-    expect(run(3)).toBe('mutation')
-  })
-
-  it('setRecordSpec 回写权威 spec 并置 ready，昵称不被覆盖', () => {
-    let s = gen2(fresh(FRI))
-    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.destiny.judgmentRoll = 99
-    s = completeTodo(s, 'todo-1', FRI).state
-    const id = s.codex[0].id
-    const semantic = Object.fromEntries(Q_SLOT_ORDER.map((q) => [q, `sem_${q}`]))
-    s = setRecordSpec(s, id, {
-      qspec: { seed: 'q-1#3' },
-      qsemantic: semantic,
-      qimageKey: 'qm:test',
-      name: '汐圆',
-    })
-    const rec = s.codex[0]
-    expect(rec.qstatus).toBe('ready')
-    expect(rec.qimageKey).toBe('qm:test')
-    expect(rec.name).toBe('汐圆')
   })
 })
 
@@ -481,13 +385,16 @@ describe('gen3 驻场成长与 gen2 冻结', () => {
   })
 
   it('gen2 旧生物不再成长；setRecordFrozen 只对 gen2 生效并可分次补齐', () => {
-    let s = gen2(fresh(FRI))
-    s = addTodo(s, { title: 'a', difficulty: 'normal', due: null }, FRI)
-    s.currentEgg!.points = 90
-    s.currentEgg!.destiny.judgmentRoll = 99
-    s = completeTodo(s, 'todo-1', FRI).state
-    const id = s.codex[0].id
-    expect(s.codex[0].kind).toBe('qmonster')
+    let s = fresh(FRI)
+    // 旧存档里的 gen2 档案（运行时已下线，只读）
+    const old: CreatureRecord = {
+      id: 'GSI-001', name: '昙短', nickname: null, theme: 'shadow', seed: 1, kind: 'qmonster',
+      qseed: 'q-old', qmode: 'normal', qstatus: 'ready', qimageKey: 'qm:old',
+      aberrations: [], outcome: 'normal', mutation: null, hatchedDay: FRI, riskAtHatch: 3, fedTodos: [], forced: false, growths: 0,
+    }
+    s.codex.push(old)
+    s.gsiCounter = 2
+    const id = old.id
     s = setResident(s, id)
     for (let i = 0; i < 40; i++) {
       s = addTodo(s, { title: `x${i}`, difficulty: 'epic', due: null }, FRI)
