@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { CreatureRecord } from '../core/types'
 import { renderRecordImage } from '../qmonster/orchestrator'
 import { renderFelineImage } from '../qmonster/feline/orchestrator'
+import { felineAvailable } from '../qmonster/feline/sdk'
+import { qmonsterAvailable } from '../qmonster/catalog'
 
 /** blob URL 复用：同一缓存键只创建一次 objectURL */
 const urlCache = new Map<string, string>()
@@ -46,12 +48,20 @@ export function QCreatureImg({
   }, [record, url, status, key])
 
   if (url === null) {
+    const available = record.kind === 'feline' ? felineAvailable() : qmonsterAvailable()
+    const title = !available
+      ? '单文件形态无法合成立绘：用「启动孵化器.command」或 npm run play 打开可见形象'
+      : status === 'pending'
+        ? '形象凝聚中…'
+        : '形象加载中…'
     return (
       <div
-        className={`qimg-pending ${className ?? ''}`}
+        className={`qimg-pending${available ? '' : ' offline'} ${className ?? ''}`}
         style={{ width: size, height: size }}
-        title={status === 'pending' ? '形象凝聚中…' : '形象加载中…'}
-      />
+        title={title}
+      >
+        {!available && <span className="qimg-offline-glyph">🐾</span>}
+      </div>
     )
   }
   return (

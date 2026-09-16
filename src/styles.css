@@ -2729,3 +2729,26 @@ button.oc-pill.res.on {
   color: var(--amber-deep);
   border-color: var(--amber-deep);
 }
+
+/* ── 单文件形态：立绘不可用的占位与提示 ── */
+.qimg-pending.offline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: none;
+  opacity: 0.55;
+}
+.qimg-offline-glyph {
+  font-size: 2rem;
+  filter: grayscale(1);
+}
+.offline-note {
+  font-size: 0.76rem;
+  color: var(--paper-muted);
+  margin: 0.2rem 0 0.4rem;
+  line-height: 1.5;
+}
+.offline-note code {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}

@@ -23,7 +23,8 @@ import {
   themeDisplayName,
 } from '../qmonster/feline/themes'
 import { MUTATION_MAP as F_MUTATION_MAP, TIER_NAMES } from '../qmonster/feline/mutations'
-import type { FelineSlot } from '../qmonster/feline/sdk'
+import { felineAvailable, type FelineSlot } from '../qmonster/feline/sdk'
+import { qmonsterAvailable } from '../qmonster/catalog'
 
 export function EventModals({
   event,
@@ -276,7 +277,8 @@ function QRevealCard({
 function QHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => void }) {
   const traitIndex = useTraitIndex()
   const aberrant = record.outcome === 'aberrant'
-  const ready = record.qstatus === 'ready'
+  // file:// 单文件形态下位图管线不可用：不等待立绘，直接登场并提示
+  const ready = record.qstatus === 'ready' || !qmonsterAvailable()
   const { stage } = useHatchStage(ready)
 
   if (stage !== 'reveal') return <HatchStage record={record} stage={stage} ready={ready} />
@@ -289,6 +291,7 @@ function QHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => 
           破壳 · {THEMES[record.theme].name} · {record.id}
         </div>
         <QCreatureImg record={record} size={230} />
+        {!qmonsterAvailable() && <OfflineImageNote />}
         <h3>{record.name}</h3>
         <p className="outcome">
           {aberrant ? (
@@ -327,6 +330,16 @@ function QHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => 
         </button>
       </div>
     </div>
+  )
+}
+
+/** 单文件（file://）形态的提示：立绘需要本地 HTTP 服务才能合成，存档不受影响 */
+function OfflineImageNote() {
+  return (
+    <p className="offline-note">
+      这个单文件形态无法合成立绘——双击「启动孵化器.command」或运行 <code>npm run play</code>
+      打开同一份存档（导出/导入），形象就会出现。
+    </p>
   )
 }
 
@@ -385,7 +398,8 @@ function FRevealCard({
 /** gen3 破壳卡：蓄力至 SDK 合成就绪 → 白光 → 登场；命名与稀有度在破壳瞬间已定 */
 function FHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => void }) {
   const aberrant = record.outcome === 'aberrant'
-  const ready = record.fstatus === 'ready'
+  // file:// 单文件形态下 SDK 不可用：不等待立绘，直接登场并提示
+  const ready = record.fstatus === 'ready' || !felineAvailable()
   const { stage } = useHatchStage(ready)
   const plan = record.fplan
 
@@ -400,6 +414,7 @@ function FHatchCard({ record, onNext }: { record: CreatureRecord; onNext: () => 
           破壳 · {themeDisplayName(record)} · {record.id}
         </div>
         <QCreatureImg record={record} size={230} />
+        {!felineAvailable() && <OfflineImageNote />}
         <h3>
           {record.name}
           {plan && !aberrant && (
